@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal AI - Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5a67d8;
+            --sidebar-bg: #1a1a2e;
+            --bg: #f7fafc;
+            --text: #2d3748;
+            --text-light: #718096;
+            --border: #e2e8f0;
+            --success: #48bb78;
+            --danger: #f56565;
+            --warning: #ed8936;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        /* Auth Pages */
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary) 0%, #764ba2 100%);
+            padding: 1rem;
+        }
+
+        .auth-box {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .auth-box h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .auth-box p {
+            color: var(--text-light);
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e0;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .auth-toggle {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--text-light);
+        }
+
+        .auth-toggle a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        /* Dashboard Layout */
+        .dashboard {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--sidebar-bg);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .sidebar-header p {
+            font-size: 0.875rem;
+            opacity: 0.7;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 1rem 0;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            border-left: 3px solid white;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        /* Chat Interface */
+        .chat-container {
+            display: flex;
+            height: 100%;
+            gap: 1rem;
+        }
+
+        .chat-sidebar {
+            width: 280px;
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .message {
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 1rem;
+            border-radius: 12px;
+        }
+
+        .message.user .message-bubble {
+            background: var(--primary);
+            color: white;
+        }
+
+        .message.assistant .message-bubble {
+            background: #f7fafc;
+            border: 1px solid var(--border);
+        }
+
+        .citations {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f7fafc;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .citation-item {
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .chat-input-container {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border);
+            background: white;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            resize: none;
+            max-height: 120px;
+            font-family: inherit;
+        }
+
+        .chat-history-item {
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .chat-history-item:hover {
+            background: var(--bg);
+        }
+
+        .chat-history-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Search Page */
+        .search-container {
+            max-width: 900px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-box input {
+            flex: 1;
+        }
+
+        .result-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+        }
+
+        .result-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .result-card h3 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .result-card .meta {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            margin-bottom: 0.75rem;
+        }
+
+        .result-card .content {
+            line-height: 1.6;
+        }
+
+        .score-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Review & Draft Pages */
+        .tool-container {
+            max-width: 1000px;
+        }
+
+        .tool-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .tool-result {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        textarea {
+            min-height: 200px;
+        }
+
+        /* API Keys Page */
+        .key-list {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .key-item {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .key-item:last-child {
+            border-bottom: none;
+        }
+
+        .key-value {
+            font-family: 'Courier New', monospace;
+            background: var(--bg);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+
+        /* Usage Page */
+        .usage-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .usage-bar {
+            background: var(--border);
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .usage-bar-fill {
+            background: linear-gradient(90deg, var(--primary), #764ba2);
+            height: 100%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            z-index: 1000;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.warning { border-left: 4px solid var(--warning); }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Utility Classes */
+        .hidden { display: none !important; }
+        .mt-1 { margin-top: 1rem; }
+        .mb-1 { margin-bottom: 1rem; }
+        .text-center { text-align: center; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: fixed;
+                z-index: 100;
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .chat-container {
+                flex-direction: column;
+            }
+
+            .chat-sidebar {
+                width: 100%;
+                max-height: 200px;
+            }
+
+            .message-bubble {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Auth Container -->
+<div id="authContainer" class="auth-container">
+    <!-- Login Form -->
+    <div id="loginForm" class="auth-box">
+        <h1>🦾 Legal AI</h1>
+        <p>Đăng nhập vào tài khoản của bạn</p>
+        <form id="loginFormElement">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" required placeholder="bi@hrvn.vn">
+            </div>
+            <div class="form-group">
+                <label>Mật khẩu</label>
+                <input type="password" id="loginPassword" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-primary">Đăng nhập</button>
+        </form>
+        <div class="auth-toggle">
+            Chưa có tài khoản? <a href="#" onclick="showRegister(); return false;">Đăng ký ngay</a>
+        </div>
+    </div>
+
+    <!-- Register Form -->
+    <div id="registerForm" class="auth-box hidden">
+        <h1>🦾 Legal AI</h1>
+        <p>Tạo tài khoản mới</p>
+        <form id="registerFormElement">
+            <div class="form-group">
+                <label>Họ và tên</label>
+                <input type="text" id="regFullName" required placeholder="Nguyễn Văn A">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="regEmail" required placeholder="email@company.com">
+            </div>
+            <div class="form-group">
+                <label>Tên công ty</label>
+                <input type="text" id="regCompany" required placeholder="CÔNG TY TNHH ABC">
+            </div>
+            <div class="form-group">
+                <label>Mật khẩu</label>
+                <input type="password" id="regPassword" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-primary">Đăng ký</button>
+        </form>
+        <div class="auth-toggle">
+            Đã có tài khoản? <a href="#" onclick="showLogin(); return false;">Đăng nhập</a>
+        </div>
+    </div>
+</div>
+
+<!-- Dashboard Container -->
+<div id="dashboardContainer" class="dashboard hidden">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>🦾 Legal AI</h2>
+            <p id="companyName">...</p>
+        </div>
+        <div class="sidebar-nav">
+            <div class="nav-item active" onclick="navigateTo('chat')">💬 Chat</div>
+            <div class="nav-item" onclick="navigateTo('search')">🔍 Tìm kiếm</div>
+            <div class="nav-item" onclick="navigateTo('review')">📋 Rà soát HĐ</div>
+            <div class="nav-item" onclick="navigateTo('draft')">✍️ Soạn thảo</div>
+            <div class="nav-item" onclick="navigateTo('keys')">🔑 API Keys</div>
+            <div class="nav-item" onclick="navigateTo('usage')">📊 Sử dụng</div>
+            <div class="nav-item" onclick="navigateTo('settings')">⚙️ Cài đặt</div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <div>
+                <h2 id="pageTitle">Chat</h2>
+            </div>
+            <div class="user-info">
+                <span id="userName">...</span>
+                <button class="btn btn-secondary btn-small" onclick="logout()">Đăng xuất</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Chat Page -->
+            <div id="chatPage" class="page">
+                <div class="chat-container">
+                    <div class="chat-sidebar">
+                        <button class="btn btn-primary mb-1" onclick="newChat()">+ Trò chuyện mới</button>
+                        <div id="chatHistory" style="overflow-y: auto; flex: 1;"></div>
+                    </div>
+                    <div class="chat-main">
+                        <div id="chatMessages" class="chat-messages"></div>
+                        <div class="chat-input-container">
+                            <div class="chat-input-wrapper">
+                                <textarea id="chatInput" class="chat-input" placeholder="Nhập câu hỏi của bạn..." rows="1"></textarea>
+                                <button class="btn btn-primary" onclick="sendMessage()">Gửi</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Page -->
+            <div id="searchPage" class="page hidden">
+                <div class="search-container">
+                    <h2 class="mb-1">Tìm kiếm văn bản pháp luật</h2>
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Nhập từ khóa tìm kiếm...">
+                        <select id="searchDomain">
+                            <option value="">Tất cả lĩnh vực</option>
+                            <option value="lao_dong">Lao động</option>
+                            <option value="doanh_nghiep">Doanh nghiệp</option>
+                            <option value="dan_su">Dân sự</option>
+                            <option value="thuong_mai">Thương mại</option>
+                            <option value="thue">Thuế</option>
+                            <option value="dat_dai">Đất đai</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="performSearch()">Tìm kiếm</button>
+                    </div>
+                    <div id="searchResults"></div>
+                </div>
+            </div>
+
+            <!-- Review Page -->
+            <div id="reviewPage" class="page hidden">
+                <div class="tool-container">
+                    <h2 class="mb-1">Rà soát hợp đồng</h2>
+                    <div class="tool-form">
+                        <div class="form-group">
+                            <label>Loại rà soát</label>
+                            <select id="reviewType">
+                                <option value="general">Tổng quan</option>
+                                <option value="risk">Phân tích rủi ro</option>
+                                <option value="compliance">Tuân thủ pháp luật</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Nội dung hợp đồng</label>
+                            <textarea id="contractText" placeholder="Dán nội dung hợp đồng vào đây..."></textarea>
+                        </div>
+                        <button class="btn btn-primary" onclick="reviewContract()">Rà soát</button>
+                    </div>
+                    <div id="reviewResult" class="tool-result hidden"></div>
+                </div>
+            </div>
+
+            <!-- Draft Page -->
+            <div id="draftPage" class="page hidden">
+                <div class="tool-container">
+                    <h2 class="mb-1">Soạn thảo văn bản</h2>
+                    <div class="tool-form">
+                        <div class="form-group">
+                            <label>Loại văn bản</label>
+                            <select id="docType" onchange="updateDraftFields()">
+                                <option value="hop_dong_lao_dong">Hợp đồng lao động</option>
+                                <option value="quyet_dinh">Quyết định</option>
+                                <option value="cong_van">Công văn</option>
+                                <option value="noi_quy">Nội quy</option>
+                                <option value="hop_dong_mua_ban">Hợp đồng mua bán</option>
+                            </select>
+                        </div>
+                        <div id="draftFields"></div>
+                        <button class="btn btn-primary" onclick="generateDraft()">Tạo văn bản</button>
+                    </div>
+                    <div id="draftResult" class="tool-result hidden"></div>
+                </div>
+            </div>
+
+            <!-- API Keys Page -->
+            <div id="keysPage" class="page hidden">
+                <div class="tool-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h2>API Keys</h2>
+                        <button class="btn btn-primary btn-small" onclick="createApiKey()">+ Tạo key mới</button>
+                    </div>
+                    <div id="keysList" class="key-list"></div>
+                </div>
+            </div>
+
+            <!-- Usage Page -->
+            <div id="usagePage" class="page hidden">
+                <div class="tool-container">
+                    <h2 class="mb-1">Thống kê sử dụng</h2>
+                    <div class="usage-card">
+                        <h3>Tháng này</h3>
+                        <p class="text-light" id="usageText">...</p>
+                        <div class="usage-bar">
+                            <div id="usageBarFill" class="usage-bar-fill" style="width: 0%">0%</div>
+                        </div>
+                    </div>
+                    <div class="usage-card">
+                        <h3>Thông tin gói</h3>
+                        <p id="planInfo">...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settingsPage" class="page hidden">
+                <div class="tool-container">
+                    <h2 class="mb-1">Cài đặt</h2>
+                    <div class="tool-form">
+                        <h3>Thông tin tài khoản</h3>
+                        <div class="form-group">
+                            <label>Họ và tên</label>
+                            <input type="text" id="settingsName" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="settingsEmail" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Công ty</label>
+                            <input type="text" id="settingsCompany" readonly>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:8080';
+let currentUser = null;
+let currentApiKey = null;
+let currentChatId = null;
+let chats = [];
+
+// === Auth Functions ===
+function showLogin() {
+    document.getElementById('loginForm').classList.remove('hidden');
+    document.getElementById('registerForm').classList.add('hidden');
+}
+
+function showRegister() {
+    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('registerForm').classList.remove('hidden');
+}
+
+document.getElementById('loginFormElement').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    try {
+        const res = await fetch(`${API_BASE}/v1/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Đăng nhập thất bại');
+
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token);
+        
+        await initDashboard();
+        showToast('Đăng nhập thành công!', 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+});
+
+document.getElementById('registerFormElement').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('regEmail').value;
+    const password = document.getElementById('regPassword').value;
+    const full_name = document.getElementById('regFullName').value;
+    const company_name = document.getElementById('regCompany').value;
+
+    try {
+        const res = await fetch(`${API_BASE}/v1/auth/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, full_name, company_name })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || 'Đăng ký thất bại');
+
+        showToast('Đăng ký thành công! Vui lòng đăng nhập.', 'success');
+        showLogin();
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+});
+
+async function initDashboard() {
+    try {
+        // Get user info
+        const userRes = await apiCall('/v1/auth/me');
+        currentUser = userRes;
+
+        // Get API keys
+        const keysRes = await apiCall('/v1/keys');
+        if (keysRes.length === 0) {
+            // Auto-create first key
+            const newKey = await apiCall('/v1/keys', {
+                method: 'POST',
+                body: JSON.stringify({ name: 'Default Key' })
+            });
+            currentApiKey = newKey.key;
+        } else {
+            currentApiKey = keysRes[0].key;
+        }
+
+        // Update UI
+        document.getElementById('userName').textContent = currentUser.full_name;
+        document.getElementById('companyName').textContent = currentUser.company_name;
+        document.getElementById('settingsName').value = currentUser.full_name;
+        document.getElementById('settingsEmail').value = currentUser.email;
+        document.getElementById('settingsCompany').value = currentUser.company_name;
+
+        // Show dashboard
+        document.getElementById('authContainer').classList.add('hidden');
+        document.getElementById('dashboardContainer').classList.remove('hidden');
+
+        // Load initial data
+        await loadChatHistory();
+        await loadUsageStats();
+    } catch (err) {
+        showToast('Không thể tải dữ liệu. Vui lòng đăng nhập lại.', 'error');
+        logout();
+    }
+}
+
+function logout() {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    currentUser = null;
+    currentApiKey = null;
+    document.getElementById('authContainer').classList.remove('hidden');
+    document.getElementById('dashboardContainer').classList.add('hidden');
+    showLogin();
+}
+
+async function apiCall(endpoint, options = {}) {
+    const token = localStorage.getItem('access_token');
+    const headers = {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...options.headers
+    };
+
+    const res = await fetch(`${API_BASE}${endpoint}`, {
+        ...options,
+        headers
+    });
+
+    if (res.status === 401) {
+        logout();
+        throw new Error('Session expired');
+    }
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'API Error');
+    
+    return data;
+}
+
+// === Navigation ===
+function navigateTo(page) {
+    // Update sidebar
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    event.currentTarget.classList.add('active');
+
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+
+    // Show selected page
+    const pageMap = {
+        'chat': { id: 'chatPage', title: 'Chat' },
+        'search': { id: 'searchPage', title: 'Tìm kiếm' },
+        'review': { id: 'reviewPage', title: 'Rà soát hợp đồng' },
+        'draft': { id: 'draftPage', title: 'Soạn thảo văn bản' },
+        'keys': { id: 'keysPage', title: 'API Keys' },
+        'usage': { id: 'usagePage', title: 'Thống kê sử dụng' },
+        'settings': { id: 'settingsPage', title: 'Cài đặt' }
+    };
+
+    const pageInfo = pageMap[page];
+    document.getElementById(pageInfo.id).classList.remove('hidden');
+    document.getElementById('pageTitle').textContent = pageInfo.title;
+
+    // Load page-specific data
+    if (page === 'keys') loadApiKeys();
+    if (page === 'usage') loadUsageStats();
+    if (page === 'draft') updateDraftFields();
+}
+
+// === Chat Functions ===
+async function loadChatHistory() {
+    try {
+        chats = await apiCall('/v1/chats');
+        const historyDiv = document.getElementById('chatHistory');
+        historyDiv.innerHTML = chats.map(chat => `
+            <div class="chat-history-item ${chat.id === currentChatId ? 'active' : ''}" onclick="loadChat('${chat.id}')">
+                <div style="font-weight: 500; margin-bottom: 0.25rem;">${chat.title || 'Trò chuyện mới'}</div>
+                <div style="font-size: 0.75rem; opacity: 0.7;">${new Date(chat.created_at).toLocaleDateString('vi-VN')}</div>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('Failed to load chat history:', err);
+    }
+}
+
+async function loadChat(chatId) {
+    try {
+        currentChatId = chatId;
+        const chat = await apiCall(`/v1/chats/${chatId}`);
+        
+        const messagesDiv = document.getElementById('chatMessages');
+        messagesDiv.innerHTML = chat.messages.map(msg => {
+            const isUser = msg.role === 'user';
+            return `
+                <div class="message ${isUser ? 'user' : 'assistant'}">
+                    <div class="message-bubble">
+                        ${isUser ? msg.content : marked.parse(msg.content)}
+                        ${!isUser && msg.citations ? renderCitations(msg.citations) : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        loadChatHistory(); // Refresh sidebar
+    } catch (err) {
+        showToast('Không thể tải trò chuyện', 'error');
+    }
+}
+
+function newChat() {
+    currentChatId = null;
+    document.getElementById('chatMessages').innerHTML = '';
+    loadChatHistory();
+}
+
+async function sendMessage() {
+    const input = document.getElementById('chatInput');
+    const question = input.value.trim();
+    if (!question) return;
+
+    // Add user message to UI
+    const messagesDiv = document.getElementById('chatMessages');
+    messagesDiv.innerHTML += `
+        <div class="message user">
+            <div class="message-bubble">${question}</div>
+        </div>
+    `;
+
+    // Add loading indicator
+    messagesDiv.innerHTML += `
+        <div class="message assistant" id="loadingMsg">
+            <div class="message-bubble">
+                <div class="spinner"></div> Đang tra cứu...
+            </div>
+        </div>
+    `;
+
+    input.value = '';
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+    try {
+        const res = await fetch(`${API_BASE}/v1/legal/ask`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': currentApiKey
+            },
+            body: JSON.stringify({ question })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail);
+
+        // Update current chat ID if new
+        if (data.chat_id) currentChatId = data.chat_id;
+
+        // Remove loading, add response
+        document.getElementById('loadingMsg').remove();
+        messagesDiv.innerHTML += `
+            <div class="message assistant">
+                <div class="message-bubble">
+                    ${marked.parse(data.answer)}
+                    ${data.citations ? renderCitations(data.citations) : ''}
+                </div>
+            </div>
+        `;
+
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        await loadChatHistory();
+    } catch (err) {
+        document.getElementById('loadingMsg').remove();
+        showToast(err.message, 'error');
+    }
+}
+
+function renderCitations(citations) {
+    if (!citations || citations.length === 0) return '';
+    
+    return `
+        <div class="citations">
+            <strong>📚 Nguồn tham chiếu:</strong>
+            ${citations.map((c, i) => `
+                <div class="citation-item">
+                    [${i + 1}] ${c.law_name || 'Văn bản pháp luật'} - ${c.article || ''}<br>
+                    <span style="opacity: 0.8; font-size: 0.8em;">${c.content?.substring(0, 150)}...</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// Auto-resize chat input
+document.getElementById('chatInput').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+// === Search Functions ===
+async function performSearch() {
+    const query = document.getElementById('searchInput').value.trim();
+    const domain = document.getElementById('searchDomain').value;
+    
+    if (!query) {
+        showToast('Vui lòng nhập từ khóa', 'warning');
+        return;
+    }
+
+    try {
+        const url = `/v1/legal/search?q=${encodeURIComponent(query)}&limit=10${domain ? '&domain=' + domain : ''}`;
+        const results = await fetch(`${API_BASE}${url}`, {
+            headers: { 'X-API-Key': currentApiKey }
+        }).then(r => r.json());
+
+        const resultsDiv = document.getElementById('searchResults');
+        resultsDiv.innerHTML = results.map(r => `
+            <div class="result-card" onclick="this.querySelector('.content').classList.toggle('hidden')">
+                <h3>${r.law_name || 'Văn bản pháp luật'}</h3>
+                <div class="meta">
+                    ${r.article || ''} • 
+                    <span class="score-badge">Độ phù hợp: ${(r.score * 100).toFixed(0)}%</span>
+                </div>
+                <div class="content hidden">${r.content}</div>
+                <div style="margin-top: 0.5rem; color: var(--primary); font-size: 0.875rem;">
+                    ${r._expanded ? '▲ Thu gọn' : '▼ Xem chi tiết'}
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        showToast('Tìm kiếm thất bại', 'error');
+    }
+}
+
+// === Review Functions ===
+async function reviewContract() {
+    const text = document.getElementById('contractText').value.trim();
+    const reviewType = document.getElementById('reviewType').value;
+
+    if (!text) {
+        showToast('Vui lòng nhập nội dung hợp đồng', 'warning');
+        return;
+    }
+
+    try {
+        const result = await fetch(`${API_BASE}/v1/legal/review`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': currentApiKey
+            },
+            body: JSON.stringify({ contract_text: text, review_type: reviewType })
+        }).then(r => r.json());
+
+        document.getElementById('reviewResult').classList.remove('hidden');
+        document.getElementById('reviewResult').innerHTML = marked.parse(result.review);
+    } catch (err) {
+        showToast('Rà soát thất bại', 'error');
+    }
+}
+
+// === Draft Functions ===
+function updateDraftFields() {
+    const docType = document.getElementById('docType').value;
+    const fieldsDiv = document.getElementById('draftFields');
+    
+    const fields = {
+        hop_dong_lao_dong: [
+            { label: 'Tên người lao động', id: 'employee_name' },
+            { label: 'Chức danh', id: 'position' },
+            { label: 'Mức lương', id: 'salary' },
+            { label: 'Thời hạn hợp đồng', id: 'duration' }
+        ],
+        quyet_dinh: [
+            { label: 'Số quyết định', id: 'decision_number' },
+            { label: 'Về việc', id: 'subject' },
+            { label: 'Nội dung', id: 'content', type: 'textarea' }
+        ],
+        cong_van: [
+            { label: 'Số công văn', id: 'doc_number' },
+            { label: 'Về việc', id: 'subject' },
+            { label: 'Nội dung', id: 'content', type: 'textarea' }
+        ],
+        noi_quy: [
+            { label: 'Tên nội quy', id: 'title' },
+            { label: 'Phạm vi áp dụng', id: 'scope' }
+        ],
+        hop_dong_mua_ban: [
+            { label: 'Bên mua', id: 'buyer' },
+            { label: 'Bên bán', id: 'seller' },
+            { label: 'Hàng hóa', id: 'goods' },
+            { label: 'Giá trị', id: 'value' }
+        ]
+    };
+
+    fieldsDiv.innerHTML = (fields[docType] || []).map(f => `
+        <div class="form-group">
+            <label>${f.label}</label>
+            ${f.type === 'textarea' 
+                ? `<textarea id="draft_${f.id}" style="min-height: 100px;"></textarea>`
+                : `<input type="text" id="draft_${f.id}">`
+            }
+        </div>
+    `).join('');
+}
+
+async function generateDraft() {
+    const docType = document.getElementById('docType').value;
+    const params = {};
+    
+    document.querySelectorAll('#draftFields input, #draftFields textarea').forEach(input => {
+        const key = input.id.replace('draft_', '');
+        params[key] = input.value;
+    });
+
+    try {
+        const result = await fetch(`${API_BASE}/v1/legal/draft`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': currentApiKey
+            },
+            body: JSON.stringify({ doc_type: docType, parameters: params })
+        }).then(r => r.json());
+
+        document.getElementById('draftResult').classList.remove('hidden');
+        document.getElementById('draftResult').innerHTML = `
+            ${marked.parse(result.document)}
+            <button class="btn btn-secondary mt-1" onclick="downloadDraft()">📥 Tải xuống</button>
+        `;
+    } catch (err) {
+        showToast('Soạn thảo thất bại', 'error');
+    }
+}
+
+function downloadDraft() {
+    const content = document.getElementById('draftResult').innerText;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'van-ban.txt';
+    a.click();
+}
+
+// === API Keys Functions ===
+async function loadApiKeys() {
+    try {
+        const keys = await apiCall('/v1/keys');
+        const listDiv = document.getElementById('keysList');
+        
+        listDiv.innerHTML = keys.map(k => `
+            <div class="key-item">
+                <div>
+                    <div style="font-weight: 500; margin-bottom: 0.25rem;">${k.name}</div>
+                    <div class="key-value">${k.key_prefix}...${k.key_suffix}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-light); margin-top: 0.25rem;">
+                        Tạo: ${new Date(k.created_at).toLocaleDateString('vi-VN')}
+                    </div>
+                </div>
+                <button class="btn btn-secondary btn-small" onclick="copyKey('${k.key}')">📋 Copy</button>
+            </div>
+        `).join('');
+    } catch (err) {
+        showToast('Không thể tải API keys', 'error');
+    }
+}
+
+async function createApiKey() {
+    const name = prompt('Tên API key:');
+    if (!name) return;
+
+    try {
+        const newKey = await apiCall('/v1/keys', {
+            method: 'POST',
+            body: JSON.stringify({ name })
+        });
+
+        showToast('Tạo API key thành công!', 'success');
+        
+        // Show full key once
+        alert(`API Key (chỉ hiển thị 1 lần):\n\n${newKey.key}`);
+        
+        await loadApiKeys();
+    } catch (err) {
+        showToast('Không thể tạo API key', 'error');
+    }
+}
+
+function copyKey(key) {
+    navigator.clipboard.writeText(key);
+    showToast('Đã copy vào clipboard', 'success');
+}
+
+// === Usage Functions ===
+async function loadUsageStats() {
+    try {
+        const usage = await apiCall('/v1/usage');
+        
+        const percent = (usage.current_usage / usage.quota_limit * 100).toFixed(1);
+        document.getElementById('usageText').textContent = 
+            `${usage.current_usage.toLocaleString()} / ${usage.quota_limit.toLocaleString()} requests`;
+        document.getElementById('usageBarFill').style.width = percent + '%';
+        document.getElementById('usageBarFill').textContent = percent + '%';
+        
+        document.getElementById('planInfo').innerHTML = `
+            <strong>Gói:</strong> ${usage.plan || 'Free'}<br>
+            <strong>Hạn mức:</strong> ${usage.quota_limit.toLocaleString()} requests/tháng
+        `;
+    } catch (err) {
+        console.error('Failed to load usage:', err);
+    }
+}
+
+// === Toast Notifications ===
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <span>${type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ'}</span>
+        <span>${message}</span>
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => toast.remove(), 3000);
+}
+
+// === Init ===
+window.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+        initDashboard();
+    }
+});
+
+// Enter to send message
+document.addEventListener('DOMContentLoaded', () => {
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    }
+});
+</script>
+
+</body>
+</html>
