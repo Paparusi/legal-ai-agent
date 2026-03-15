@@ -20,6 +20,9 @@ import hashlib
 import time
 import os
 from contextlib import contextmanager
+import jwt
+
+JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "your-super-secret-jwt-key-change-in-production")
 
 # Import new routes
 from .routes import auth, company, keys, usage, chats, documents
@@ -83,8 +86,39 @@ def get_db():
 # Auth
 # ============================================
 
-async def verify_api_key(x_api_key: str = Header(..., alias="X-API-Key")):
-    """Verify API key and return company info"""
+async def verify_api_key(
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+    authorization: Optional[str] = Header(None)
+):
+    """Verify API key OR Bearer token and return company info"""
+    
+    # Try Bearer token first (from dashboard login)
+    if not x_api_key and authorization and authorization.startswith("Bearer "):
+        try:
+            token = authorization.split(" ", 1)[1]
+            payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+            user_id = payload.get("user_id")
+            if user_id:
+                with get_db() as conn:
+                    cur = conn.cursor(cursor_factory=RealDictCursor)
+                    cur.execute("""
+                        SELECT u.id as user_id, u.company_id, u.role,
+                               c.name as company_name, c.plan, c.monthly_quota, c.used_quota
+                        FROM users u
+                        JOIN companies c ON c.id = u.company_id
+                        WHERE u.id = %s
+                    """, (user_id,))
+                    user = cur.fetchone()
+                    if user:
+                        if user["used_quota"] >= user["monthly_quota"]:
+                            raise HTTPException(status_code=429, detail="Monthly quota exceeded")
+                        return {**dict(user), "permissions": ["read","ask","review","draft"], "rate_limit": 60}
+        except Exception:
+            pass
+    
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="API key or Bearer token required")
+    
     key_hash = hashlib.sha256(x_api_key.encode()).hexdigest()
     key_prefix = x_api_key[:8]
     

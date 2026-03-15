@@ -802,6 +802,7 @@ document.getElementById('loginFormElement').addEventListener('submit', async (e)
 
         localStorage.setItem('access_token', data.access_token);
         localStorage.setItem('refresh_token', data.refresh_token);
+        if (data.api_key) localStorage.setItem('api_key', data.api_key);
         
         await initDashboard();
         showToast('Đăng nhập thành công!', 'success');
@@ -827,7 +828,8 @@ document.getElementById('registerFormElement').addEventListener('submit', async 
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Đăng ký thất bại');
 
-        showToast('Đăng ký thành công! Vui lòng đăng nhập.', 'success');
+        if (data.api_key) localStorage.setItem('api_key', data.api_key);
+            showToast('Đăng ký thành công! Vui lòng đăng nhập.', 'success');
         showLogin();
     } catch (err) {
         showToast(err.message, 'error');
@@ -841,24 +843,16 @@ async function initDashboard() {
         currentUser = userRes;
 
         // Get API keys
-        const keysRes = await apiCall('/v1/keys');
-        if (keysRes.length === 0) {
-            // Auto-create first key
-            const newKey = await apiCall('/v1/keys', {
-                method: 'POST',
-                body: JSON.stringify({ name: 'Default Key' })
-            });
-            currentApiKey = newKey.key;
-        } else {
-            currentApiKey = keysRes[0].key;
-        }
+        // API keys loaded on demand in Keys page
+        // Legal endpoints now accept Bearer token too
+        currentApiKey = 'bearer-auth';
 
         // Update UI
         document.getElementById('userName').textContent = currentUser.full_name;
-        document.getElementById('companyName').textContent = currentUser.company_name;
+        document.getElementById('companyName').textContent = currentUser.company ? currentUser.company.name : '';
         document.getElementById('settingsName').value = currentUser.full_name;
         document.getElementById('settingsEmail').value = currentUser.email;
-        document.getElementById('settingsCompany').value = currentUser.company_name;
+        document.getElementById('settingsCompany').value = currentUser.company ? currentUser.company.name : '';
 
         // Show dashboard
         document.getElementById('authContainer').classList.add('hidden');
@@ -1016,7 +1010,7 @@ async function sendMessage() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-API-Key': currentApiKey
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             },
             body: JSON.stringify({ question })
         });
@@ -1081,7 +1075,7 @@ async function performSearch() {
     try {
         const url = `/v1/legal/search?q=${encodeURIComponent(query)}&limit=10${domain ? '&domain=' + domain : ''}`;
         const results = await fetch(`${API_BASE}${url}`, {
-            headers: { 'X-API-Key': currentApiKey }
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
         }).then(r => r.json());
 
         const resultsDiv = document.getElementById('searchResults');
@@ -1118,7 +1112,7 @@ async function reviewContract() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-API-Key': currentApiKey
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             },
             body: JSON.stringify({ contract_text: text, review_type: reviewType })
         }).then(r => r.json());
@@ -1189,7 +1183,7 @@ async function generateDraft() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-API-Key': currentApiKey
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`
             },
             body: JSON.stringify({ doc_type: docType, parameters: params })
         }).then(r => r.json());
