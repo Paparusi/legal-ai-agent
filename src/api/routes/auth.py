@@ -156,6 +156,9 @@ async def login(data: LoginRequest):
     Login with email and password
     Returns: user, access_token, refresh_token
     """
+    import logging
+    logging.info(f"LOGIN ATTEMPT: email={data.email}")
+    
     with get_db() as conn:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
@@ -169,6 +172,8 @@ async def login(data: LoginRequest):
             WHERE u.email = %s
         """, (data.email,))
         user = cur.fetchone()
+        
+        logging.info(f"LOGIN USER FOUND: {user is not None}")
         
         if not user:
             raise HTTPException(

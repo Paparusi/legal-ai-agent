@@ -241,6 +241,33 @@ def extract_search_query(question: str) -> str:
     
     return cleaned.strip()
 
+def expand_synonyms(query: str) -> List[str]:
+    """Expand Vietnamese legal term synonyms — returns the EXPANDED TERMS to search for"""
+    expansions = []
+    query_lower = query.lower()
+    
+    synonym_map = {
+        "tndn": "thu nhập doanh nghiệp",
+        "tncn": "thu nhập cá nhân",
+        "gtgt": "giá trị gia tăng",
+        "vat": "giá trị gia tăng",
+        "bhxh": "bảo hiểm xã hội",
+        "bhyt": "bảo hiểm y tế",
+        "hđlđ": "hợp đồng lao động",
+        "nsdlđ": "người sử dụng lao động",
+        "nlđ": "người lao động",
+        "nghỉ phép": "nghỉ hằng năm",
+        "phép năm": "nghỉ hằng năm",
+        "sa thải": "kỷ luật sa thải",
+        "đuổi việc": "kỷ luật sa thải",
+    }
+    
+    for abbr, full in synonym_map.items():
+        if abbr in query_lower:
+            expansions.append(full)  # Return just the expanded term
+    
+    return expansions
+
 def detect_domain(question: str) -> Optional[List[str]]:
     """Auto-detect legal domain from question keywords"""
     question_lower = question.lower()
@@ -284,27 +311,140 @@ def search_laws(query: str, domains: Optional[List[str]] = None, limit: int = 10
         return [dict(r) for r in cur.fetchall()]
 
 def multi_query_search(question: str, domains: Optional[List[str]] = None, limit: int = 15) -> List[dict]:
-    """Search with multiple queries and merge results"""
-    # Query 1: Full question
-    results1 = search_laws(question, domains, limit)
+    """Smart multi-query search: domain detection + ILIKE phrase + tsvector"""
     
-    # Query 2: Extracted keywords
+    # Auto-detect domain
+    if not domains:
+        domains = detect_domain(question)
+    
+    # Extract clean keywords
     keywords = extract_search_query(question)
-    results2 = search_laws(keywords, domains, limit)
+    words = [w for w in keywords.split() if len(w) > 1]
     
-    # Merge and deduplicate by chunk_id
+    # Build meaningful phrases (skip common words like thời gian, quy định)
+    common_prefixes = {"thời", "gian", "quy", "định", "mức", "tối", "đa", "số", "ngày"}
+    key_words = [w for w in words if w not in common_prefixes]
+    if not key_words:
+        key_words = words
+    
+    # Build search phrases from key words
+    phrases = []
+    if len(key_words) >= 2:
+        phrases.append(" ".join(key_words[:3]))  # Top 3 key words
+        phrases.append(" ".join(key_words[:2]))  # Top 2 key words
+    elif key_words:
+        phrases.append(key_words[0])
+    
+    # Also try full keyword string
+    if len(words) >= 2:
+        phrases.append(" ".join(words[:4]))
+    
+    # Phase 1: ILIKE phrase search with domain filter (most precise)
+    phrase_results = []
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        for phrase in phrases[:3]:
+            domain_filter = ""
+            params = [f"%{phrase}%"]
+            if domains:
+                domain_filter = "AND lc.domains && %s::legal_domain[]"
+                params.append("{" + ",".join(domains) + "}")
+            
+            cur.execute(f"""
+                SELECT lc.id as chunk_id, lc.law_id, ld.title as law_title, 
+                       ld.law_number, lc.article, lc.title as chunk_title,
+                       lc.content, lc.domains, 1.0::float as rank
+                FROM law_chunks lc
+                JOIN law_documents ld ON ld.id = lc.law_id
+                WHERE lc.content ILIKE %s {domain_filter}
+                ORDER BY 
+                    CASE WHEN ld.title LIKE 'Bo Luat%%' OR ld.title LIKE 'Bộ luật%%' THEN 0
+                         WHEN ld.title LIKE 'Luat %%' OR ld.title LIKE 'Luật %%' THEN 1
+                         WHEN ld.title LIKE 'Nghi dinh%%' OR ld.title LIKE 'Nghị định%%' THEN 2
+                         ELSE 3 END,
+                    length(lc.content) DESC
+                LIMIT {limit}
+            """, params)
+            phrase_results.extend([dict(r) for r in cur.fetchall()])
+    
+    # Phase 1.5: Synonym expansion search (e.g., "tndn" → "thu nhập doanh nghiệp")
+    synonyms = expand_synonyms(keywords)
+    for syn_term in synonyms[:2]:
+        sp = syn_term  # Use the expanded term directly as search phrase
+        if True:
+            domain_filter = ""
+            params = [f"%{sp}%"]
+            if domains:
+                domain_filter = "AND lc.domains && %s::legal_domain[]"
+                params.append("{" + ",".join(domains) + "}")
+            with get_db() as conn:
+                cur = conn.cursor(cursor_factory=RealDictCursor)
+                cur.execute(f"""
+                    SELECT lc.id as chunk_id, lc.law_id, ld.title as law_title, 
+                           ld.law_number, lc.article, lc.title as chunk_title,
+                           lc.content, lc.domains, 1.0::float as rank
+                    FROM law_chunks lc
+                    JOIN law_documents ld ON ld.id = lc.law_id
+                    WHERE lc.content ILIKE %s {domain_filter}
+                    ORDER BY CASE WHEN ld.title LIKE 'Bo Luat%%' THEN 0 WHEN ld.title LIKE 'Luat%%' THEN 1 ELSE 2 END
+                    LIMIT {limit}
+                """, params)
+                phrase_results.extend([dict(r) for r in cur.fetchall()])
+    
+    # Phase 2: tsvector search (broader coverage)
+    tsv_results = search_laws(keywords, domains, limit)
+    
+    # Merge: phrase results first, then tsvector
     seen_ids = set()
     merged = []
     
-    for result in results1 + results2:
-        chunk_id = result.get("chunk_id") or result.get("id")
-        if chunk_id not in seen_ids:
+    # Build title matching keywords from original question
+    title_keywords = [w for w in words if len(w) > 2]
+    synonym_terms = expand_synonyms(keywords)
+    for st in synonym_terms:
+        title_keywords.extend(st.split())
+    
+    for result in phrase_results:
+        chunk_id = result.get("chunk_id")
+        if chunk_id and chunk_id not in seen_ids:
             seen_ids.add(chunk_id)
+            title = result.get("law_title", "").lower()
+            base_rank = 15.0
+            if any(x in result.get("law_title", "") for x in ["Bo Luat", "Bộ luật"]):
+                base_rank = 30.0
+            elif any(x in result.get("law_title", "") for x in ["Luat ", "Luật "]):
+                base_rank = 25.0
+            elif any(x in result.get("law_title", "") for x in ["Nghi dinh", "Nghị định"]):
+                base_rank = 20.0
+            elif result.get("law_title", "").startswith("Legal Document"):
+                base_rank = 8.0
+            
+            # Boost if law title contains search keywords
+            title_match_bonus = 0
+            for kw in title_keywords:
+                if kw.lower() in title:
+                    title_match_bonus += 3.0
+            
+            result["rank"] = base_rank + title_match_bonus
             merged.append(result)
     
-    # Sort by rank (relevance) and return top N
+    for result in tsv_results:
+        chunk_id = result.get("chunk_id") or result.get("id")
+        if chunk_id and chunk_id not in seen_ids:
+            seen_ids.add(chunk_id)
+            title = result.get("law_title", "")
+            base = result.get("rank", 1.0)
+            if any(x in title for x in ["Bo Luat", "Bộ luật"]):
+                result["rank"] = base + 10.0
+            elif any(x in title for x in ["Luat ", "Luật "]):
+                result["rank"] = base + 5.0
+            elif title.startswith("Legal Document"):
+                result["rank"] = max(base - 5.0, 0.1)
+            merged.append(result)
+    
     merged.sort(key=lambda x: x.get("rank", 0), reverse=True)
     return merged[:limit]
+
 
 # ============================================
 # API Endpoints
