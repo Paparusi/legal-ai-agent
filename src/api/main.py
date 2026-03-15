@@ -35,10 +35,11 @@ app = FastAPI(
 )
 
 # Add logging middleware (before CORS)
-app.add_middleware(
-    PlatformLoggingMiddleware,
-    exclude_paths=["/health", "/docs", "/openapi.json", "/redoc", "/static", "/"]
-)
+# DISABLED FOR DEBUG
+# app.add_middleware(
+#     PlatformLoggingMiddleware,
+#     exclude_paths=["/health", "/docs", "/openapi.json", "/redoc", "/static", "/"]
+# )
 
 app.add_middleware(
     CORSMiddleware,
@@ -220,6 +221,49 @@ async def call_claude(system_prompt: str, user_message: str, max_tokens: int = 4
 # Law Search
 # ============================================
 
+def extract_search_query(question: str) -> str:
+    """Extract key legal terms from Vietnamese question"""
+    import re
+    
+    # Remove Vietnamese question words
+    question_words = [
+        r'\bbao lâu\b', r'\bbao nhiêu\b', r'\bthế nào\b', r'\bnhư thế nào\b',
+        r'\blà gì\b', r'\bcó phải\b', r'\bcó được\b', r'\blà\b', r'\bcó\b',
+        r'\bkhông\b', r'\bhay không\b', r'\?', r'\.'
+    ]
+    
+    cleaned = question.lower()
+    for pattern in question_words:
+        cleaned = re.sub(pattern, ' ', cleaned)
+    
+    # Remove extra spaces
+    cleaned = ' '.join(cleaned.split())
+    
+    return cleaned.strip()
+
+def detect_domain(question: str) -> Optional[List[str]]:
+    """Auto-detect legal domain from question keywords"""
+    question_lower = question.lower()
+    
+    domain_keywords = {
+        "lao_dong": ["lao động", "hợp đồng lao động", "thử việc", "nghỉ phép", "tăng ca", "lương", "sa thải", "bảo hiểm xã hội", "bhxh", "thôi việc", "chấm dứt hợp đồng"],
+        "thue": ["thuế", "tndn", "vat", "tncn", "kê khai thuế", "hoàn thuế", "miễn thuế", "giảm thuế", "thuế suất"],
+        "doanh_nghiep": ["thành lập công ty", "cổ phần", "doanh nghiệp", "giải thể", "phá sản", "điều lệ", "đại hội cổ đông", "hội đồng quản trị"],
+        "dan_su": ["di sản", "thừa kế", "hôn nhân", "ly hôn", "nuôi con", "nhà ở", "quyền sở hữu", "tài sản chung"],
+        "dat_dai": ["đất đai", "quyền sử dụng đất", "sổ đỏ", "chuyển nhượng đất", "thuê đất"],
+        "hinh_su": ["hình sự", "án tù", "tội phạm", "vi phạm hình sự", "truy tố"],
+        "hanh_chinh": ["vi phạm hành chính", "phạt hành chính", "khiếu nại", "tố cáo"]
+    }
+    
+    detected = []
+    for domain, keywords in domain_keywords.items():
+        for keyword in keywords:
+            if keyword in question_lower:
+                detected.append(domain)
+                break
+    
+    return detected if detected else None
+
 def search_laws(query: str, domains: Optional[List[str]] = None, limit: int = 10) -> List[dict]:
     """Search Vietnamese law database"""
     with get_db() as conn:
@@ -238,6 +282,29 @@ def search_laws(query: str, domains: Optional[List[str]] = None, limit: int = 10
             )
         
         return [dict(r) for r in cur.fetchall()]
+
+def multi_query_search(question: str, domains: Optional[List[str]] = None, limit: int = 15) -> List[dict]:
+    """Search with multiple queries and merge results"""
+    # Query 1: Full question
+    results1 = search_laws(question, domains, limit)
+    
+    # Query 2: Extracted keywords
+    keywords = extract_search_query(question)
+    results2 = search_laws(keywords, domains, limit)
+    
+    # Merge and deduplicate by chunk_id
+    seen_ids = set()
+    merged = []
+    
+    for result in results1 + results2:
+        chunk_id = result.get("chunk_id") or result.get("id")
+        if chunk_id not in seen_ids:
+            seen_ids.add(chunk_id)
+            merged.append(result)
+    
+    # Sort by rank (relevance) and return top N
+    merged.sort(key=lambda x: x.get("rank", 0), reverse=True)
+    return merged[:limit]
 
 # ============================================
 # API Endpoints
@@ -264,39 +331,70 @@ async def health():
 async def legal_ask(query: LegalQuery, company: dict = Depends(verify_api_key)):
     """Tư vấn pháp luật - Legal Q&A"""
     
-    # Search relevant law chunks
-    sources = search_laws(query.question, query.domains, query.max_sources)
+    # Auto-detect domain if not provided
+    domains = query.domains
+    if not domains:
+        detected = detect_domain(query.question)
+        if detected:
+            domains = detected
     
-    # Build context from search results
+    # Multi-query search for better results
+    sources = multi_query_search(query.question, domains, query.max_sources)
+    
+    # Build enhanced context from search results
     context_parts = []
     citations = []
-    for i, src in enumerate(sources):
-        context_parts.append(f"[Nguồn {i+1}] {src['law_title']} - {src.get('article', 'N/A')}\n{src['content'][:2000]}")
+    for i, src in enumerate(sources, 1):
+        # Format: clearly show law title, number, article
+        law_title = src['law_title']
+        law_number = src.get('law_number', 'N/A')
+        article = src.get('article', 'N/A')
+        content = src['content'][:2000]
+        
+        context_parts.append(f"""--- NGUỒN {i} ---
+Văn bản: {law_title} (Số: {law_number})
+Điều: {article}
+Nội dung:
+{content}
+---""")
+        
         citations.append({
-            "source": src["law_title"],
-            "law_number": src["law_number"],
-            "article": src.get("article"),
+            "source": law_title,
+            "law_number": law_number,
+            "article": article,
             "relevance": float(src.get("rank", 0))
         })
     
-    context = "\n\n---\n\n".join(context_parts)
+    context = "\n\n".join(context_parts)
     
-    system_prompt = """Bạn là chuyên gia tư vấn pháp luật Việt Nam. Trả lời câu hỏi dựa trên các nguồn luật được cung cấp.
+    # Professional Vietnamese legal consultant prompt
+    system_prompt = """Bạn là Trợ lý Pháp lý AI chuyên nghiệp cho doanh nghiệp Việt Nam.
 
-Quy tắc:
-1. CHỈ trả lời dựa trên thông tin từ các nguồn luật được cung cấp
-2. Trích dẫn cụ thể: Điều, Khoản, Điểm của luật nào
-3. Nếu không có đủ thông tin, nói rõ và đề xuất tìm thêm
-4. Sử dụng ngôn ngữ dễ hiểu, tránh thuật ngữ phức tạp không cần thiết
-5. Nếu có nhiều cách hiểu, trình bày tất cả các góc nhìn
-6. Cảnh báo nếu luật có thể đã được sửa đổi"""
+NGUYÊN TẮC TRẢ LỜI:
+1. LUÔN trả lời trực tiếp câu hỏi ngay đầu tiên (1-2 câu tóm tắt)
+2. Trích dẫn CỤ THỂ: "Theo Điều X, Khoản Y, Luật Z năm YYYY..."
+3. Giải thích rõ ràng, dễ hiểu cho người không chuyên luật
+4. Nếu có nhiều trường hợp, liệt kê từng trường hợp cụ thể
+5. Kết thúc bằng LƯU Ý thực tiễn (nếu có)
+
+ĐỊNH DẠNG:
+- Dùng heading ## cho các phần chính
+- Dùng **bold** cho điều khoản quan trọng
+- Dùng bullet list cho các trường hợp
+- Ngắn gọn, súc tích — không dài dòng
+
+QUAN TRỌNG:
+- CHỈ trả lời dựa trên nguồn luật được cung cấp
+- Nếu nguồn luật không đủ để trả lời chính xác, NÓI RÕ điều đó
+- KHÔNG bịa thông tin luật
+- Ưu tiên Bộ luật/Luật mới nhất (năm ban hành gần nhất)"""
 
     user_message = f"""CÂU HỎI: {query.question}
 
 CÁC NGUỒN LUẬT LIÊN QUAN:
 {context}
 
-Hãy trả lời câu hỏi trên, trích dẫn cụ thể các điều luật."""
+Hãy trả lời câu hỏi trên theo đúng nguyên tắc đã nêu."""
 
     result = await call_claude(system_prompt, user_message)
     
