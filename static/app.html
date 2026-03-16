@@ -4232,8 +4232,8 @@ console.log(data);</code></pre>
 
                         try {
                             const event = JSON.parse(jsonStr);
-                            if (event.type === 'token') {
-                                fullText += event.content;
+                            if (event.type === 'token' || event.type === 'delta') {
+                                fullText += (event.content || event.text || '');
                                 textDiv.innerHTML = renderMarkdown(fullText);
                                 container.scrollTop = container.scrollHeight;
                             } else if (event.type === 'citations') {
