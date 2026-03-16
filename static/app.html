@@ -3557,6 +3557,15 @@ console.log(data);</code></pre>
 
             try {
                 const token = localStorage.getItem('token');
+                
+                // Fetch full contract details to get content
+                const contractResponse = await fetch(`/v1/contracts/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const contractDetails = contractResponse.ok ? await contractResponse.json() : null;
+                
+                // Perform AI review
                 const response = await fetch(`/v1/contracts/${id}/review`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -3564,7 +3573,7 @@ console.log(data);</code></pre>
 
                 if (response.ok) {
                     const result = await response.json();
-                    showReviewResults(result);
+                    showReviewResults(result, contractDetails);
                 } else {
                     document.getElementById('reviewResultContent').innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--danger);">Không thể phân tích hợp đồng</div>';
                 }
@@ -3574,7 +3583,7 @@ console.log(data);</code></pre>
             }
         }
 
-        function showReviewResults(result) {
+        function showReviewResults(result, contractDetails) {
             const riskClass = `risk-${result.risk_level || 'low'}`;
             const riskText = {
                 'low': 'Thấp',
@@ -3582,32 +3591,129 @@ console.log(data);</code></pre>
                 'high': 'Cao'
             }[result.risk_level] || 'Thấp';
 
+            // Prepare contract content for display
+            const contractContent = contractDetails?.content || contractDetails?.extracted_text || 'Không có nội dung hợp đồng';
+
+            // Store review data globally for export
+            window.currentReviewData = { result, contractDetails };
+
             document.getElementById('reviewResultContent').innerHTML = `
-                <div class="review-section">
-                    <div class="review-section-title">Mức độ rủi ro</div>
-                    <span class="risk-badge ${riskClass}">${riskText}</span>
+                <!-- Export Button -->
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                    <button class="btn btn-primary" onclick="exportReview()">📥 Xuất báo cáo</button>
                 </div>
-                <div class="review-section">
-                    <div class="review-section-title">Tóm tắt</div>
-                    <div style="color: var(--text-secondary); line-height: 1.6;">${escapeHtml(result.summary || 'Không có tóm tắt')}</div>
+
+                <!-- Side-by-side layout -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                    <!-- Left Panel: Original Contract -->
+                    <div style="border-right: 1px solid var(--border); padding-right: 1.5rem;">
+                        <div style="font-weight: 600; font-size: 1rem; margin-bottom: 1rem; color: var(--text-primary);">📄 Hợp đồng gốc</div>
+                        <div style="max-height: 500px; overflow-y: auto; padding: 1rem; background: var(--code-bg); border-radius: 8px; font-family: monospace; font-size: 0.875rem; line-height: 1.6; white-space: pre-wrap; color: var(--text-secondary);">
+                            ${escapeHtml(contractContent)}
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: AI Review Results -->
+                    <div style="padding-left: 1.5rem;">
+                        <div style="font-weight: 600; font-size: 1rem; margin-bottom: 1rem; color: var(--text-primary);">🔍 Kết quả phân tích</div>
+                        
+                        <div class="review-section">
+                            <div class="review-section-title">Mức độ rủi ro</div>
+                            <span class="risk-badge ${riskClass}">${riskText}</span>
+                        </div>
+                        
+                        <div class="review-section">
+                            <div class="review-section-title">Tóm tắt</div>
+                            <div style="color: var(--text-secondary); line-height: 1.6;">${escapeHtml(result.summary || 'Không có tóm tắt')}</div>
+                        </div>
+                        
+                        ${result.issues && result.issues.length > 0 ? `
+                            <div class="review-section">
+                                <div class="review-section-title">⚠️ Vấn đề phát hiện</div>
+                                <ul class="review-list">
+                                    ${result.issues.map(issue => `<li>${escapeHtml(issue)}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        ${result.recommendations && result.recommendations.length > 0 ? `
+                            <div class="review-section">
+                                <div class="review-section-title">💡 Đề xuất</div>
+                                <ul class="review-list">
+                                    ${result.recommendations.map(rec => `<li>${escapeHtml(rec)}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
-                ${result.issues && result.issues.length > 0 ? `
-                    <div class="review-section">
-                        <div class="review-section-title">⚠️ Vấn đề phát hiện</div>
-                        <ul class="review-list">
-                            ${result.issues.map(issue => `<li>${escapeHtml(issue)}</li>`).join('')}
-                        </ul>
-                    </div>
-                ` : ''}
-                ${result.recommendations && result.recommendations.length > 0 ? `
-                    <div class="review-section">
-                        <div class="review-section-title">💡 Đề xuất</div>
-                        <ul class="review-list">
-                            ${result.recommendations.map(rec => `<li>${escapeHtml(rec)}</li>`).join('')}
-                        </ul>
-                    </div>
-                ` : ''}
             `;
+
+            // Update modal width for side-by-side view
+            const modalContent = document.querySelector('#reviewResultModal .modal-content');
+            if (modalContent) {
+                modalContent.style.maxWidth = '1200px';
+            }
+        }
+
+        function exportReview() {
+            if (!window.currentReviewData) {
+                alert('Không có dữ liệu để xuất');
+                return;
+            }
+
+            const { result, contractDetails } = window.currentReviewData;
+            
+            const riskText = {
+                'low': 'Thấp',
+                'medium': 'Trung bình',
+                'high': 'Cao'
+            }[result.risk_level] || 'Thấp';
+
+            // Generate report text
+            const reportText = `
+=================================================
+        BÁO CÁO RÀ SOÁT HỢP ĐỒNG
+=================================================
+
+Hợp đồng: ${contractDetails?.title || 'N/A'}
+Ngày rà soát: ${new Date().toLocaleDateString('vi-VN')}
+
+-------------------------------------------------
+MỨC ĐỘ RỦI RO: ${riskText.toUpperCase()}
+-------------------------------------------------
+
+TÓM TẮT:
+${result.summary || 'Không có tóm tắt'}
+
+${result.issues && result.issues.length > 0 ? `
+-------------------------------------------------
+VẤN ĐỀ PHÁT HIỆN:
+-------------------------------------------------
+${result.issues.map((issue, i) => `${i + 1}. ${issue}`).join('\n')}
+` : ''}
+
+${result.recommendations && result.recommendations.length > 0 ? `
+-------------------------------------------------
+ĐỀ XUẤT:
+-------------------------------------------------
+${result.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
+` : ''}
+
+=================================================
+Báo cáo được tạo bởi Legal AI Agent
+=================================================
+            `.trim();
+
+            // Download as text file
+            const blob = new Blob([reportText], { type: 'text/plain; charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bao-cao-ra-soat-${contractDetails?.title?.replace(/[^a-zA-Z0-9]/g, '-') || 'hop-dong'}-${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         async function deleteContract(id) {
