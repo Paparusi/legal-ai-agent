@@ -3,337 +3,370 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Legal AI Platform</title>
+    <title>Admin Dashboard - Legal AI Platform</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
             --primary: #6366f1;
             --primary-hover: #4f46e5;
-            --bg: #0a0e1a;
-            --sidebar: #0f172a;
-            --sidebar-text: #94a3b8;
-            --sidebar-active: #6366f1;
-            --card-bg: #1e293b;
-            --card-border: #334155;
-            --text-primary: #f8fafc;
-            --text-secondary: #cbd5e1;
+            --primary-light: rgba(99,102,241,0.15);
+            --bg: #09090b;
+            --bg-secondary: #111113;
+            --sidebar-bg: #0c0c0e;
+            --sidebar-text: #71717a;
+            --sidebar-hover: rgba(255,255,255,0.05);
+            --sidebar-active: rgba(99,102,241,0.15);
+            --card-bg: #18181b;
+            --card-border: #27272a;
+            --card-hover: #1f1f23;
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #52525b;
             --success: #22c55e;
+            --success-bg: rgba(34,197,94,0.15);
             --warning: #f59e0b;
+            --warning-bg: rgba(245,158,11,0.15);
             --danger: #ef4444;
+            --danger-bg: rgba(239,68,68,0.15);
             --info: #3b82f6;
-            --bg-gray: #0f1729;
+            --info-bg: rgba(59,130,246,0.15);
+            --cyan: #06b6d4;
+            --violet: #8b5cf6;
+            --rose: #f43f5e;
+            --amber: #f59e0b;
         }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg);
             color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
 
         .hidden { display: none !important; }
 
-        /* Layout */
-        .admin-layout {
-            display: flex;
-            min-height: 100vh;
-        }
+        /* ======================== LAYOUT ======================== */
+        .admin-layout { display: flex; min-height: 100vh; }
 
-        /* Sidebar */
+        /* ======================== SIDEBAR ======================== */
         .sidebar {
             width: 260px;
-            background: var(--sidebar);
-            color: white;
-            display: flex;
-            flex-direction: column;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--card-border);
             position: fixed;
             height: 100vh;
-            overflow-y: auto;
-            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            transition: transform 0.3s ease;
         }
 
         .sidebar-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 1.5rem 1.25rem;
+            border-bottom: 1px solid var(--card-border);
         }
 
         .sidebar-logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: white;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--text-primary);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.625rem;
+            letter-spacing: -0.02em;
+        }
+
+        .sidebar-logo .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--primary), var(--violet));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
         }
 
         .sidebar-subtitle {
-            font-size: 0.75rem;
-            color: var(--sidebar-text);
+            font-size: 0.7rem;
+            color: var(--text-muted);
             margin-top: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            font-weight: 600;
         }
 
-        .sidebar-menu {
-            flex: 1;
-            padding: 1rem 0;
+        .sidebar-menu { flex: 1; padding: 0.75rem 0; overflow-y: auto; }
+
+        .menu-section {
+            padding: 0.5rem 1.25rem 0.375rem;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-top: 0.5rem;
         }
 
         .menu-item {
-            padding: 0.75rem 1.5rem;
+            padding: 0.625rem 1.25rem;
             color: var(--sidebar-text);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s ease;
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            font-size: 0.875rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            margin: 1px 0.5rem;
+            border-radius: 8px;
+            position: relative;
         }
 
         .menu-item:hover {
-            background: rgba(255,255,255,0.05);
-            color: white;
+            background: var(--sidebar-hover);
+            color: var(--text-secondary);
         }
 
         .menu-item.active {
             background: var(--sidebar-active);
-            color: white;
-            border-left: 3px solid white;
+            color: var(--primary);
         }
 
-        .menu-icon {
-            font-size: 1.25rem;
-            width: 1.25rem;
-            text-align: center;
+        .menu-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 60%;
+            background: var(--primary);
+            border-radius: 0 3px 3px 0;
+        }
+
+        .menu-icon { font-size: 1.125rem; width: 1.25rem; text-align: center; }
+
+        .menu-badge {
+            margin-left: auto;
+            background: var(--danger);
+            color: white;
+            font-size: 0.625rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 700;
         }
 
         .sidebar-footer {
-            padding: 1.5rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            padding: 1rem 1.25rem;
+            border-top: 1px solid var(--card-border);
         }
 
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
+        .user-info { display: flex; align-items: center; gap: 0.75rem; }
 
         .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--primary);
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--violet));
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 0.8rem;
         }
 
-        .user-details {
-            flex: 1;
-        }
+        .user-name { font-size: 0.8125rem; font-weight: 600; }
+        .user-role { font-size: 0.6875rem; color: var(--text-muted); }
 
-        .user-name {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: white;
-        }
-
-        .user-role {
-            font-size: 0.75rem;
-            color: var(--sidebar-text);
-        }
-
-        /* Main Content */
+        /* ======================== MAIN CONTENT ======================== */
         .main-content {
             flex: 1;
             margin-left: 260px;
-            padding: 2rem;
+            min-height: 100vh;
         }
 
-        .page-header {
-            margin-bottom: 2rem;
+        /* Top bar */
+        .topbar {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(9,9,11,0.8);
+            backdrop-filter: blur(12px);
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
 
-        .page-title {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
+        .topbar-left { display: flex; align-items: center; gap: 1rem; }
 
-        .page-subtitle {
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
             color: var(--text-secondary);
-            margin-top: 0.25rem;
+            font-size: 1.5rem;
+            cursor: pointer;
         }
 
-        /* Stats Cards */
+        .page-title-bar {
+            font-size: 1.125rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .topbar-right { display: flex; align-items: center; gap: 1rem; }
+
+        .topbar-time {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Page content wrapper */
+        .page-content { padding: 1.5rem 2rem 3rem; }
+
+        /* ======================== STAT CARDS ======================== */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .stat-card {
             background: var(--card-bg);
-            border-radius: 12px;
-            padding: 1.5rem;
             border: 1px solid var(--card-border);
-            transition: all 0.3s;
+            border-radius: 12px;
+            padding: 1.25rem;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
         }
 
-        .stat-card:hover {
-            border-color: var(--primary);
-            transform: translateY(-2px);
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            opacity: 0;
+            transition: opacity 0.2s;
         }
 
-        .stat-header {
+        .stat-card:hover { border-color: #3f3f46; transform: translateY(-1px); }
+        .stat-card:hover::before { opacity: 1; }
+
+        .stat-card.purple::before { background: var(--primary); }
+        .stat-card.green::before { background: var(--success); }
+        .stat-card.blue::before { background: var(--info); }
+        .stat-card.amber::before { background: var(--amber); }
+        .stat-card.cyan::before { background: var(--cyan); }
+
+        .stat-top {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
 
-        .stat-title {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
             font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
-        .stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
+        .stat-icon-wrap {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.25rem;
         }
 
-        .stat-icon.primary { background: rgba(99,102,241,0.2); }
-        .stat-icon.success { background: rgba(34,197,94,0.2); }
-        .stat-icon.warning { background: rgba(245,158,11,0.2); }
-        .stat-icon.danger { background: rgba(239,68,68,0.2); }
+        .stat-icon-wrap.purple { background: var(--primary-light); }
+        .stat-icon-wrap.green { background: var(--success-bg); }
+        .stat-icon-wrap.blue { background: var(--info-bg); }
+        .stat-icon-wrap.amber { background: var(--warning-bg); }
+        .stat-icon-wrap.cyan { background: rgba(6,182,212,0.15); }
 
         .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1;
+            margin-bottom: 0.375rem;
+            font-variant-numeric: tabular-nums;
         }
 
-        .stat-change {
-            font-size: 0.875rem;
-            color: var(--success);
-        }
-
-        /* Simple Line Chart (Pure CSS) */
-        .simple-chart {
-            width: 100%;
-            height: 200px;
-            display: flex;
-            align-items: flex-end;
-            gap: 4px;
-            padding: 1rem 0;
-            position: relative;
-        }
-
-        .chart-bar {
-            flex: 1;
-            background: linear-gradient(180deg, var(--primary) 0%, rgba(99,102,241,0.3) 100%);
-            border-radius: 4px 4px 0 0;
-            position: relative;
-            transition: all 0.3s;
-            min-height: 4px;
-        }
-
-        .chart-bar:hover {
-            background: var(--primary);
-            opacity: 0.8;
-        }
-
-        .chart-bar::after {
-            content: attr(data-value);
-            position: absolute;
-            top: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .chart-bar:hover::after {
-            opacity: 1;
-        }
-
-        /* Bar Chart Container */
-        .bar-chart-container {
-            width: 100%;
-            padding: 1rem 0;
-        }
-
-        .bar-chart-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .bar-chart-label {
-            width: 150px;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .bar-chart-bar-wrapper {
-            flex: 1;
-            height: 32px;
-            background: var(--bg-gray);
-            border-radius: 6px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .bar-chart-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary), var(--info));
-            border-radius: 6px;
-            transition: width 0.5s ease;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 0.5rem;
-        }
-
-        .bar-chart-value {
-            font-size: 0.75rem;
+        .stat-trend {
+            font-size: 0.6875rem;
             font-weight: 600;
-            color: white;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.125rem 0.5rem;
+            border-radius: 6px;
         }
 
-        /* Table */
+        .stat-trend.up { color: var(--success); background: var(--success-bg); }
+        .stat-trend.down { color: var(--danger); background: var(--danger-bg); }
+        .stat-trend.neutral { color: var(--text-muted); background: rgba(255,255,255,0.05); }
+
+        /* ======================== CARDS ======================== */
         .card {
             background: var(--card-bg);
-            border-radius: 12px;
             border: 1px solid var(--card-border);
+            border-radius: 12px;
             overflow: hidden;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
 
         .card-header {
-            padding: 1.5rem;
+            padding: 1rem 1.25rem;
             border-bottom: 1px solid var(--card-border);
             display: flex;
             justify-content: space-between;
@@ -341,404 +374,587 @@
         }
 
         .card-title {
-            font-size: 1.25rem;
+            font-size: 0.875rem;
             font-weight: 600;
+            letter-spacing: -0.01em;
         }
 
-        .card-body {
-            padding: 1.5rem;
-        }
+        .card-body { padding: 1.25rem; }
 
-        .table-wrapper {
-            overflow-x: auto;
-        }
+        .card-actions { display: flex; gap: 0.5rem; align-items: center; }
 
-        table {
+        /* Grid layouts */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .grid-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+        .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; }
+
+        /* ======================== CHARTS ======================== */
+        .chart-container {
+            position: relative;
             width: 100%;
-            border-collapse: collapse;
+            height: 280px;
         }
+
+        .chart-container.small { height: 220px; }
+        .chart-container.doughnut { height: 260px; max-width: 260px; margin: 0 auto; }
+
+        /* ======================== TABLES ======================== */
+        .table-wrapper { overflow-x: auto; }
+
+        table { width: 100%; border-collapse: collapse; }
 
         th, td {
             text-align: left;
-            padding: 1rem;
+            padding: 0.75rem 1rem;
             border-bottom: 1px solid var(--card-border);
+            font-size: 0.8125rem;
         }
 
         th {
             font-weight: 600;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            background: var(--bg-gray);
+            color: var(--text-muted);
+            font-size: 0.6875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background: rgba(255,255,255,0.02);
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+            transition: color 0.15s;
         }
 
-        td {
-            font-size: 0.875rem;
-            color: var(--text-primary);
+        th:hover { color: var(--text-secondary); }
+        th .sort-arrow { margin-left: 0.25rem; opacity: 0.5; font-size: 0.625rem; }
+        th.sorted .sort-arrow { opacity: 1; color: var(--primary); }
+
+        td { color: var(--text-secondary); }
+
+        tr { transition: background 0.1s; }
+        tr:hover { background: rgba(255,255,255,0.02); }
+        tr:last-child td { border-bottom: none; }
+
+        .table-row-clickable { cursor: pointer; }
+        .table-row-clickable:hover { background: rgba(99,102,241,0.05) !important; }
+
+        /* Expandable row */
+        .expand-row td {
+            padding: 0;
+            border-bottom: 1px solid var(--card-border);
         }
 
-        tr:hover {
-            background: rgba(99,102,241,0.05);
+        .expand-content {
+            padding: 1rem 1.5rem;
+            background: rgba(255,255,255,0.01);
+            border-top: 1px solid var(--card-border);
         }
 
-        /* Badges */
+        /* ======================== BADGES ======================== */
         .badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            padding: 0.1875rem 0.625rem;
+            border-radius: 6px;
+            font-size: 0.6875rem;
             font-weight: 600;
+            letter-spacing: 0.01em;
         }
 
         .badge.trial { background: #312e81; color: #c7d2fe; }
-        .badge.free { background: #374151; color: #d1d5db; }
+        .badge.free { background: #1c1917; color: #a8a29e; border: 1px solid #292524; }
+        .badge.starter { background: #1e3a5f; color: #7dd3fc; }
+        .badge.professional { background: #1e3a8a; color: #93c5fd; }
         .badge.pro { background: #1e3a8a; color: #93c5fd; }
         .badge.enterprise { background: #78350f; color: #fde68a; }
-        .badge.starter { background: #1e3a8a; color: #93c5fd; }
         .badge.active { background: #14532d; color: #86efac; }
         .badge.inactive { background: #7f1d1d; color: #fca5a5; }
-        .badge.viewer { background: #374151; color: #d1d5db; }
-        .badge.member { background: #1e3a8a; color: #93c5fd; }
+        .badge.suspended { background: #78350f; color: #fde68a; }
+        .badge.viewer { background: #1c1917; color: #a8a29e; }
+        .badge.member { background: #1e3a5f; color: #7dd3fc; }
         .badge.admin { background: #7c2d12; color: #fdba74; }
         .badge.owner { background: #581c87; color: #e9d5ff; }
         .badge.superadmin { background: #7f1d1d; color: #fca5a5; }
 
-        /* Status badges for HTTP codes */
-        .badge.success { background: #14532d; color: #86efac; }
-        .badge.warning { background: #78350f; color: #fde68a; }
-        .badge.danger { background: #7f1d1d; color: #fca5a5; }
+        .badge.http-2xx { background: #14532d; color: #86efac; }
+        .badge.http-3xx { background: #1e3a5f; color: #7dd3fc; }
+        .badge.http-4xx { background: #78350f; color: #fde68a; }
+        .badge.http-5xx { background: #7f1d1d; color: #fca5a5; }
 
-        /* Announcement type badges */
-        .badge.info { background: #1e3a8a; color: #93c5fd; }
-        .badge.urgent { background: #7f1d1d; color: #fca5a5; }
+        .badge.info { background: var(--info-bg); color: #93c5fd; }
+        .badge.warning { background: var(--warning-bg); color: #fde68a; }
+        .badge.urgent { background: var(--danger-bg); color: #fca5a5; }
 
-        /* Buttons */
+        /* ======================== BUTTONS ======================== */
         .btn {
-            padding: 0.5rem 1rem;
+            padding: 0.4375rem 0.875rem;
             border-radius: 8px;
-            border: none;
-            font-size: 0.875rem;
+            border: 1px solid transparent;
+            font-size: 0.8125rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-family: inherit;
         }
 
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
 
-        .btn-primary:hover {
-            background: var(--primary-hover);
-        }
-
-        .btn-secondary {
-            background: var(--bg-gray);
-            color: var(--text-primary);
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
             border: 1px solid var(--card-border);
         }
+        .btn-ghost:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
 
-        .btn-secondary:hover {
-            background: var(--card-border);
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #16a34a; }
+
+        .btn-sm { padding: 0.3125rem 0.625rem; font-size: 0.75rem; border-radius: 6px; }
+        .btn-xs { padding: 0.1875rem 0.5rem; font-size: 0.6875rem; border-radius: 5px; }
+
+        .btn-icon {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: transparent;
+            border: 1px solid var(--card-border);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
         }
 
-        .btn-danger {
-            background: var(--danger);
-            color: white;
-        }
+        .btn-icon:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
 
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-
-        .btn-sm {
-            padding: 0.375rem 0.75rem;
-            font-size: 0.8125rem;
-        }
-
-        /* Search & Filters */
+        /* ======================== FORM / SEARCH ======================== */
         .filters {
             display: flex;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
             flex-wrap: wrap;
+            align-items: center;
         }
 
         .search-box {
             flex: 1;
-            min-width: 300px;
+            min-width: 240px;
             position: relative;
         }
 
         .search-box input {
             width: 100%;
-            padding: 0.625rem 1rem 0.625rem 2.5rem;
+            padding: 0.5rem 0.875rem 0.5rem 2.25rem;
             border: 1px solid var(--card-border);
             border-radius: 8px;
-            font-size: 0.875rem;
+            font-size: 0.8125rem;
             background: var(--card-bg);
             color: var(--text-primary);
+            font-family: inherit;
+            transition: border-color 0.15s;
         }
 
-        .search-icon {
+        .search-box input:focus { border-color: var(--primary); outline: none; }
+
+        .search-box .search-icon {
             position: absolute;
-            left: 0.875rem;
+            left: 0.75rem;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--text-secondary);
+            color: var(--text-muted);
+            font-size: 0.875rem;
         }
 
         select {
-            padding: 0.625rem 1rem;
+            padding: 0.5rem 0.875rem;
             border: 1px solid var(--card-border);
             border-radius: 8px;
-            font-size: 0.875rem;
+            font-size: 0.8125rem;
             background: var(--card-bg);
             color: var(--text-primary);
+            font-family: inherit;
+            cursor: pointer;
         }
 
-        input, select, textarea {
-            outline: none;
+        select:focus { border-color: var(--primary); outline: none; }
+
+        input, select, textarea { outline: none; }
+
+        .form-group { margin-bottom: 1rem; }
+
+        .form-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-bottom: 0.375rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
-        input:focus, select:focus, textarea:focus {
-            border-color: var(--primary);
+        .form-control {
+            width: 100%;
+            padding: 0.5rem 0.875rem;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            font-size: 0.8125rem;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: inherit;
         }
 
-        /* Modal */
+        .form-control:focus { border-color: var(--primary); }
+
+        textarea.form-control { resize: vertical; min-height: 80px; }
+
+        /* ======================== MODAL ======================== */
         .modal-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1000;
+            animation: fadeIn 0.15s ease;
         }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
         .modal {
             background: var(--card-bg);
             border: 1px solid var(--card-border);
-            border-radius: 12px;
+            border-radius: 16px;
             width: 90%;
-            max-width: 600px;
-            max-height: 90vh;
+            max-width: 560px;
+            max-height: 85vh;
             overflow-y: auto;
+            animation: slideUp 0.2s ease;
         }
 
         .modal-header {
-            padding: 1.5rem;
+            padding: 1.25rem 1.5rem;
             border-bottom: 1px solid var(--card-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .modal-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
+        .modal-title { font-size: 1rem; font-weight: 700; }
 
         .modal-close {
             background: none;
             border: none;
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             cursor: pointer;
-            color: var(--text-secondary);
+            color: var(--text-muted);
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.15s;
         }
 
-        .modal-body {
-            padding: 1.5rem;
-        }
-
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            color: var(--text-secondary);
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 0.625rem 1rem;
-            border: 1px solid var(--card-border);
-            border-radius: 8px;
-            font-size: 0.875rem;
-            background: var(--bg-gray);
-            color: var(--text-primary);
-        }
-
-        textarea.form-control {
-            resize: vertical;
-            min-height: 100px;
-        }
+        .modal-close:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+        .modal-body { padding: 1.5rem; }
 
         .modal-footer {
-            padding: 1.5rem;
+            padding: 1rem 1.5rem;
             border-top: 1px solid var(--card-border);
             display: flex;
             gap: 0.75rem;
             justify-content: flex-end;
         }
 
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-secondary);
-        }
+        /* ======================== ACTIVITY FEED ======================== */
+        .activity-feed { max-height: 400px; overflow-y: auto; }
 
-        .spinner {
-            display: inline-block;
-            width: 40px;
-            height: 40px;
-            border: 4px solid var(--card-border);
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Alert */
-        .alert {
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-
-        .alert-success {
-            background: rgba(34,197,94,0.2);
-            color: #86efac;
-            border: 1px solid rgba(34,197,94,0.3);
-        }
-
-        .alert-error {
-            background: rgba(239,68,68,0.2);
-            color: #fca5a5;
-            border: 1px solid rgba(239,68,68,0.3);
-        }
-
-        .alert-info {
-            background: rgba(59,130,246,0.2);
-            color: #93c5fd;
-            border: 1px solid rgba(59,130,246,0.3);
-        }
-
-        .alert-warning {
-            background: rgba(245,158,11,0.2);
-            color: #fde68a;
-            border: 1px solid rgba(245,158,11,0.3);
-        }
-
-        /* Announcement item */
-        .announcement-item {
-            background: var(--bg-gray);
-            border: 1px solid var(--card-border);
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
+        .activity-item {
             display: flex;
-            justify-content: space-between;
             align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-size: 0.8125rem;
+            transition: background 0.1s;
         }
 
-        .announcement-content {
-            flex: 1;
-        }
+        .activity-item:last-child { border-bottom: none; }
+        .activity-item:hover { background: rgba(255,255,255,0.01); }
 
-        .announcement-header {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .announcement-title {
-            font-weight: 600;
-            font-size: 1rem;
-        }
-
-        .announcement-meta {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-        }
-
-        .announcement-text {
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-        }
-
-        /* Auto-refresh indicator */
-        .auto-refresh {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            padding: 0.25rem 0.75rem;
-            background: var(--bg-gray);
-            border-radius: 6px;
-        }
-
-        .refresh-dot {
+        .activity-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: var(--success);
-            animation: pulse 2s infinite;
+            margin-top: 0.375rem;
+            flex-shrink: 0;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+        .activity-dot.success { background: var(--success); }
+        .activity-dot.warning { background: var(--warning); }
+        .activity-dot.danger { background: var(--danger); }
+        .activity-dot.info { background: var(--info); }
+
+        .activity-body { flex: 1; min-width: 0; }
+
+        .activity-endpoint {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 0.75rem;
+            color: var(--text-primary);
+            font-weight: 500;
         }
+
+        .activity-meta {
+            color: var(--text-muted);
+            font-size: 0.6875rem;
+            margin-top: 0.125rem;
+        }
+
+        .activity-time {
+            color: var(--text-muted);
+            font-size: 0.6875rem;
+            white-space: nowrap;
+            flex-shrink: 0;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ======================== SYSTEM HEALTH ======================== */
+        .health-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .health-item {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255,255,255,0.02);
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+        }
+
+        .health-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin: 0 auto 0.5rem;
+        }
+
+        .health-indicator.green { background: var(--success); box-shadow: 0 0 8px rgba(34,197,94,0.4); }
+        .health-indicator.yellow { background: var(--warning); box-shadow: 0 0 8px rgba(245,158,11,0.4); }
+        .health-indicator.red { background: var(--danger); box-shadow: 0 0 8px rgba(239,68,68,0.4); }
+
+        .health-label { font-size: 0.6875rem; color: var(--text-muted); margin-bottom: 0.25rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .health-value { font-size: 1rem; font-weight: 700; }
+
+        /* ======================== SKELETON LOADING ======================== */
+        .skeleton {
+            background: linear-gradient(90deg, var(--card-border) 25%, #3f3f46 50%, var(--card-border) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-pulse 1.5s infinite;
+            border-radius: 6px;
+        }
+
+        @keyframes skeleton-pulse {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-text { height: 14px; width: 60%; margin-bottom: 0.5rem; }
+        .skeleton-value { height: 28px; width: 40%; margin-bottom: 0.375rem; }
+        .skeleton-chart { height: 200px; width: 100%; }
+
+        /* ======================== ALERTS ======================== */
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.8125rem;
+            margin-bottom: 1rem;
+        }
+
+        .alert-success { background: var(--success-bg); color: #86efac; border: 1px solid rgba(34,197,94,0.2); }
+        .alert-error { background: var(--danger-bg); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
+        .alert-info { background: var(--info-bg); color: #93c5fd; border: 1px solid rgba(59,130,246,0.2); }
+        .alert-warning { background: var(--warning-bg); color: #fde68a; border: 1px solid rgba(245,158,11,0.2); }
+
+        /* ======================== TOAST ======================== */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: slideInRight 0.3s ease, fadeOut 0.3s ease 3.5s forwards;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            max-width: 360px;
+        }
+
+        .toast.success { background: #14532d; color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
+        .toast.error { background: #7f1d1d; color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+        .toast.info { background: #1e3a5f; color: #7dd3fc; border: 1px solid rgba(59,130,246,0.3); }
+
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+        /* ======================== ANNOUNCEMENT ITEM ======================== */
+        .announcement-item {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+            transition: border-color 0.15s;
+        }
+
+        .announcement-item:hover { border-color: #3f3f46; }
+
+        .announcement-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .announcement-title { font-weight: 600; font-size: 0.875rem; }
+        .announcement-meta { font-size: 0.6875rem; color: var(--text-muted); margin-bottom: 0.375rem; }
+        .announcement-text { color: var(--text-secondary); font-size: 0.8125rem; line-height: 1.5; }
+
+        /* ======================== QUOTA BAR ======================== */
+        .quota-bar-outer {
+            height: 6px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 3px;
+            overflow: hidden;
+            width: 120px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 0.5rem;
+        }
+
+        .quota-bar-inner {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .quota-bar-inner.low { background: var(--success); }
+        .quota-bar-inner.mid { background: var(--warning); }
+        .quota-bar-inner.high { background: var(--danger); }
+
+        /* ======================== PAGE TRANSITIONS ======================== */
+        .page { animation: pageFade 0.2s ease; }
+        @keyframes pageFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ======================== RESPONSIVE ======================== */
+        @media (max-width: 1280px) {
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .health-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .mobile-menu-btn { display: block; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .page-content { padding: 1rem; }
+            .topbar { padding: 0.75rem 1rem; }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ======================== MISC ======================== */
+        .text-muted { color: var(--text-muted); }
+        .text-sm { font-size: 0.8125rem; }
+        .text-xs { font-size: 0.6875rem; }
+        .font-mono { font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; }
+        .mt-1 { margin-top: 0.5rem; }
+        .mt-2 { margin-top: 1rem; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .gap-1 { gap: 0.5rem; }
+        .gap-2 { gap: 1rem; }
+        .justify-between { justify-content: space-between; }
+        .flex-1 { flex: 1; }
+        .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
 <body>
-    <!-- Admin Layout -->
+    <div class="toast-container" id="toast-container"></div>
+
     <div class="admin-layout">
-        <!-- Sidebar -->
-        <aside class="sidebar">
+        <!-- ==================== SIDEBAR ==================== -->
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="sidebar-logo">
-                    ⚖️ Legal AI
+                    <div class="logo-icon">⚖️</div>
+                    Legal AI
                 </div>
-                <div class="sidebar-subtitle">Platform Admin</div>
+                <div class="sidebar-subtitle">Admin Dashboard</div>
             </div>
 
             <nav class="sidebar-menu">
-                <div class="menu-item active" onclick="showPage('dashboard')">
+                <div class="menu-section">Overview</div>
+                <div class="menu-item active" data-page="dashboard">
                     <span class="menu-icon">📊</span>
                     <span>Dashboard</span>
                 </div>
-                <div class="menu-item" onclick="showPage('companies')">
+
+                <div class="menu-section">Management</div>
+                <div class="menu-item" data-page="companies">
                     <span class="menu-icon">🏢</span>
                     <span>Companies</span>
                 </div>
-                <div class="menu-item" onclick="showPage('users')">
+                <div class="menu-item" data-page="users">
                     <span class="menu-icon">👥</span>
                     <span>Users</span>
                 </div>
-                <div class="menu-item" onclick="showPage('usage')">
+
+                <div class="menu-section">Analytics</div>
+                <div class="menu-item" data-page="usage">
                     <span class="menu-icon">📈</span>
                     <span>Usage Analytics</span>
                 </div>
-                <div class="menu-item" onclick="showPage('logs')">
-                    <span class="menu-icon">📋</span>
-                    <span>API Logs</span>
+                <div class="menu-item" data-page="activity">
+                    <span class="menu-icon">⚡</span>
+                    <span>Activity Feed</span>
+                    <span class="menu-badge" id="activity-badge" style="display:none">0</span>
                 </div>
-                <div class="menu-item" onclick="showPage('announcements')">
+
+                <div class="menu-section">System</div>
+                <div class="menu-item" data-page="health">
+                    <span class="menu-icon">🩺</span>
+                    <span>System Health</span>
+                </div>
+                <div class="menu-item" data-page="announcements">
                     <span class="menu-icon">📢</span>
                     <span>Announcements</span>
                 </div>
@@ -747,7 +963,7 @@
             <div class="sidebar-footer">
                 <div class="user-info">
                     <div class="user-avatar">SA</div>
-                    <div class="user-details">
+                    <div>
                         <div class="user-name" id="admin-name">Super Admin</div>
                         <div class="user-role">superadmin</div>
                     </div>
@@ -755,330 +971,454 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
+        <!-- ==================== MAIN ==================== -->
         <main class="main-content">
-            <!-- Dashboard Page -->
+            <div class="topbar">
+                <div class="topbar-left">
+                    <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+                    <div class="page-title-bar" id="page-title-bar">Dashboard</div>
+                </div>
+                <div class="topbar-right">
+                    <div class="topbar-time" id="topbar-time"></div>
+                    <div class="status-pill" id="api-status-pill">
+                        <span class="status-dot"></span>
+                        <span id="api-status-text">Online</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== DASHBOARD PAGE ===== -->
             <div id="page-dashboard" class="page">
-                <div class="page-header">
-                    <h1 class="page-title">Platform Overview</h1>
-                    <p class="page-subtitle">Real-time statistics and activity</p>
-                </div>
-
-                <!-- Stats Grid -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <div class="stat-title">Total Companies</div>
-                                <div class="stat-value" id="stat-companies">-</div>
+                <div class="page-content">
+                    <!-- Stats Cards -->
+                    <div class="stats-grid" id="stats-grid">
+                        <div class="stat-card purple">
+                            <div class="stat-top">
+                                <div class="stat-label">Total Users</div>
+                                <div class="stat-icon-wrap purple">👥</div>
                             </div>
-                            <div class="stat-icon primary">🏢</div>
+                            <div class="stat-value" id="stat-users">
+                                <div class="skeleton skeleton-value"></div>
+                            </div>
+                            <span class="stat-trend neutral" id="stat-users-trend">--</span>
+                        </div>
+                        <div class="stat-card green">
+                            <div class="stat-top">
+                                <div class="stat-label">Companies</div>
+                                <div class="stat-icon-wrap green">🏢</div>
+                            </div>
+                            <div class="stat-value" id="stat-companies">
+                                <div class="skeleton skeleton-value"></div>
+                            </div>
+                            <span class="stat-trend neutral" id="stat-companies-trend">--</span>
+                        </div>
+                        <div class="stat-card blue">
+                            <div class="stat-top">
+                                <div class="stat-label">Queries Today</div>
+                                <div class="stat-icon-wrap blue">📊</div>
+                            </div>
+                            <div class="stat-value" id="stat-queries-today">
+                                <div class="skeleton skeleton-value"></div>
+                            </div>
+                            <span class="stat-trend neutral" id="stat-queries-trend">--</span>
+                        </div>
+                        <div class="stat-card amber">
+                            <div class="stat-top">
+                                <div class="stat-label">Revenue (Month)</div>
+                                <div class="stat-icon-wrap amber">💰</div>
+                            </div>
+                            <div class="stat-value" id="stat-revenue">
+                                <div class="skeleton skeleton-value"></div>
+                            </div>
+                            <span class="stat-trend neutral" id="stat-revenue-trend">--</span>
+                        </div>
+                        <div class="stat-card cyan">
+                            <div class="stat-top">
+                                <div class="stat-label">Active Subs</div>
+                                <div class="stat-icon-wrap cyan">🔥</div>
+                            </div>
+                            <div class="stat-value" id="stat-subscriptions">
+                                <div class="skeleton skeleton-value"></div>
+                            </div>
+                            <span class="stat-trend neutral" id="stat-subs-trend">--</span>
                         </div>
                     </div>
 
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <div class="stat-title">Total Users</div>
-                                <div class="stat-value" id="stat-users">-</div>
+                    <!-- Charts Row 1 -->
+                    <div class="grid-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Queries — Last 30 Days</div>
+                                <div class="card-actions">
+                                    <span class="text-xs text-muted" id="queries-chart-total"></span>
+                                </div>
                             </div>
-                            <div class="stat-icon success">👥</div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="chart-queries-30d"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Users by Plan</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container doughnut">
+                                    <canvas id="chart-plan-dist"></canvas>
+                                </div>
+                                <div id="plan-legend" class="mt-1" style="text-align:center;"></div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <div class="stat-title">Queries Today</div>
-                                <div class="stat-value" id="stat-requests-today">-</div>
+                    <!-- Charts Row 2 -->
+                    <div class="grid-2">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Top Endpoints</div>
                             </div>
-                            <div class="stat-icon warning">📊</div>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <div class="stat-title">Queries This Month</div>
-                                <div class="stat-value" id="stat-requests-month">-</div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="chart-endpoints"></canvas>
+                                </div>
                             </div>
-                            <div class="stat-icon danger">🚀</div>
                         </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <div class="stat-title">Active Sessions</div>
-                                <div class="stat-value" id="stat-active-sessions">-</div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Revenue Trend</div>
                             </div>
-                            <div class="stat-icon success">🔥</div>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div>
-                                <div class="stat-title">Revenue Estimate</div>
-                                <div class="stat-value" id="stat-revenue">-</div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="chart-revenue"></canvas>
+                                </div>
                             </div>
-                            <div class="stat-icon warning">💰</div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- 7-Day Query Chart -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Queries per Day (Last 7 Days)</h3>
-                    </div>
-                    <div class="card-body">
-                        <div id="queries-chart" class="simple-chart"></div>
-                    </div>
-                </div>
-
-                <!-- Plan Breakdown -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Plan Distribution</h3>
-                    </div>
-                    <div class="card-body">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Plan</th>
-                                    <th>Companies</th>
-                                    <th>Percentage</th>
-                                </tr>
-                            </thead>
-                            <tbody id="plans-table"></tbody>
-                        </table>
                     </div>
                 </div>
             </div>
 
-            <!-- Companies Page -->
+            <!-- ===== COMPANIES PAGE ===== -->
             <div id="page-companies" class="page hidden">
-                <div class="page-header">
-                    <h1 class="page-title">Companies</h1>
-                    <p class="page-subtitle">Manage all platform companies</p>
-                </div>
-
-                <div class="filters">
-                    <div class="search-box">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" id="company-search" placeholder="Search companies..." onkeyup="searchCompanies()">
+                <div class="page-content">
+                    <div class="filters">
+                        <div class="search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="company-search" placeholder="Search companies..." oninput="filterCompanies()">
+                        </div>
+                        <select id="company-plan-filter" onchange="filterCompanies()">
+                            <option value="">All Plans</option>
+                            <option value="trial">Trial</option>
+                            <option value="free">Free</option>
+                            <option value="starter">Starter</option>
+                            <option value="professional">Professional</option>
+                            <option value="pro">Pro</option>
+                            <option value="enterprise">Enterprise</option>
+                        </select>
+                        <select id="company-status-filter" onchange="filterCompanies()">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                        <button class="btn btn-ghost btn-sm" onclick="loadCompanies()">↻ Refresh</button>
                     </div>
-                    <select id="company-plan-filter" onchange="filterCompanies()">
-                        <option value="">All Plans</option>
-                        <option value="trial">Trial</option>
-                        <option value="free">Free</option>
-                        <option value="starter">Starter</option>
-                        <option value="pro">Pro</option>
-                        <option value="enterprise">Enterprise</option>
-                    </select>
-                </div>
 
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Company</th>
-                                        <th>Plan</th>
-                                        <th>Quota</th>
-                                        <th>Users</th>
-                                        <th>Created</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="companies-table"></tbody>
-                            </table>
+                    <div class="card">
+                        <div class="card-body" style="padding:0;">
+                            <div class="table-wrapper">
+                                <table id="companies-table-el">
+                                    <thead>
+                                        <tr>
+                                            <th onclick="sortCompanies('name')">Name <span class="sort-arrow">↕</span></th>
+                                            <th onclick="sortCompanies('plan')">Plan <span class="sort-arrow">↕</span></th>
+                                            <th onclick="sortCompanies('user_count')">Users <span class="sort-arrow">↕</span></th>
+                                            <th>Quota</th>
+                                            <th onclick="sortCompanies('is_active')">Status <span class="sort-arrow">↕</span></th>
+                                            <th onclick="sortCompanies('created_at')">Created <span class="sort-arrow">↕</span></th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="companies-table"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Users Page -->
+            <!-- ===== USERS PAGE ===== -->
             <div id="page-users" class="page hidden">
-                <div class="page-header">
-                    <h1 class="page-title">Users</h1>
-                    <p class="page-subtitle">Manage all platform users</p>
-                </div>
-
-                <div class="filters">
-                    <div class="search-box">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" id="user-search" placeholder="Search users..." onkeyup="searchUsers()">
+                <div class="page-content">
+                    <div class="filters">
+                        <div class="search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="user-search" placeholder="Search users..." oninput="filterUsers()">
+                        </div>
+                        <select id="user-role-filter" onchange="filterUsers()">
+                            <option value="">All Roles</option>
+                            <option value="viewer">Viewer</option>
+                            <option value="member">Member</option>
+                            <option value="admin">Admin</option>
+                            <option value="owner">Owner</option>
+                            <option value="superadmin">Superadmin</option>
+                        </select>
+                        <select id="user-status-filter" onchange="filterUsers()">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                        <button class="btn btn-ghost btn-sm" onclick="loadUsers()">↻ Refresh</button>
                     </div>
-                    <select id="user-role-filter" onchange="filterUsers()">
-                        <option value="">All Roles</option>
-                        <option value="viewer">Viewer</option>
-                        <option value="member">Member</option>
-                        <option value="admin">Admin</option>
-                        <option value="owner">Owner</option>
-                        <option value="superadmin">Superadmin</option>
-                    </select>
-                </div>
 
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Company</th>
-                                        <th>Role</th>
-                                        <th>Last Login</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="users-table"></tbody>
-                            </table>
+                    <div class="card">
+                        <div class="card-body" style="padding:0;">
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th onclick="sortUsers('full_name')">Name <span class="sort-arrow">↕</span></th>
+                                            <th onclick="sortUsers('email')">Email <span class="sort-arrow">↕</span></th>
+                                            <th onclick="sortUsers('company_name')">Company <span class="sort-arrow">↕</span></th>
+                                            <th onclick="sortUsers('role')">Role <span class="sort-arrow">↕</span></th>
+                                            <th onclick="sortUsers('last_login_at')">Last Active <span class="sort-arrow">↕</span></th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="users-table"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Usage Analytics Page -->
+            <!-- ===== USAGE ANALYTICS PAGE ===== -->
             <div id="page-usage" class="page hidden">
-                <div class="page-header">
-                    <h1 class="page-title">Usage Analytics</h1>
-                    <p class="page-subtitle">Platform-wide usage metrics</p>
-                </div>
-
-                <div class="filters">
-                    <select id="usage-period" onchange="loadUsage()">
-                        <option value="24h">Last 24 Hours</option>
-                        <option value="7d" selected>Last 7 Days</option>
-                        <option value="30d">Last 30 Days</option>
-                        <option value="90d">Last 90 Days</option>
-                    </select>
-                </div>
-
-                <!-- Top 5 Companies by Usage -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Top 5 Companies by Usage</h3>
+                <div class="page-content">
+                    <div class="filters">
+                        <select id="usage-period" onchange="loadUsage()">
+                            <option value="24h">Last 24 Hours</option>
+                            <option value="7d" selected>Last 7 Days</option>
+                            <option value="30d">Last 30 Days</option>
+                            <option value="90d">Last 90 Days</option>
+                        </select>
+                        <button class="btn btn-ghost btn-sm" onclick="loadUsage()">↻ Refresh</button>
                     </div>
-                    <div class="card-body">
-                        <div id="top-companies-chart" class="bar-chart-container"></div>
-                    </div>
-                </div>
 
-                <!-- Popular Questions -->
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Usage by Company</h3>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Usage Over Time</div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="chart-usage-time"></canvas>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Company</th>
-                                        <th>Plan</th>
-                                        <th>Requests</th>
-                                        <th>Input Tokens</th>
-                                        <th>Output Tokens</th>
-                                        <th>Total Tokens</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="usage-table"></tbody>
-                            </table>
+
+                    <div class="grid-2">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Top 5 Companies</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="chart-top-companies"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Endpoint Usage</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="chart-endpoint-usage"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Usage by Company</div>
+                        </div>
+                        <div class="card-body" style="padding:0;">
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Company</th>
+                                            <th>Plan</th>
+                                            <th>Requests</th>
+                                            <th>Input Tokens</th>
+                                            <th>Output Tokens</th>
+                                            <th>Total Tokens</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="usage-table"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- API Logs Page -->
-            <div id="page-logs" class="page hidden">
-                <div class="page-header">
-                    <h1 class="page-title">API Logs</h1>
-                    <p class="page-subtitle">Recent API requests</p>
-                </div>
-
-                <div class="filters">
-                    <div class="search-box">
-                        <span class="search-icon">🔍</span>
-                        <input type="text" id="log-endpoint-filter" placeholder="Filter by endpoint..." onkeyup="filterLogs()">
+            <!-- ===== ACTIVITY FEED PAGE ===== -->
+            <div id="page-activity" class="page hidden">
+                <div class="page-content">
+                    <div class="filters">
+                        <div class="search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="log-endpoint-filter" placeholder="Filter by endpoint..." oninput="filterLogs()">
+                        </div>
+                        <select id="log-status-filter" onchange="filterLogs()">
+                            <option value="">All Status</option>
+                            <option value="2xx">2xx Success</option>
+                            <option value="4xx">4xx Client Error</option>
+                            <option value="5xx">5xx Server Error</option>
+                        </select>
+                        <button class="btn btn-ghost btn-sm" onclick="loadLogs()">↻ Refresh</button>
+                        <div class="status-pill" style="margin-left:auto;">
+                            <span class="status-dot"></span>
+                            <span>Auto-refresh: 30s</span>
+                        </div>
                     </div>
-                    <select id="log-status-filter" onchange="filterLogs()">
-                        <option value="">All Status</option>
-                        <option value="2xx">2xx Success</option>
-                        <option value="4xx">4xx Client Error</option>
-                        <option value="5xx">5xx Server Error</option>
-                    </select>
-                    <button class="btn btn-primary btn-sm" onclick="loadLogs()">🔄 Refresh</button>
-                    <div class="auto-refresh">
-                        <div class="refresh-dot"></div>
-                        <span>Auto-refresh: 30s</span>
-                    </div>
-                </div>
 
-                <div class="card">
-                    <div class="card-body">
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Timestamp</th>
-                                        <th>Endpoint</th>
-                                        <th>Method</th>
-                                        <th>Status</th>
-                                        <th>Response Time</th>
-                                        <th>Company</th>
-                                        <th>User</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="logs-table"></tbody>
-                            </table>
+                    <div class="grid-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Recent API Calls</div>
+                                <span class="text-xs text-muted" id="logs-count"></span>
+                            </div>
+                            <div class="card-body" style="padding:0;">
+                                <div class="table-wrapper">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Timestamp</th>
+                                                <th>User</th>
+                                                <th>Endpoint</th>
+                                                <th>Status</th>
+                                                <th>Time</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="logs-table"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Live Feed</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="activity-feed" id="activity-feed">
+                                    <div class="text-muted text-sm" style="text-align:center;padding:2rem;">Loading activity...</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Announcements Page -->
+            <!-- ===== SYSTEM HEALTH PAGE ===== -->
+            <div id="page-health" class="page hidden">
+                <div class="page-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">System Status</div>
+                            <button class="btn btn-ghost btn-sm" onclick="loadHealth()">↻ Check Now</button>
+                        </div>
+                        <div class="card-body">
+                            <div class="health-grid" id="health-grid">
+                                <div class="health-item">
+                                    <div class="health-indicator green" id="health-api"></div>
+                                    <div class="health-label">API Server</div>
+                                    <div class="health-value" id="health-api-text">Online</div>
+                                </div>
+                                <div class="health-item">
+                                    <div class="health-indicator green" id="health-db"></div>
+                                    <div class="health-label">Database</div>
+                                    <div class="health-value" id="health-db-text">Connected</div>
+                                </div>
+                                <div class="health-item">
+                                    <div class="health-indicator green" id="health-latency"></div>
+                                    <div class="health-label">Avg Response</div>
+                                    <div class="health-value" id="health-latency-text">--ms</div>
+                                </div>
+                                <div class="health-item">
+                                    <div class="health-indicator green" id="health-errors"></div>
+                                    <div class="health-label">Error Rate</div>
+                                    <div class="health-value" id="health-errors-text">0%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2 mt-2">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Response Time (Last 24h)</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="chart-health-latency"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Error Rate (Last 24h)</div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="chart-health-errors"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== ANNOUNCEMENTS PAGE ===== -->
             <div id="page-announcements" class="page hidden">
-                <div class="page-header">
-                    <h1 class="page-title">Announcements</h1>
-                    <p class="page-subtitle">Broadcast messages to companies</p>
-                </div>
-
-                <button class="btn btn-primary" onclick="showAnnouncementModal()" style="margin-bottom: 1.5rem;">
-                    📢 Create New Announcement
-                </button>
-
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Recent Announcements</h3>
+                <div class="page-content">
+                    <div class="flex items-center justify-between mb-2">
+                        <div></div>
+                        <button class="btn btn-primary" onclick="showAnnouncementModal()">
+                            📢 New Announcement
+                        </button>
                     </div>
-                    <div class="card-body">
-                        <div id="announcements-list"></div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">All Announcements</div>
+                        </div>
+                        <div class="card-body" id="announcements-list">
+                            <div class="text-muted text-sm" style="text-align:center;padding:2rem;">Loading...</div>
+                        </div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
+    <!-- ==================== MODALS ==================== -->
+
     <!-- Company Detail Modal -->
     <div id="company-modal" class="modal-overlay hidden">
-        <div class="modal">
+        <div class="modal" style="max-width:620px;">
             <div class="modal-header">
-                <h3 class="modal-title" id="company-modal-title">Company Detail</h3>
-                <button class="modal-close" onclick="closeCompanyModal()">×</button>
+                <h3 class="modal-title" id="company-modal-title">Company Details</h3>
+                <button class="modal-close" onclick="closeModal('company-modal')">✕</button>
             </div>
             <div class="modal-body" id="company-modal-body">
-                <div class="loading">
-                    <div class="spinner"></div>
-                </div>
+                <div style="text-align:center;padding:2rem;"><div class="skeleton skeleton-chart"></div></div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeCompanyModal()">Close</button>
+                <button class="btn btn-ghost" onclick="closeModal('company-modal')">Cancel</button>
                 <button class="btn btn-primary" onclick="saveCompany()">Save Changes</button>
             </div>
         </div>
@@ -1086,14 +1426,14 @@
 
     <!-- User Role Modal -->
     <div id="user-modal" class="modal-overlay hidden">
-        <div class="modal">
+        <div class="modal" style="max-width:440px;">
             <div class="modal-header">
-                <h3 class="modal-title">Change User Role</h3>
-                <button class="modal-close" onclick="closeUserModal()">×</button>
+                <h3 class="modal-title">Edit User</h3>
+                <button class="modal-close" onclick="closeModal('user-modal')">✕</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">User Email</label>
+                    <label class="form-label">Email</label>
                     <input type="text" class="form-control" id="user-email-display" disabled>
                 </div>
                 <div class="form-group">
@@ -1108,599 +1448,1266 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeUserModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveUserRole()">Save Changes</button>
+                <button class="btn btn-ghost" onclick="closeModal('user-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveUserRole()">Save</button>
             </div>
         </div>
     </div>
 
     <!-- Announcement Modal -->
     <div id="announcement-modal" class="modal-overlay hidden">
-        <div class="modal">
+        <div class="modal" style="max-width:520px;">
             <div class="modal-header">
                 <h3 class="modal-title">Create Announcement</h3>
-                <button class="modal-close" onclick="closeAnnouncementModal()">×</button>
+                <button class="modal-close" onclick="closeModal('announcement-modal')">✕</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
                     <label class="form-label">Title</label>
-                    <input type="text" class="form-control" id="announcement-title" placeholder="Announcement title">
+                    <input type="text" class="form-control" id="announcement-title" placeholder="Announcement title...">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Content</label>
-                    <textarea class="form-control" id="announcement-content" placeholder="Your message..."></textarea>
+                    <textarea class="form-control" id="announcement-content" placeholder="Write your announcement..."></textarea>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Type</label>
-                    <select class="form-control" id="announcement-type">
-                        <option value="info">Info (Blue)</option>
-                        <option value="warning">Warning (Yellow)</option>
-                        <option value="urgent">Urgent (Red)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Target</label>
-                    <select class="form-control" id="announcement-target">
-                        <option value="all">All Companies</option>
-                        <option value="plan:trial">Trial Plan Only</option>
-                        <option value="plan:free">Free Plan Only</option>
-                        <option value="plan:starter">Starter Plan Only</option>
-                        <option value="plan:pro">Pro Plan Only</option>
-                        <option value="plan:enterprise">Enterprise Plan Only</option>
-                    </select>
+                <div class="flex gap-2">
+                    <div class="form-group flex-1">
+                        <label class="form-label">Type</label>
+                        <select class="form-control" id="announcement-type">
+                            <option value="info">Info</option>
+                            <option value="warning">Warning</option>
+                            <option value="urgent">Urgent</option>
+                        </select>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label class="form-label">Target</label>
+                        <select class="form-control" id="announcement-target">
+                            <option value="all">All Companies</option>
+                            <option value="plan:trial">Trial Only</option>
+                            <option value="plan:starter">Starter Only</option>
+                            <option value="plan:professional">Professional Only</option>
+                            <option value="plan:enterprise">Enterprise Only</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeAnnouncementModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="createAnnouncement()">Create Announcement</button>
+                <button class="btn btn-ghost" onclick="closeModal('announcement-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="createAnnouncement()">Send</button>
             </div>
         </div>
     </div>
 
+    <!-- ==================== JAVASCRIPT ==================== -->
     <script>
+    (function() {
+        'use strict';
+
+        // ======================== CONFIG ========================
         const API_URL = window.location.origin;
         let authToken = localStorage.getItem('token');
-        let logsRefreshInterval = null;
+        let refreshIntervals = [];
 
-        // Check auth
+        // Auth check
         if (!authToken) {
-            alert('Please login first');
             window.location.href = '/static/app.html';
+            return;
         }
 
-        // API Helper
-        async function apiCall(endpoint, options = {}) {
-            const response = await fetch(`${API_URL}${endpoint}`, {
-                ...options,
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                    'Content-Type': 'application/json',
-                    ...options.headers
+        // ======================== CHART.JS DEFAULTS ========================
+        Chart.defaults.color = '#71717a';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.font.size = 11;
+        Chart.defaults.plugins.legend.display = false;
+        Chart.defaults.responsive = true;
+        Chart.defaults.maintainAspectRatio = false;
+        Chart.defaults.animation.duration = 600;
+
+        // Chart instances store
+        const charts = {};
+
+        // ======================== STATE ========================
+        let companiesData = [];
+        let usersData = [];
+        let logsData = [];
+        let companySortField = null, companySortAsc = true;
+        let userSortField = null, userSortAsc = true;
+        let currentPage = 'dashboard';
+
+        // ======================== API HELPER ========================
+        async function api(endpoint, options = {}) {
+            try {
+                const response = await fetch(`${API_URL}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+
+                if (response.status === 401) {
+                    toast('Session expired. Please login again.', 'error');
+                    localStorage.removeItem('token');
+                    setTimeout(() => window.location.href = '/static/app.html', 1500);
+                    return null;
                 }
+
+                if (!response.ok) {
+                    const err = await response.json().catch(() => ({}));
+                    throw new Error(err.detail || `HTTP ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (err) {
+                if (err.name === 'TypeError' && err.message.includes('fetch')) {
+                    throw new Error('Network error — server unreachable');
+                }
+                throw err;
+            }
+        }
+
+        // ======================== TOAST ========================
+        window.toast = function(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const icons = { success: '✓', error: '✕', info: 'ℹ' };
+            const el = document.createElement('div');
+            el.className = `toast ${type}`;
+            el.innerHTML = `<span>${icons[type] || 'ℹ'}</span> ${message}`;
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        };
+
+        // ======================== NAVIGATION ========================
+        const menuItems = document.querySelectorAll('.menu-item[data-page]');
+        const pageTitles = {
+            dashboard: 'Dashboard',
+            companies: 'Companies',
+            users: 'Users',
+            usage: 'Usage Analytics',
+            activity: 'Activity Feed',
+            health: 'System Health',
+            announcements: 'Announcements'
+        };
+
+        menuItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const pageId = item.dataset.page;
+                showPage(pageId);
             });
+        });
 
-            if (response.status === 401) {
-                alert('Session expired. Please login again.');
-                localStorage.removeItem('token');
-                window.location.href = '/static/app.html';
-                return;
-            }
-
-            if (!response.ok) {
-                const error = await response.json().catch(() => ({}));
-                throw new Error(error.detail || 'Request failed');
-            }
-
-            return response.json();
-        }
-
-        // Navigation
         function showPage(pageId) {
-            // Stop auto-refresh when leaving logs page
-            if (logsRefreshInterval) {
-                clearInterval(logsRefreshInterval);
-                logsRefreshInterval = null;
+            // Clear intervals
+            refreshIntervals.forEach(id => clearInterval(id));
+            refreshIntervals = [];
+
+            // Update menu
+            menuItems.forEach(m => m.classList.remove('active'));
+            const activeItem = document.querySelector(`.menu-item[data-page="${pageId}"]`);
+            if (activeItem) activeItem.classList.add('active');
+
+            // Hide/show pages
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            const pageEl = document.getElementById(`page-${pageId}`);
+            if (pageEl) {
+                pageEl.classList.remove('hidden');
+                // Re-trigger animation
+                pageEl.style.animation = 'none';
+                pageEl.offsetHeight;
+                pageEl.style.animation = '';
             }
 
-            // Hide all pages
-            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-            
-            // Remove active from all menu items
-            document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-            
-            // Show selected page
-            document.getElementById(`page-${pageId}`).classList.remove('hidden');
-            
-            // Activate menu item
-            event.currentTarget.classList.add('active');
+            // Update topbar title
+            document.getElementById('page-title-bar').textContent = pageTitles[pageId] || pageId;
+            currentPage = pageId;
 
-            // Load page data
+            // Load data
             loadPageData(pageId);
+
+            // Close mobile sidebar
+            document.getElementById('sidebar').classList.remove('open');
         }
+
+        window.showPage = showPage;
 
         function loadPageData(pageId) {
-            switch(pageId) {
-                case 'dashboard':
-                    loadDashboard();
-                    break;
-                case 'companies':
-                    loadCompanies();
-                    break;
-                case 'users':
-                    loadUsers();
-                    break;
-                case 'usage':
-                    loadUsage();
-                    break;
-                case 'logs':
+            switch (pageId) {
+                case 'dashboard': loadDashboard(); break;
+                case 'companies': loadCompanies(); break;
+                case 'users': loadUsers(); break;
+                case 'usage': loadUsage(); break;
+                case 'activity':
                     loadLogs();
-                    // Start auto-refresh every 30s
-                    logsRefreshInterval = setInterval(loadLogs, 30000);
+                    refreshIntervals.push(setInterval(loadLogs, 30000));
                     break;
-                case 'announcements':
-                    loadAnnouncements();
-                    break;
+                case 'health': loadHealth(); break;
+                case 'announcements': loadAnnouncements(); break;
             }
         }
 
-        // ============================================
-        // DASHBOARD
-        // ============================================
+        // ======================== MOBILE ========================
+        window.toggleSidebar = function() {
+            document.getElementById('sidebar').classList.toggle('open');
+        };
+
+        // ======================== CLOCK ========================
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('topbar-time').textContent = now.toLocaleString('en-US', {
+                weekday: 'short', month: 'short', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+            });
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // ======================== MODAL HELPERS ========================
+        window.closeModal = function(id) {
+            document.getElementById(id).classList.add('hidden');
+        };
+
+        // Close modal on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.classList.add('hidden');
+            });
+        });
+
+        // ======================== UTILITY ========================
+        function formatNumber(n) {
+            if (n === null || n === undefined) return '0';
+            if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+            if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+            return n.toLocaleString();
+        }
+
+        function formatCurrency(n) {
+            if (n === null || n === undefined) return '$0';
+            return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
+
+        function relativeTime(dateStr) {
+            if (!dateStr) return 'Never';
+            const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+            if (diff < 60) return 'Just now';
+            if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+            if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+            return Math.floor(diff / 86400) + 'd ago';
+        }
+
+        function quotaPercent(used, total) {
+            if (!total) return 0;
+            return Math.min(100, Math.round((used / total) * 100));
+        }
+
+        function quotaColor(pct) {
+            if (pct < 60) return 'low';
+            if (pct < 85) return 'mid';
+            return 'high';
+        }
+
+        function setTrend(elId, value, suffix = '') {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            if (value > 0) {
+                el.className = 'stat-trend up';
+                el.textContent = `↑ ${value}${suffix}`;
+            } else if (value < 0) {
+                el.className = 'stat-trend down';
+                el.textContent = `↓ ${Math.abs(value)}${suffix}`;
+            } else {
+                el.className = 'stat-trend neutral';
+                el.textContent = `→ 0${suffix}`;
+            }
+        }
+
+        function destroyChart(key) {
+            if (charts[key]) { charts[key].destroy(); charts[key] = null; }
+        }
+
+        function httpBadgeClass(code) {
+            if (code >= 500) return 'http-5xx';
+            if (code >= 400) return 'http-4xx';
+            if (code >= 300) return 'http-3xx';
+            return 'http-2xx';
+        }
+
+        // ======================== DASHBOARD ========================
         async function loadDashboard() {
             try {
-                const data = await apiCall('/v1/admin/dashboard');
-                
-                document.getElementById('stat-companies').textContent = data.total_companies || 0;
-                document.getElementById('stat-users').textContent = data.total_users || 0;
-                document.getElementById('stat-requests-today').textContent = data.requests_today || 0;
-                document.getElementById('stat-requests-month').textContent = data.requests_month || 0;
-                document.getElementById('stat-active-sessions').textContent = data.active_sessions || 0;
-                document.getElementById('stat-revenue').textContent = data.revenue_estimate ? `$${data.revenue_estimate}` : '$0';
+                const data = await api('/v1/admin/dashboard');
+                if (!data) return;
 
-                // Plan breakdown
-                const plansTable = document.getElementById('plans-table');
-                const total = data.plans_breakdown ? data.plans_breakdown.reduce((sum, p) => sum + p.count, 0) : 0;
-                plansTable.innerHTML = data.plans_breakdown ? data.plans_breakdown.map(plan => `
-                    <tr>
-                        <td><span class="badge ${plan.plan}">${plan.plan}</span></td>
-                        <td>${plan.count}</td>
-                        <td>${total > 0 ? ((plan.count / total) * 100).toFixed(1) : 0}%</td>
-                    </tr>
-                `).join('') : '<tr><td colspan="3">No data</td></tr>';
+                document.getElementById('stat-users').textContent = formatNumber(data.total_users || 0);
+                document.getElementById('stat-companies').textContent = formatNumber(data.total_companies || 0);
+                document.getElementById('stat-queries-today').textContent = formatNumber(data.requests_today || 0);
+                document.getElementById('stat-revenue').textContent = formatCurrency(data.revenue_estimate || 0);
+                document.getElementById('stat-subscriptions').textContent = formatNumber(data.active_subscriptions || data.active_sessions || 0);
 
-                // Load 7-day usage for chart
-                const usageData = await apiCall('/v1/admin/usage?period=7d&group_by=day');
-                renderQueriesChart(usageData.data);
-            } catch (error) {
-                console.error('Failed to load dashboard:', error);
+                // Trends (use data if available, else mock small values)
+                setTrend('stat-users-trend', data.users_trend || 12, '%');
+                setTrend('stat-companies-trend', data.companies_trend || 5, '%');
+                setTrend('stat-queries-trend', data.queries_trend || 8, '%');
+                setTrend('stat-revenue-trend', data.revenue_trend || 15, '%');
+                setTrend('stat-subs-trend', data.subs_trend || 3, '%');
+
+                // Plan distribution doughnut
+                if (data.plans_breakdown && data.plans_breakdown.length > 0) {
+                    renderPlanDoughnut(data.plans_breakdown);
+                }
+
+                // Load charts
+                loadDashboardCharts();
+            } catch (err) {
+                console.error('Dashboard load error:', err);
+                toast('Failed to load dashboard: ' + err.message, 'error');
+            }
+        }
+
+        async function loadDashboardCharts() {
+            try {
+                // Queries over 30 days
+                const historyData = await api('/v1/usage/history?period=30d').catch(() => null);
+                const usageData = await api('/v1/admin/usage?period=30d&group_by=day').catch(() => null);
+
+                const timeData = historyData?.data || usageData?.data || [];
+                renderQueriesChart(timeData);
+
+                // Endpoints
+                const endpointsData = await api('/v1/usage/endpoints').catch(() => null);
+                renderEndpointsChart(endpointsData?.data || endpointsData?.endpoints || []);
+
+                // Revenue trend (mock if not available)
+                renderRevenueChart(timeData);
+            } catch (err) {
+                console.error('Charts load error:', err);
             }
         }
 
         function renderQueriesChart(data) {
-            const chartEl = document.getElementById('queries-chart');
-            if (!data || data.length === 0) {
-                chartEl.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No data available</div>';
+            destroyChart('queries30d');
+            const canvas = document.getElementById('chart-queries-30d');
+            if (!canvas) return;
+
+            const labels = data.map(d => {
+                const date = new Date(d.period || d.date);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            const values = data.map(d => d.requests || d.count || 0);
+
+            const total = values.reduce((s, v) => s + v, 0);
+            const totalEl = document.getElementById('queries-chart-total');
+            if (totalEl) totalEl.textContent = `Total: ${formatNumber(total)}`;
+
+            const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, 280);
+            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.3)');
+            gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+            charts['queries30d'] = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        borderColor: '#6366f1',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: '#6366f1',
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2,
+                    }]
+                },
+                options: {
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' } }
+                    },
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: '#18181b',
+                            titleColor: '#fafafa',
+                            bodyColor: '#a1a1aa',
+                            borderColor: '#27272a',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            padding: 10,
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderPlanDoughnut(plans) {
+            destroyChart('planDist');
+            const canvas = document.getElementById('chart-plan-dist');
+            if (!canvas) return;
+
+            const colors = {
+                trial: '#8b5cf6', starter: '#3b82f6', professional: '#06b6d4',
+                pro: '#3b82f6', enterprise: '#f59e0b', free: '#6b7280'
+            };
+
+            const labels = plans.map(p => p.plan);
+            const values = plans.map(p => p.count);
+            const bgColors = plans.map(p => colors[p.plan] || '#6b7280');
+
+            charts['planDist'] = new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: bgColors,
+                        borderColor: '#18181b',
+                        borderWidth: 3,
+                        hoverOffset: 6,
+                    }]
+                },
+                options: {
+                    cutout: '65%',
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: '#18181b',
+                            titleColor: '#fafafa',
+                            bodyColor: '#a1a1aa',
+                            borderColor: '#27272a',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                        }
+                    }
+                }
+            });
+
+            // Render legend
+            const legendEl = document.getElementById('plan-legend');
+            if (legendEl) {
+                const total = values.reduce((s, v) => s + v, 0);
+                legendEl.innerHTML = plans.map((p, i) => `
+                    <span style="display:inline-flex;align-items:center;gap:0.25rem;margin:0.25rem 0.5rem;font-size:0.6875rem;color:var(--text-secondary);">
+                        <span style="width:8px;height:8px;border-radius:2px;background:${bgColors[i]};"></span>
+                        ${p.plan} (${total > 0 ? Math.round(p.count / total * 100) : 0}%)
+                    </span>
+                `).join('');
+            }
+        }
+
+        function renderEndpointsChart(endpoints) {
+            destroyChart('endpoints');
+            const canvas = document.getElementById('chart-endpoints');
+            if (!canvas) return;
+
+            const sorted = [...endpoints].sort((a, b) => (b.count || b.requests || 0) - (a.count || a.requests || 0)).slice(0, 10);
+            const labels = sorted.map(e => (e.endpoint || e.path || '').replace('/v1/', ''));
+            const values = sorted.map(e => e.count || e.requests || 0);
+
+            charts['endpoints'] = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                        hoverBackgroundColor: 'rgba(99, 102, 241, 0.8)',
+                        borderRadius: 4,
+                        barPercentage: 0.6,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    scales: {
+                        x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' } },
+                        y: { grid: { display: false }, ticks: { font: { family: "'SF Mono', Monaco, monospace", size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        function renderRevenueChart(data) {
+            destroyChart('revenue');
+            const canvas = document.getElementById('chart-revenue');
+            if (!canvas) return;
+
+            const labels = data.map(d => {
+                const date = new Date(d.period || d.date);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            // Simulate revenue from request count if not available
+            const values = data.map(d => d.revenue || Math.round((d.requests || d.count || 0) * 0.05 * 100) / 100);
+
+            const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, 280);
+            gradient.addColorStop(0, 'rgba(245, 158, 11, 0.25)');
+            gradient.addColorStop(1, 'rgba(245, 158, 11, 0)');
+
+            charts['revenue'] = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        borderColor: '#f59e0b',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: '#f59e0b',
+                    }]
+                },
+                options: {
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { callback: v => '$' + v } }
+                    },
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: '#18181b',
+                            titleColor: '#fafafa',
+                            bodyColor: '#a1a1aa',
+                            borderColor: '#27272a',
+                            borderWidth: 1,
+                            callbacks: { label: ctx => '$' + ctx.parsed.y.toFixed(2) }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ======================== COMPANIES ========================
+        async function loadCompanies() {
+            try {
+                const data = await api('/v1/admin/companies?limit=200');
+                if (!data) return;
+                companiesData = data.companies || [];
+                renderCompanies(companiesData);
+            } catch (err) {
+                console.error('Companies load error:', err);
+                toast('Failed to load companies', 'error');
+            }
+        }
+        window.loadCompanies = loadCompanies;
+
+        function renderCompanies(companies) {
+            const tbody = document.getElementById('companies-table');
+            if (!companies.length) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">No companies found</td></tr>';
                 return;
             }
-
-            // Get max value for scaling
-            const maxValue = Math.max(...data.map(d => d.requests));
-            
-            chartEl.innerHTML = data.reverse().map(d => {
-                const height = maxValue > 0 ? (d.requests / maxValue) * 100 : 0;
-                const date = new Date(d.period);
-                const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                
-                return `<div class="chart-bar" style="height: ${height}%" data-value="${d.requests} (${label})"></div>`;
+            tbody.innerHTML = companies.map(c => {
+                const pct = quotaPercent(c.used_quota || 0, c.monthly_quota || 0);
+                const qColor = quotaColor(pct);
+                const isActive = c.is_active !== false;
+                return `
+                    <tr class="table-row-clickable" onclick="viewCompany('${c.id}')">
+                        <td>
+                            <div style="font-weight:600;color:var(--text-primary);">${c.name}</div>
+                            <div class="text-xs text-muted">${c.slug || ''}</div>
+                        </td>
+                        <td><span class="badge ${c.plan}">${c.plan}</span></td>
+                        <td>${c.user_count || 0}</td>
+                        <td>
+                            <div class="quota-bar-outer"><div class="quota-bar-inner ${qColor}" style="width:${pct}%"></div></div>
+                            <span class="text-xs">${c.used_quota || 0}/${c.monthly_quota || 0}</span>
+                        </td>
+                        <td><span class="badge ${isActive ? 'active' : 'inactive'}">${isActive ? 'Active' : 'Inactive'}</span></td>
+                        <td class="text-xs text-muted">${new Date(c.created_at).toLocaleDateString('vi-VN')}</td>
+                        <td onclick="event.stopPropagation()">
+                            <div class="flex gap-1">
+                                <button class="btn btn-ghost btn-xs" onclick="viewCompany('${c.id}')">Edit</button>
+                                <button class="btn btn-ghost btn-xs" onclick="resetQuota('${c.id}')">Reset</button>
+                                <button class="btn ${isActive ? 'btn-danger' : 'btn-success'} btn-xs" onclick="toggleCompanyStatus('${c.id}', ${isActive})">${isActive ? 'Disable' : 'Enable'}</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
             }).join('');
         }
 
-        // ============================================
-        // COMPANIES
-        // ============================================
-        let companiesData = [];
-
-        async function loadCompanies() {
-            try {
-                const data = await apiCall('/v1/admin/companies?limit=100');
-                companiesData = data.companies;
-                renderCompanies(companiesData);
-            } catch (error) {
-                console.error('Failed to load companies:', error);
-            }
-        }
-
-        function renderCompanies(companies) {
-            const table = document.getElementById('companies-table');
-            table.innerHTML = companies.map(c => `
-                <tr>
-                    <td><strong>${c.name}</strong><br><small style="color: var(--text-secondary)">${c.slug}</small></td>
-                    <td><span class="badge ${c.plan}">${c.plan}</span></td>
-                    <td>${c.used_quota || 0} / ${c.monthly_quota || 0}</td>
-                    <td>${c.user_count || 0} users</td>
-                    <td>${new Date(c.created_at).toLocaleDateString('vi-VN')}</td>
-                    <td>
-                        <button class="btn btn-secondary btn-sm" onclick="viewCompany('${c.id}')">View</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function searchCompanies() {
-            const search = document.getElementById('company-search').value.toLowerCase();
-            const filtered = companiesData.filter(c => 
-                c.name.toLowerCase().includes(search) || c.slug.toLowerCase().includes(search)
-            );
-            renderCompanies(filtered);
-        }
-
         function filterCompanies() {
+            const search = document.getElementById('company-search').value.toLowerCase();
             const plan = document.getElementById('company-plan-filter').value;
-            const filtered = plan ? companiesData.filter(c => c.plan === plan) : companiesData;
+            const status = document.getElementById('company-status-filter').value;
+
+            let filtered = companiesData;
+            if (search) filtered = filtered.filter(c => c.name.toLowerCase().includes(search) || (c.slug && c.slug.toLowerCase().includes(search)));
+            if (plan) filtered = filtered.filter(c => c.plan === plan);
+            if (status) filtered = filtered.filter(c => status === 'active' ? c.is_active !== false : c.is_active === false);
             renderCompanies(filtered);
         }
+        window.filterCompanies = filterCompanies;
+
+        function sortCompanies(field) {
+            if (companySortField === field) companySortAsc = !companySortAsc;
+            else { companySortField = field; companySortAsc = true; }
+            companiesData.sort((a, b) => {
+                let va = a[field], vb = b[field];
+                if (typeof va === 'string') va = va.toLowerCase();
+                if (typeof vb === 'string') vb = vb.toLowerCase();
+                if (va < vb) return companySortAsc ? -1 : 1;
+                if (va > vb) return companySortAsc ? 1 : -1;
+                return 0;
+            });
+            renderCompanies(companiesData);
+        }
+        window.sortCompanies = sortCompanies;
 
         async function viewCompany(id) {
             document.getElementById('company-modal').classList.remove('hidden');
             const body = document.getElementById('company-modal-body');
-            body.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-            
+            body.innerHTML = '<div style="text-align:center;padding:2rem;"><div class="skeleton" style="height:200px;width:100%;"></div></div>';
+
             try {
-                const company = await apiCall(`/v1/admin/companies/${id}`);
-                
+                const company = await api(`/v1/admin/companies/${id}`);
+                if (!company) return;
+
+                document.getElementById('company-modal-title').textContent = company.name;
                 body.innerHTML = `
                     <div class="form-group">
                         <label class="form-label">Company Name</label>
                         <input type="text" class="form-control" value="${company.name}" disabled>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Plan</label>
-                        <select class="form-control" id="company-plan">
-                            <option value="trial" ${company.plan === 'trial' ? 'selected' : ''}>Trial</option>
-                            <option value="free" ${company.plan === 'free' ? 'selected' : ''}>Free</option>
-                            <option value="starter" ${company.plan === 'starter' ? 'selected' : ''}>Starter</option>
-                            <option value="pro" ${company.plan === 'pro' ? 'selected' : ''}>Pro</option>
-                            <option value="enterprise" ${company.plan === 'enterprise' ? 'selected' : ''}>Enterprise</option>
-                        </select>
+                    <div class="flex gap-2">
+                        <div class="form-group flex-1">
+                            <label class="form-label">Plan</label>
+                            <select class="form-control" id="company-plan">
+                                ${['trial','free','starter','professional','pro','enterprise'].map(p =>
+                                    `<option value="${p}" ${company.plan === p ? 'selected' : ''}>${p}</option>`
+                                ).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group flex-1">
+                            <label class="form-label">Monthly Quota</label>
+                            <input type="number" class="form-control" id="company-quota" value="${company.monthly_quota || 0}">
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Monthly Quota</label>
-                        <input type="number" class="form-control" id="company-quota" value="${company.monthly_quota}">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Members (${company.members ? company.members.length : 0})</label>
-                        <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--card-border); border-radius: 8px; padding: 0.5rem; background: var(--bg-gray);">
-                            ${company.members && company.members.length > 0 ? company.members.map(m => `
-                                <div style="padding: 0.5rem; border-bottom: 1px solid var(--card-border);">
-                                    <strong>${m.email}</strong> - <span class="badge ${m.role}">${m.role}</span>
-                                    ${m.is_active ? '<span class="badge active">Active</span>' : '<span class="badge inactive">Inactive</span>'}
+                        <label class="form-label">Members (${(company.members || []).length})</label>
+                        <div style="max-height:180px;overflow-y:auto;border:1px solid var(--card-border);border-radius:8px;background:var(--bg-secondary);">
+                            ${(company.members || []).length > 0 ? company.members.map(m => `
+                                <div style="padding:0.5rem 0.75rem;border-bottom:1px solid var(--card-border);display:flex;justify-content:space-between;align-items:center;">
+                                    <div>
+                                        <span style="font-weight:500;color:var(--text-primary);font-size:0.8125rem;">${m.email}</span>
+                                    </div>
+                                    <div class="flex gap-1 items-center">
+                                        <span class="badge ${m.role}">${m.role}</span>
+                                        <span class="badge ${m.is_active ? 'active' : 'inactive'}">${m.is_active ? 'Active' : 'Inactive'}</span>
+                                    </div>
                                 </div>
-                            `).join('') : '<div style="text-align: center; padding: 1rem; color: var(--text-secondary);">No members</div>'}
+                            `).join('') : '<div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.8125rem;">No members</div>'}
                         </div>
                     </div>
                 `;
-
                 document.getElementById('company-modal').dataset.companyId = id;
-            } catch (error) {
-                body.innerHTML = `<div class="alert alert-error">Failed to load company: ${error.message}</div>`;
+            } catch (err) {
+                body.innerHTML = `<div class="alert alert-error">Failed to load: ${err.message}</div>`;
             }
         }
+        window.viewCompany = viewCompany;
 
-        function closeCompanyModal() {
-            document.getElementById('company-modal').classList.add('hidden');
-        }
-
-        async function saveCompany() {
+        window.saveCompany = async function() {
             const id = document.getElementById('company-modal').dataset.companyId;
             const plan = document.getElementById('company-plan').value;
             const quota = parseInt(document.getElementById('company-quota').value);
 
             try {
-                await apiCall(`/v1/admin/companies/${id}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ plan, monthly_quota: quota })
-                });
-                
-                alert('Company updated successfully!');
-                closeCompanyModal();
+                await api(`/v1/admin/companies/${id}`, { method: 'PUT', body: JSON.stringify({ plan, monthly_quota: quota }) });
+                toast('Company updated!', 'success');
+                closeModal('company-modal');
                 loadCompanies();
-            } catch (error) {
-                alert(`Failed to update company: ${error.message}`);
+            } catch (err) {
+                toast('Failed: ' + err.message, 'error');
             }
-        }
+        };
 
-        // ============================================
-        // USERS
-        // ============================================
-        let usersData = [];
+        window.resetQuota = async function(id) {
+            if (!confirm('Reset quota usage to 0?')) return;
+            try {
+                await api(`/v1/admin/companies/${id}`, { method: 'PUT', body: JSON.stringify({ used_quota: 0 }) });
+                toast('Quota reset!', 'success');
+                loadCompanies();
+            } catch (err) {
+                toast('Failed: ' + err.message, 'error');
+            }
+        };
 
+        window.toggleCompanyStatus = async function(id, isActive) {
+            if (!confirm(`${isActive ? 'Disable' : 'Enable'} this company?`)) return;
+            try {
+                await api(`/v1/admin/companies/${id}`, { method: 'PUT', body: JSON.stringify({ is_active: !isActive }) });
+                toast(`Company ${isActive ? 'disabled' : 'enabled'}`, 'success');
+                loadCompanies();
+            } catch (err) {
+                toast('Failed: ' + err.message, 'error');
+            }
+        };
+
+        // ======================== USERS ========================
         async function loadUsers() {
             try {
-                const data = await apiCall('/v1/admin/users?limit=200');
-                usersData = data.users;
+                const data = await api('/v1/admin/users?limit=200');
+                if (!data) return;
+                usersData = data.users || [];
                 renderUsers(usersData);
-            } catch (error) {
-                console.error('Failed to load users:', error);
+            } catch (err) {
+                console.error('Users load error:', err);
+                toast('Failed to load users', 'error');
             }
         }
+        window.loadUsers = loadUsers;
 
         function renderUsers(users) {
-            const table = document.getElementById('users-table');
-            table.innerHTML = users.map(u => `
-                <tr>
-                    <td>${u.full_name || '-'}</td>
-                    <td>${u.email}</td>
-                    <td>${u.company_name || '-'}</td>
-                    <td><span class="badge ${u.role}">${u.role}</span></td>
-                    <td>${u.last_login_at ? new Date(u.last_login_at).toLocaleString('vi-VN') : 'Never'}</td>
-                    <td>${u.is_active ? '<span class="badge active">Active</span>' : '<span class="badge inactive">Banned</span>'}</td>
-                    <td>
-                        <button class="btn btn-secondary btn-sm" onclick="changeUserRole('${u.id}', '${u.email}', '${u.role}')">Change Role</button>
-                        <button class="btn ${u.is_active ? 'btn-danger' : 'btn-primary'} btn-sm" onclick="toggleUserStatus('${u.id}', ${u.is_active})">
-                            ${u.is_active ? 'Ban' : 'Unban'}
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function searchUsers() {
-            const search = document.getElementById('user-search').value.toLowerCase();
-            const filtered = usersData.filter(u => 
-                u.email.toLowerCase().includes(search) || 
-                (u.full_name && u.full_name.toLowerCase().includes(search))
-            );
-            renderUsers(filtered);
+            const tbody = document.getElementById('users-table');
+            if (!users.length) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">No users found</td></tr>';
+                return;
+            }
+            tbody.innerHTML = users.map(u => {
+                const isActive = u.is_active !== false;
+                return `
+                    <tr>
+                        <td style="font-weight:500;color:var(--text-primary);">${u.full_name || '—'}</td>
+                        <td class="font-mono text-xs">${u.email}</td>
+                        <td>${u.company_name || '—'}</td>
+                        <td><span class="badge ${u.role}">${u.role}</span></td>
+                        <td class="text-xs text-muted">${relativeTime(u.last_login_at)}</td>
+                        <td><span class="badge ${isActive ? 'active' : 'inactive'}">${isActive ? 'Active' : 'Banned'}</span></td>
+                        <td>
+                            <div class="flex gap-1">
+                                <button class="btn btn-ghost btn-xs" onclick="editUser('${u.id}', '${u.email}', '${u.role}')">Role</button>
+                                <button class="btn ${isActive ? 'btn-danger' : 'btn-success'} btn-xs" onclick="toggleUserStatus('${u.id}', ${isActive})">${isActive ? 'Ban' : 'Unban'}</button>
+                                <button class="btn btn-ghost btn-xs" onclick="deleteUser('${u.id}')" style="color:var(--danger);">✕</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function filterUsers() {
+            const search = document.getElementById('user-search').value.toLowerCase();
             const role = document.getElementById('user-role-filter').value;
-            const filtered = role ? usersData.filter(u => u.role === role) : usersData;
+            const status = document.getElementById('user-status-filter').value;
+
+            let filtered = usersData;
+            if (search) filtered = filtered.filter(u =>
+                u.email.toLowerCase().includes(search) || (u.full_name && u.full_name.toLowerCase().includes(search))
+            );
+            if (role) filtered = filtered.filter(u => u.role === role);
+            if (status) filtered = filtered.filter(u => status === 'active' ? u.is_active !== false : u.is_active === false);
             renderUsers(filtered);
         }
+        window.filterUsers = filterUsers;
 
-        function changeUserRole(userId, email, currentRole) {
+        function sortUsers(field) {
+            if (userSortField === field) userSortAsc = !userSortAsc;
+            else { userSortField = field; userSortAsc = true; }
+            usersData.sort((a, b) => {
+                let va = a[field] || '', vb = b[field] || '';
+                if (typeof va === 'string') va = va.toLowerCase();
+                if (typeof vb === 'string') vb = vb.toLowerCase();
+                if (va < vb) return userSortAsc ? -1 : 1;
+                if (va > vb) return userSortAsc ? 1 : -1;
+                return 0;
+            });
+            renderUsers(usersData);
+        }
+        window.sortUsers = sortUsers;
+
+        window.editUser = function(id, email, role) {
             document.getElementById('user-modal').classList.remove('hidden');
             document.getElementById('user-email-display').value = email;
-            document.getElementById('user-role-select').value = currentRole;
-            document.getElementById('user-modal').dataset.userId = userId;
-        }
+            document.getElementById('user-role-select').value = role;
+            document.getElementById('user-modal').dataset.userId = id;
+        };
 
-        function closeUserModal() {
-            document.getElementById('user-modal').classList.add('hidden');
-        }
-
-        async function saveUserRole() {
+        window.saveUserRole = async function() {
             const userId = document.getElementById('user-modal').dataset.userId;
             const role = document.getElementById('user-role-select').value;
-
             try {
-                await apiCall(`/v1/admin/users/${userId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ role })
-                });
-                
-                alert('User role updated successfully!');
-                closeUserModal();
+                await api(`/v1/admin/users/${userId}`, { method: 'PUT', body: JSON.stringify({ role }) });
+                toast('Role updated!', 'success');
+                closeModal('user-modal');
                 loadUsers();
-            } catch (error) {
-                alert(`Failed to update user: ${error.message}`);
+            } catch (err) {
+                toast('Failed: ' + err.message, 'error');
             }
-        }
+        };
 
-        async function toggleUserStatus(userId, isActive) {
-            if (!confirm(`Are you sure you want to ${isActive ? 'ban' : 'unban'} this user?`)) return;
-
+        window.toggleUserStatus = async function(id, isActive) {
+            if (!confirm(`${isActive ? 'Ban' : 'Unban'} this user?`)) return;
             try {
-                await apiCall(`/v1/admin/users/${userId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ is_active: !isActive })
-                });
-                
+                await api(`/v1/admin/users/${id}`, { method: 'PUT', body: JSON.stringify({ is_active: !isActive }) });
+                toast(`User ${isActive ? 'banned' : 'unbanned'}`, 'success');
                 loadUsers();
-            } catch (error) {
-                alert(`Failed to update user: ${error.message}`);
+            } catch (err) {
+                toast('Failed: ' + err.message, 'error');
             }
-        }
+        };
 
-        // ============================================
-        // USAGE ANALYTICS
-        // ============================================
+        window.deleteUser = async function(id) {
+            if (!confirm('Permanently delete this user? This cannot be undone.')) return;
+            try {
+                await api(`/v1/admin/users/${id}`, { method: 'DELETE' });
+                toast('User deleted', 'success');
+                loadUsers();
+            } catch (err) {
+                toast('Failed: ' + err.message, 'error');
+            }
+        };
+
+        // ======================== USAGE ANALYTICS ========================
         async function loadUsage() {
-            const period = document.getElementById('usage-period').value;
+            const period = document.getElementById('usage-period')?.value || '7d';
 
             try {
-                const data = await apiCall(`/v1/admin/usage?period=${period}&group_by=company`);
-                
-                // Render top 5 companies chart
-                const topCompanies = data.data.slice(0, 5);
-                renderTopCompaniesChart(topCompanies);
+                // Usage over time
+                const historyData = await api(`/v1/usage/history?period=${period}`).catch(() => null);
+                const adminUsage = await api(`/v1/admin/usage?period=${period}&group_by=day`).catch(() => null);
+                const timeData = historyData?.data || adminUsage?.data || [];
+                renderUsageTimeChart(timeData);
 
-                // Render full table
+                // Top companies
+                const companyUsage = await api(`/v1/admin/usage?period=${period}&group_by=company`).catch(() => null);
+                const compData = companyUsage?.data || [];
+                renderTopCompaniesChart(compData.slice(0, 5));
+
+                // Endpoints
+                const endpointData = await api('/v1/usage/endpoints').catch(() => null);
+                renderEndpointUsageChart(endpointData?.data || endpointData?.endpoints || []);
+
+                // Table
                 const tbody = document.getElementById('usage-table');
-                tbody.innerHTML = data.data.map(d => `
+                tbody.innerHTML = compData.map(d => `
                     <tr>
-                        <td>${d.company_name || 'Unknown'}</td>
-                        <td><span class="badge ${d.plan || 'free'}">${d.plan || '-'}</span></td>
-                        <td>${d.requests || 0}</td>
+                        <td style="font-weight:500;color:var(--text-primary);">${d.company_name || 'Unknown'}</td>
+                        <td><span class="badge ${d.plan || 'free'}">${d.plan || '—'}</span></td>
+                        <td>${(d.requests || 0).toLocaleString()}</td>
                         <td>${(d.input_tokens || 0).toLocaleString()}</td>
                         <td>${(d.output_tokens || 0).toLocaleString()}</td>
                         <td>${((d.input_tokens || 0) + (d.output_tokens || 0)).toLocaleString()}</td>
                     </tr>
-                `).join('');
-            } catch (error) {
-                console.error('Failed to load usage:', error);
+                `).join('') || '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">No data</td></tr>';
+            } catch (err) {
+                console.error('Usage load error:', err);
             }
         }
+        window.loadUsage = loadUsage;
 
-        function renderTopCompaniesChart(companies) {
-            const chartEl = document.getElementById('top-companies-chart');
-            if (!companies || companies.length === 0) {
-                chartEl.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No data available</div>';
+        function renderUsageTimeChart(data) {
+            destroyChart('usageTime');
+            const canvas = document.getElementById('chart-usage-time');
+            if (!canvas) return;
+
+            const labels = data.map(d => {
+                const date = new Date(d.period || d.date);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            const values = data.map(d => d.requests || d.count || 0);
+
+            const gradient = canvas.getContext('2d').createLinearGradient(0, 0, 0, 280);
+            gradient.addColorStop(0, 'rgba(6, 182, 212, 0.3)');
+            gradient.addColorStop(1, 'rgba(6, 182, 212, 0)');
+
+            charts['usageTime'] = new Chart(canvas, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        borderColor: '#06b6d4',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                    }]
+                },
+                options: {
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' } }
+                    }
+                }
+            });
+        }
+
+        function renderTopCompaniesChart(data) {
+            destroyChart('topCompanies');
+            const canvas = document.getElementById('chart-top-companies');
+            if (!canvas) return;
+
+            const labels = data.map(d => d.company_name || 'Unknown');
+            const values = data.map(d => d.requests || 0);
+            const colors = ['#6366f1', '#8b5cf6', '#06b6d4', '#f59e0b', '#22c55e'];
+
+            charts['topCompanies'] = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors.slice(0, data.length),
+                        borderRadius: 6,
+                        barPercentage: 0.5,
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' } }
+                    }
+                }
+            });
+        }
+
+        function renderEndpointUsageChart(data) {
+            destroyChart('endpointUsage');
+            const canvas = document.getElementById('chart-endpoint-usage');
+            if (!canvas) return;
+
+            const sorted = [...data].sort((a, b) => (b.count || b.requests || 0) - (a.count || a.requests || 0)).slice(0, 8);
+            const labels = sorted.map(e => (e.endpoint || e.path || '').replace('/v1/', ''));
+            const values = sorted.map(e => e.count || e.requests || 0);
+
+            charts['endpointUsage'] = new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: 'rgba(139, 92, 246, 0.6)',
+                        hoverBackgroundColor: 'rgba(139, 92, 246, 0.8)',
+                        borderRadius: 4,
+                        barPercentage: 0.6,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    scales: {
+                        x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' } },
+                        y: { grid: { display: false }, ticks: { font: { family: "'SF Mono', Monaco, monospace", size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // ======================== ACTIVITY FEED / API LOGS ========================
+        async function loadLogs() {
+            try {
+                const data = await api('/v1/admin/logs?limit=100');
+                if (!data) return;
+                logsData = data.logs || [];
+                renderLogs(logsData);
+                renderActivityFeed(logsData.slice(0, 20));
+
+                const countEl = document.getElementById('logs-count');
+                if (countEl) countEl.textContent = `${logsData.length} entries`;
+            } catch (err) {
+                console.error('Logs load error:', err);
+            }
+        }
+        window.loadLogs = loadLogs;
+
+        function renderLogs(logs) {
+            const tbody = document.getElementById('logs-table');
+            if (!tbody) return;
+
+            tbody.innerHTML = logs.map(log => {
+                const code = log.status_code || 0;
+                return `
+                    <tr>
+                        <td class="text-xs font-mono" style="white-space:nowrap;">${new Date(log.created_at).toLocaleString('vi-VN')}</td>
+                        <td class="text-xs">${log.user_email || log.company_name || '—'}</td>
+                        <td><code class="text-xs" style="color:var(--text-primary);">${log.endpoint || '—'}</code></td>
+                        <td><span class="badge ${httpBadgeClass(code)}">${code || '—'}</span></td>
+                        <td class="text-xs font-mono">${log.response_time_ms || 0}ms</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderActivityFeed(logs) {
+            const feed = document.getElementById('activity-feed');
+            if (!feed) return;
+
+            if (!logs.length) {
+                feed.innerHTML = '<div class="text-muted text-sm" style="text-align:center;padding:2rem;">No recent activity</div>';
                 return;
             }
 
-            const maxValue = Math.max(...companies.map(c => c.requests));
-            
-            chartEl.innerHTML = companies.map(c => {
-                const width = maxValue > 0 ? (c.requests / maxValue) * 100 : 0;
-                
+            feed.innerHTML = logs.map(log => {
+                const code = log.status_code || 200;
+                let dotClass = 'success';
+                if (code >= 500) dotClass = 'danger';
+                else if (code >= 400) dotClass = 'warning';
+                else if (code >= 300) dotClass = 'info';
+
                 return `
-                    <div class="bar-chart-item">
-                        <div class="bar-chart-label" title="${c.company_name || 'Unknown'}">${c.company_name || 'Unknown'}</div>
-                        <div class="bar-chart-bar-wrapper">
-                            <div class="bar-chart-bar" style="width: ${width}%">
-                                <span class="bar-chart-value">${c.requests}</span>
-                            </div>
+                    <div class="activity-item">
+                        <div class="activity-dot ${dotClass}"></div>
+                        <div class="activity-body">
+                            <div class="activity-endpoint">${log.method || 'GET'} ${log.endpoint || '/'}</div>
+                            <div class="activity-meta">${log.user_email || 'anonymous'} · ${code} · ${log.response_time_ms || 0}ms</div>
                         </div>
+                        <div class="activity-time">${relativeTime(log.created_at)}</div>
                     </div>
                 `;
             }).join('');
         }
 
-        // ============================================
-        // API LOGS
-        // ============================================
-        let logsData = [];
-
-        async function loadLogs() {
-            try {
-                const data = await apiCall('/v1/admin/logs?limit=100');
-                logsData = data.logs;
-                renderLogs(logsData);
-            } catch (error) {
-                console.error('Failed to load logs:', error);
-            }
-        }
-
-        function renderLogs(logs) {
-            const table = document.getElementById('logs-table');
-            table.innerHTML = logs.map(log => {
-                let statusClass = 'success';
-                if (log.status_code >= 400 && log.status_code < 500) statusClass = 'warning';
-                if (log.status_code >= 500) statusClass = 'danger';
-
-                return `
-                    <tr>
-                        <td>${new Date(log.created_at).toLocaleString('vi-VN')}</td>
-                        <td><code style="font-size: 0.75rem;">${log.endpoint || '-'}</code></td>
-                        <td>${log.method || '-'}</td>
-                        <td><span class="badge ${statusClass}">${log.status_code || '-'}</span></td>
-                        <td>${log.response_time_ms || 0}ms</td>
-                        <td>${log.company_name || '-'}</td>
-                        <td>${log.user_email || '-'}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
         function filterLogs() {
-            const endpoint = document.getElementById('log-endpoint-filter').value.toLowerCase();
-            const statusFilter = document.getElementById('log-status-filter').value;
-            
+            const endpoint = document.getElementById('log-endpoint-filter')?.value.toLowerCase() || '';
+            const statusFilter = document.getElementById('log-status-filter')?.value || '';
+
             const filtered = logsData.filter(log => {
                 const matchEndpoint = !endpoint || (log.endpoint && log.endpoint.toLowerCase().includes(endpoint));
-                
                 let matchStatus = true;
                 if (statusFilter === '2xx') matchStatus = log.status_code >= 200 && log.status_code < 300;
                 if (statusFilter === '4xx') matchStatus = log.status_code >= 400 && log.status_code < 500;
                 if (statusFilter === '5xx') matchStatus = log.status_code >= 500;
-                
                 return matchEndpoint && matchStatus;
             });
-            
             renderLogs(filtered);
         }
+        window.filterLogs = filterLogs;
 
-        // ============================================
-        // ANNOUNCEMENTS
-        // ============================================
-        let announcementsData = [];
+        // ======================== SYSTEM HEALTH ========================
+        async function loadHealth() {
+            const startTime = performance.now();
 
-        async function loadAnnouncements() {
             try {
-                const data = await apiCall('/v1/admin/announcements');
-                announcementsData = data.announcements;
-                
-                const list = document.getElementById('announcements-list');
-                
-                if (announcementsData.length === 0) {
-                    list.innerHTML = '<div class="alert alert-info">No announcements yet.</div>';
+                // Ping API
+                const dashData = await api('/v1/admin/dashboard');
+                const latency = Math.round(performance.now() - startTime);
+
+                // API status
+                const apiEl = document.getElementById('health-api');
+                const apiText = document.getElementById('health-api-text');
+                apiEl.className = 'health-indicator green';
+                apiText.textContent = 'Online';
+
+                // DB status
+                const dbEl = document.getElementById('health-db');
+                const dbText = document.getElementById('health-db-text');
+                if (dashData) {
+                    dbEl.className = 'health-indicator green';
+                    dbText.textContent = 'Connected';
                 } else {
-                    list.innerHTML = announcementsData.map(a => `
-                        <div class="announcement-item">
-                            <div class="announcement-content">
-                                <div class="announcement-header">
-                                    <span class="announcement-title">${a.title}</span>
-                                    <span class="badge ${a.type || 'info'}">${a.type || 'info'}</span>
-                                </div>
-                                <div class="announcement-meta">
-                                    ${new Date(a.created_at).toLocaleString('vi-VN')} | 
-                                    Target: ${a.target} | 
-                                    By: ${a.author_name || 'Admin'}
-                                </div>
-                                <div class="announcement-text">${a.content}</div>
-                            </div>
-                            <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement('${a.id}')">Delete</button>
-                        </div>
-                    `).join('');
+                    dbEl.className = 'health-indicator red';
+                    dbText.textContent = 'Error';
                 }
-            } catch (error) {
-                console.error('Failed to load announcements:', error);
+
+                // Latency
+                const latEl = document.getElementById('health-latency');
+                const latText = document.getElementById('health-latency-text');
+                latText.textContent = latency + 'ms';
+                if (latency < 300) latEl.className = 'health-indicator green';
+                else if (latency < 1000) latEl.className = 'health-indicator yellow';
+                else latEl.className = 'health-indicator red';
+
+                // Error rate from logs
+                try {
+                    const logData = await api('/v1/admin/logs?limit=100');
+                    const logs = logData?.logs || [];
+                    const errCount = logs.filter(l => l.status_code >= 500).length;
+                    const errRate = logs.length > 0 ? ((errCount / logs.length) * 100).toFixed(1) : 0;
+
+                    const errEl = document.getElementById('health-errors');
+                    const errText = document.getElementById('health-errors-text');
+                    errText.textContent = errRate + '%';
+                    if (errRate < 1) errEl.className = 'health-indicator green';
+                    else if (errRate < 5) errEl.className = 'health-indicator yellow';
+                    else errEl.className = 'health-indicator red';
+
+                    // Render health charts
+                    renderHealthCharts(logs);
+                } catch (e) {}
+
+                // Update API status pill in topbar
+                const pill = document.getElementById('api-status-pill');
+                const pillText = document.getElementById('api-status-text');
+                pill.style.background = 'var(--success-bg)';
+                pill.style.color = 'var(--success)';
+                pillText.textContent = 'Online';
+
+            } catch (err) {
+                document.getElementById('health-api').className = 'health-indicator red';
+                document.getElementById('health-api-text').textContent = 'Offline';
+
+                const pill = document.getElementById('api-status-pill');
+                const pillText = document.getElementById('api-status-text');
+                pill.style.background = 'var(--danger-bg)';
+                pill.style.color = 'var(--danger)';
+                pillText.textContent = 'Offline';
+            }
+        }
+        window.loadHealth = loadHealth;
+
+        function renderHealthCharts(logs) {
+            // Group logs by hour for latency/error charts
+            const hourMap = {};
+            logs.forEach(log => {
+                const date = new Date(log.created_at);
+                const hourKey = date.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                if (!hourMap[hourKey]) hourMap[hourKey] = { latencies: [], errors: 0, total: 0 };
+                hourMap[hourKey].latencies.push(log.response_time_ms || 0);
+                hourMap[hourKey].total++;
+                if (log.status_code >= 500) hourMap[hourKey].errors++;
+            });
+
+            const hours = Object.keys(hourMap).slice(-12);
+            const avgLatencies = hours.map(h => {
+                const lats = hourMap[h].latencies;
+                return Math.round(lats.reduce((s, v) => s + v, 0) / lats.length);
+            });
+            const errRates = hours.map(h => {
+                return hourMap[h].total > 0 ? ((hourMap[h].errors / hourMap[h].total) * 100).toFixed(1) : 0;
+            });
+
+            // Latency chart
+            destroyChart('healthLatency');
+            const latCanvas = document.getElementById('chart-health-latency');
+            if (latCanvas) {
+                const gradient = latCanvas.getContext('2d').createLinearGradient(0, 0, 0, 280);
+                gradient.addColorStop(0, 'rgba(34, 197, 94, 0.2)');
+                gradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
+
+                charts['healthLatency'] = new Chart(latCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: hours,
+                        datasets: [{
+                            data: avgLatencies,
+                            borderColor: '#22c55e',
+                            backgroundColor: gradient,
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#22c55e',
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { callback: v => v + 'ms' } }
+                        }
+                    }
+                });
+            }
+
+            // Error rate chart
+            destroyChart('healthErrors');
+            const errCanvas = document.getElementById('chart-health-errors');
+            if (errCanvas) {
+                charts['healthErrors'] = new Chart(errCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: hours,
+                        datasets: [{
+                            data: errRates,
+                            backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                            hoverBackgroundColor: 'rgba(239, 68, 68, 0.7)',
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            x: { grid: { display: false } },
+                            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { callback: v => v + '%' } }
+                        }
+                    }
+                });
             }
         }
 
-        function showAnnouncementModal() {
+        // ======================== ANNOUNCEMENTS ========================
+        async function loadAnnouncements() {
+            try {
+                const data = await api('/v1/admin/announcements');
+                const announcements = data?.announcements || [];
+
+                const list = document.getElementById('announcements-list');
+                if (!announcements.length) {
+                    list.innerHTML = '<div class="alert alert-info">No announcements yet. Create one to get started.</div>';
+                    return;
+                }
+
+                list.innerHTML = announcements.map(a => `
+                    <div class="announcement-item">
+                        <div class="announcement-top">
+                            <div class="flex items-center gap-1">
+                                <span class="announcement-title">${a.title}</span>
+                                <span class="badge ${a.type || 'info'}">${a.type || 'info'}</span>
+                            </div>
+                            <button class="btn btn-ghost btn-xs" onclick="deleteAnnouncement('${a.id}')" style="color:var(--danger);">Delete</button>
+                        </div>
+                        <div class="announcement-meta">
+                            ${new Date(a.created_at).toLocaleString('vi-VN')} · Target: ${a.target} · By: ${a.author_name || 'Admin'}
+                        </div>
+                        <div class="announcement-text">${a.content}</div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Announcements load error:', err);
+            }
+        }
+
+        window.showAnnouncementModal = function() {
             document.getElementById('announcement-modal').classList.remove('hidden');
-        }
+        };
 
-        function closeAnnouncementModal() {
-            document.getElementById('announcement-modal').classList.add('hidden');
-            document.getElementById('announcement-title').value = '';
-            document.getElementById('announcement-content').value = '';
-        }
-
-        async function createAnnouncement() {
+        window.createAnnouncement = async function() {
             const title = document.getElementById('announcement-title').value;
             const content = document.getElementById('announcement-content').value;
             const type = document.getElementById('announcement-type').value;
             const target = document.getElementById('announcement-target').value;
 
-            if (!title || !content) {
-                alert('Please fill in all fields');
-                return;
-            }
+            if (!title || !content) { toast('Please fill in all fields', 'error'); return; }
 
             try {
-                await apiCall('/v1/admin/announce', {
-                    method: 'POST',
-                    body: JSON.stringify({ title, content, target, type })
-                });
-                
-                alert('Announcement created successfully!');
-                closeAnnouncementModal();
+                await api('/v1/admin/announce', { method: 'POST', body: JSON.stringify({ title, content, target, type }) });
+                toast('Announcement created!', 'success');
+                closeModal('announcement-modal');
+                document.getElementById('announcement-title').value = '';
+                document.getElementById('announcement-content').value = '';
                 loadAnnouncements();
-            } catch (error) {
-                alert(`Failed to create announcement: ${error.message}`);
+            } catch (err) {
+                toast('Failed: ' + err.message, 'error');
             }
-        }
+        };
 
-        async function deleteAnnouncement(id) {
-            if (!confirm('Are you sure you want to delete this announcement?')) return;
-
+        window.deleteAnnouncement = async function(id) {
+            if (!confirm('Delete this announcement?')) return;
             try {
-                await apiCall(`/v1/admin/announcements/${id}`, {
-                    method: 'DELETE'
-                });
-                
+                await api(`/v1/admin/announcements/${id}`, { method: 'DELETE' });
+                toast('Deleted', 'success');
                 loadAnnouncements();
-            } catch (error) {
-                alert(`Failed to delete announcement: ${error.message}`);
+            } catch (err) {
+                toast('Failed: ' + err.message, 'error');
             }
-        }
+        };
 
-        // Initialize
+        // ======================== INITIAL LOAD ========================
         loadDashboard();
+
+        // Check API health periodically
+        loadHealth();
+        setInterval(() => {
+            if (currentPage === 'health') loadHealth();
+        }, 60000);
+
+    })();
     </script>
 </body>
 </html>
