@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Legal Agent — Bộ phận pháp lý AI cho doanh nghiệp Việt Nam</title>
-    <meta name="description" content="Agent AI pháp lý thông minh — tự tra cứu luật, rà soát hợp đồng, soạn văn bản, quản lý rủi ro pháp lý cho doanh nghiệp Việt Nam.">
-    <meta property="og:title" content="AI Legal Agent — Bộ phận pháp lý AI cho doanh nghiệp Việt Nam">
-    <meta property="og:description" content="Không chỉ chatbot. Đây là Agent thông minh — tự tra cứu 40,000+ văn bản pháp luật, rà soát hợp đồng, soạn văn bản pháp lý.">
+    <title>AI Legal Agent — Trợ lý pháp lý thông minh cho doanh nghiệp</title>
+    <meta name="description" content="Tra cứu luật, rà soát hợp đồng, soạn văn bản — tất cả trong một nền tảng AI pháp lý cho doanh nghiệp Việt Nam.">
+    <meta property="og:title" content="AI Legal Agent — Trợ lý pháp lý thông minh cho doanh nghiệp">
+    <meta property="og:description" content="Tra cứu 40,000+ văn bản pháp luật, rà soát hợp đồng, soạn văn bản pháp lý bằng AI.">
     <meta property="og:type" content="website">
     <meta property="og:image" content="/static/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
+    <meta name="theme-color" content="#0f0f17">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -17,28 +19,27 @@
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg-dark: #09090b;
-            --bg-card: #18181b;
-            --bg-card-hover: #1f1f23;
-            --border: #27272a;
-            --border-hover: #3f3f46;
-            --text-primary: #fafafa;
-            --text-secondary: #a1a1aa;
-            --text-muted: #71717a;
+            --bg-base: #0f0f17;
+            --bg-card: #161625;
+            --bg-card-hover: #1e1e32;
+            --border: rgba(255,255,255,0.08);
+            --border-hover: rgba(255,255,255,0.14);
+            --text: #e2e8f0;
+            --text-muted: #64748b;
+            --text-secondary: #94a3b8;
             --accent: #818cf8;
             --accent-dark: #6366f1;
-            --accent-glow: rgba(129, 140, 248, 0.15);
-            --accent-glow-strong: rgba(129, 140, 248, 0.3);
+            --accent-glow: rgba(129,140,248,0.15);
+            --accent-glow-strong: rgba(129,140,248,0.3);
             --green: #34d399;
-            --amber: #fbbf24;
         }
 
         html { scroll-behavior: smooth; }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-dark);
-            color: var(--text-primary);
+            background: var(--bg-base);
+            color: var(--text);
             line-height: 1.6;
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
@@ -47,201 +48,203 @@
         /* ===== NAV ===== */
         nav {
             position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-            background: rgba(9, 9, 11, 0.85);
-            backdrop-filter: blur(16px);
+            background: rgba(15,15,23,0.8);
+            backdrop-filter: blur(20px);
             border-bottom: 1px solid var(--border);
             transition: box-shadow 0.3s;
         }
-        nav.scrolled { box-shadow: 0 4px 30px rgba(0,0,0,0.4); }
-
+        nav.scrolled { box-shadow: 0 4px 30px rgba(0,0,0,0.5); }
         .nav-inner {
-            max-width: 1280px; margin: 0 auto;
+            max-width: 1200px; margin: 0 auto;
             padding: 0.875rem 2rem;
             display: flex; justify-content: space-between; align-items: center;
         }
         .logo {
-            font-size: 1.2rem; font-weight: 800;
+            font-size: 1.15rem; font-weight: 800;
             display: flex; align-items: center; gap: 0.5rem;
-            text-decoration: none; color: var(--text-primary);
+            text-decoration: none; color: var(--text);
         }
         .logo-icon {
-            width: 32px; height: 32px; border-radius: 8px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            width: 34px; height: 34px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent-dark), var(--accent));
             display: flex; align-items: center; justify-content: center;
             font-size: 1rem;
         }
         .nav-links { display: flex; gap: 2rem; align-items: center; list-style: none; }
         .nav-links a {
             color: var(--text-secondary); text-decoration: none;
-            font-size: 0.9rem; font-weight: 500; transition: color 0.2s;
+            font-size: 0.88rem; font-weight: 500; transition: color 0.2s;
         }
-        .nav-links a:hover { color: var(--text-primary); }
+        .nav-links a:hover { color: var(--text); }
         .nav-cta {
             padding: 0.5rem 1.25rem;
-            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            background: linear-gradient(135deg, var(--accent-dark), var(--accent));
             color: #fff !important; border-radius: 8px; font-weight: 600 !important;
             transition: transform 0.2s, box-shadow 0.2s;
         }
         .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 4px 20px var(--accent-glow-strong); }
-
         .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 4px; }
-        .hamburger span { width: 22px; height: 2px; background: var(--text-primary); border-radius: 2px; transition: 0.3s; }
+        .hamburger span { width: 22px; height: 2px; background: var(--text); border-radius: 2px; transition: 0.3s; }
 
         /* ===== SHARED ===== */
-        .container { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
-        section { padding: 6rem 0; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+        section { padding: 5rem 0; }
         .section-label {
-            text-transform: uppercase; font-size: 0.8rem; font-weight: 700;
+            text-transform: uppercase; font-size: 0.78rem; font-weight: 700;
             letter-spacing: 0.12em; color: var(--accent); margin-bottom: 0.75rem;
             text-align: center;
         }
         .section-title {
-            font-size: clamp(2rem, 4vw, 3rem); font-weight: 800;
+            font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800;
             text-align: center; margin-bottom: 1rem; line-height: 1.15;
         }
         .section-subtitle {
             text-align: center; color: var(--text-secondary);
-            max-width: 640px; margin: 0 auto 3.5rem; font-size: 1.05rem;
+            max-width: 600px; margin: 0 auto 3rem; font-size: 1rem;
         }
 
-        /* Intersection Observer fade-in */
-        .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.7s ease, transform 0.7s ease; }
+        /* Scroll reveal */
+        .reveal {
+            opacity: 0; transform: translateY(32px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
         .reveal.visible { opacity: 1; transform: translateY(0); }
 
         /* ===== HERO ===== */
         .hero {
-            position: relative; padding: 11rem 0 7rem; overflow: hidden;
+            position: relative; padding: 10rem 0 6rem; overflow: hidden;
             min-height: 100vh; display: flex; align-items: center;
         }
-        /* Grid pattern */
+        /* Animated gradient background */
         .hero::before {
             content: ''; position: absolute; inset: 0;
+            background: linear-gradient(125deg, rgba(99,102,241,0.08) 0%, transparent 40%, rgba(129,140,248,0.06) 70%, transparent 100%);
+            animation: heroGradient 8s ease-in-out infinite alternate;
+        }
+        @keyframes heroGradient {
+            0% { opacity: 0.6; transform: scale(1) translateX(0); }
+            100% { opacity: 1; transform: scale(1.05) translateX(-2%); }
+        }
+        /* Grid pattern */
+        .hero::after {
+            content: ''; position: absolute; inset: 0;
             background-image:
-                linear-gradient(rgba(129,140,248,0.05) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(129,140,248,0.05) 1px, transparent 1px);
+                linear-gradient(rgba(129,140,248,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(129,140,248,0.04) 1px, transparent 1px);
             background-size: 60px 60px;
-            mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 70%);
-            -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 70%);
+            mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 70%);
         }
-        /* Gradient orbs */
         .orb {
-            position: absolute; border-radius: 50%; filter: blur(100px); pointer-events: none;
-            animation: orbFloat 10s ease-in-out infinite;
+            position: absolute; border-radius: 50%; filter: blur(120px); pointer-events: none;
+            animation: orbFloat 12s ease-in-out infinite;
         }
-        .orb-1 { width: 600px; height: 600px; top: -180px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(129,140,248,0.3), transparent 70%); }
-        .orb-2 { width: 400px; height: 400px; bottom: -100px; right: -100px; background: radial-gradient(circle, rgba(99,102,241,0.2), transparent 70%); animation-delay: -5s; }
-
+        .orb-1 { width: 500px; height: 500px; top: -150px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(99,102,241,0.25), transparent 70%); }
+        .orb-2 { width: 350px; height: 350px; bottom: -80px; right: -80px; background: radial-gradient(circle, rgba(129,140,248,0.15), transparent 70%); animation-delay: -6s; }
         @keyframes orbFloat {
-            0%, 100% { opacity: 0.4; transform: translateX(-50%) scale(1); }
-            50% { opacity: 0.6; transform: translateX(-50%) scale(1.08); }
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
         }
-
         .hero-content { text-align: center; position: relative; z-index: 2; }
-
         .hero-badge {
             display: inline-flex; align-items: center; gap: 0.5rem;
             padding: 0.4rem 1rem; border-radius: 100px;
             background: rgba(129,140,248,0.1); border: 1px solid rgba(129,140,248,0.2);
-            font-size: 0.85rem; color: var(--accent); font-weight: 600;
+            font-size: 0.82rem; color: var(--accent); font-weight: 600;
             margin-bottom: 2rem;
         }
         .hero-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; }
         @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
-
         .hero h1 {
-            font-size: clamp(2.5rem, 5.5vw, 4.2rem); font-weight: 900; line-height: 1.1;
-            margin-bottom: 1.5rem;
+            font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900; line-height: 1.12;
+            margin-bottom: 1.5rem; letter-spacing: -0.02em;
         }
         .hero h1 .gradient-text {
-            background: linear-gradient(135deg, var(--accent), #a78bfa, var(--accent-dark));
+            background: linear-gradient(135deg, var(--accent), #a5b4fc, var(--accent-dark));
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        .hero p.subtitle {
-            font-size: clamp(1rem, 2vw, 1.2rem); color: var(--text-secondary);
-            max-width: 720px; margin: 0 auto 2.5rem; line-height: 1.7;
+        .hero .subtitle {
+            font-size: clamp(1rem, 2vw, 1.15rem); color: var(--text-secondary);
+            max-width: 680px; margin: 0 auto 2.5rem; line-height: 1.7;
         }
-
         .cta-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 4rem; }
         .btn {
             display: inline-flex; align-items: center; gap: 0.5rem;
-            padding: 0.9rem 2rem; border-radius: 10px; font-size: 1rem;
+            padding: 0.85rem 2rem; border-radius: 10px; font-size: 0.95rem;
             font-weight: 600; cursor: pointer; transition: all 0.3s;
             text-decoration: none; border: none;
         }
         .btn-primary {
-            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            background: linear-gradient(135deg, var(--accent-dark), var(--accent));
             color: #fff; box-shadow: 0 4px 20px var(--accent-glow);
         }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--accent-glow-strong); }
         .btn-ghost {
-            background: transparent; color: var(--text-primary);
+            background: transparent; color: var(--text);
             border: 1px solid var(--border);
         }
         .btn-ghost:hover { border-color: var(--accent); background: var(--accent-glow); }
 
-        /* Hero stats */
-        .hero-stats {
-            display: flex; gap: 3rem; justify-content: center; flex-wrap: wrap;
+        /* ===== STATS BAR ===== */
+        .stats-bar {
+            display: flex; justify-content: center; gap: 3rem; flex-wrap: wrap;
+            padding: 2.5rem 0;
+            border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+            background: rgba(15,15,23,0.5);
         }
-        .hero-stat { text-align: center; }
-        .hero-stat .val { font-size: 1.6rem; font-weight: 800; color: var(--accent); display: block; }
-        .hero-stat .lbl { color: var(--text-muted); font-size: 0.85rem; }
+        .stat-item { text-align: center; }
+        .stat-val { font-size: 1.5rem; font-weight: 800; color: var(--accent); display: block; }
+        .stat-lbl { color: var(--text-muted); font-size: 0.85rem; }
 
-        /* ===== CAPABILITIES ===== */
-        .capabilities { background: linear-gradient(180deg, var(--bg-dark), #0c0c10, var(--bg-dark)); }
-        .cap-grid {
+        /* ===== FEATURES GRID ===== */
+        .features { background: linear-gradient(180deg, var(--bg-base), #0c0c14, var(--bg-base)); }
+        .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 1.25rem;
         }
-        .cap-card {
+        .feature-card {
             background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: 14px; padding: 2rem; position: relative;
+            border-radius: 16px; padding: 2rem; position: relative;
             transition: all 0.35s ease; overflow: hidden;
         }
-        .cap-card::before {
+        .feature-card::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
             background: linear-gradient(90deg, transparent, var(--accent), transparent);
             opacity: 0; transition: opacity 0.35s;
         }
-        .cap-card:hover { border-color: var(--border-hover); transform: translateY(-6px); box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
-        .cap-card:hover::before { opacity: 1; }
-        .cap-icon { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
-        .cap-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.6rem; }
-        .cap-card p { color: var(--text-secondary); font-size: 0.92rem; margin-bottom: 1rem; line-height: 1.6; }
-        .cap-link {
-            color: var(--accent); font-size: 0.88rem; font-weight: 600;
-            text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;
-            transition: gap 0.2s;
+        .feature-card:hover {
+            border-color: var(--border-hover); transform: translateY(-6px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
         }
-        .cap-link:hover { gap: 0.6rem; }
+        .feature-card:hover::before { opacity: 1; }
+        .feature-icon { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
+        .feature-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .feature-card p { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; }
 
         /* ===== HOW IT WORKS ===== */
-        .how-it-works { position: relative; }
-        .steps { display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; position: relative; }
-        .step {
-            flex: 1; min-width: 260px; max-width: 360px; text-align: center;
-            position: relative; padding: 2.5rem 1.5rem;
-            background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: 16px; transition: all 0.3s;
+        .steps-container {
+            display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap;
         }
-        .step:hover { border-color: var(--border-hover); transform: translateY(-4px); }
+        .step-card {
+            flex: 1; min-width: 240px; max-width: 340px; text-align: center;
+            padding: 2.5rem 1.5rem;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; transition: all 0.3s; position: relative;
+        }
+        .step-card:hover { border-color: var(--border-hover); transform: translateY(-4px); }
         .step-num {
             width: 56px; height: 56px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            background: linear-gradient(135deg, var(--accent-dark), var(--accent));
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.25rem; font-weight: 800; color: #fff;
-            margin: 0 auto 1.25rem;
+            font-size: 1.5rem; margin: 0 auto 1.25rem;
             box-shadow: 0 4px 20px var(--accent-glow);
         }
-        .step h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.6rem; }
-        .step p { color: var(--text-secondary); font-size: 0.92rem; }
-
-        /* Connector arrows between steps (desktop) */
-        .step-connector {
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; color: var(--accent); min-width: 40px;
+        .step-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .step-card p { color: var(--text-secondary); font-size: 0.9rem; }
+        .step-arrow {
+            display: flex; align-items: center; font-size: 1.5rem; color: var(--accent);
             animation: arrowPulse 2s ease-in-out infinite;
         }
         @keyframes arrowPulse {
@@ -249,28 +252,12 @@
             50% { opacity: 1; transform: translateX(6px); }
         }
 
-        /* ===== DEMO ===== */
-        .demo-section { background: linear-gradient(180deg, var(--bg-dark), #0c0c10); }
-        .demo-frame-wrapper {
-            max-width: 900px; margin: 0 auto;
-            border-radius: 16px; overflow: hidden;
-            border: 1px solid var(--border);
-            box-shadow: 0 25px 80px rgba(0,0,0,0.5);
-            position: relative;
-        }
-        .demo-frame-bar {
-            background: #1c1c20; padding: 0.75rem 1rem;
-            display: flex; align-items: center; gap: 0.5rem;
-        }
-        .demo-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .demo-dot.r { background: #ef4444; }
-        .demo-dot.y { background: #eab308; }
-        .demo-dot.g { background: #22c55e; }
-        .demo-frame-bar span { margin-left: 0.75rem; color: var(--text-muted); font-size: 0.8rem; }
-        .demo-iframe { width: 100%; height: 550px; border: none; background: var(--bg-dark); }
-
         /* ===== PRICING ===== */
-        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; max-width: 1020px; margin: 0 auto; }
+        .pricing { background: linear-gradient(180deg, var(--bg-base), #0c0c14); }
+        .pricing-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem; max-width: 1020px; margin: 0 auto;
+        }
         .price-card {
             background: var(--bg-card); border: 1px solid var(--border);
             border-radius: 16px; padding: 2.5rem 2rem; position: relative;
@@ -283,18 +270,18 @@
         }
         .price-badge {
             position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            background: linear-gradient(135deg, var(--accent-dark), var(--accent));
             color: #fff; font-size: 0.75rem; font-weight: 700; padding: 0.3rem 1rem;
             border-radius: 100px; text-transform: uppercase; letter-spacing: 0.05em;
         }
-        .price-card h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .price-card h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; }
         .price-amount { font-size: 2.2rem; font-weight: 900; margin-bottom: 0.25rem; }
         .price-amount .currency { font-size: 1rem; font-weight: 600; color: var(--text-secondary); }
         .price-period { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 2rem; }
         .price-features { list-style: none; margin-bottom: 2rem; flex: 1; }
         .price-features li {
             padding: 0.5rem 0; display: flex; align-items: center; gap: 0.6rem;
-            color: var(--text-secondary); font-size: 0.9rem;
+            color: var(--text-secondary); font-size: 0.88rem;
             border-bottom: 1px solid rgba(255,255,255,0.04);
         }
         .price-features li:last-child { border: none; }
@@ -302,80 +289,52 @@
         .cross { color: var(--text-muted); }
         .price-card .btn { width: 100%; justify-content: center; }
 
-        /* ===== TRUST ===== */
-        .trust { background: linear-gradient(180deg, var(--bg-dark), #0c0c10, var(--bg-dark)); }
-        .trust-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.5rem; max-width: 960px; margin: 0 auto;
-        }
-        .trust-card {
-            text-align: center; padding: 2.5rem 1.5rem;
-            background: var(--bg-card); border: 1px solid var(--border);
-            border-radius: 14px; transition: all 0.3s;
-        }
-        .trust-card:hover { border-color: var(--border-hover); transform: translateY(-4px); }
-        .trust-val { font-size: 2.2rem; font-weight: 900; color: var(--accent); display: block; margin-bottom: 0.4rem; }
-        .trust-lbl { color: var(--text-secondary); font-size: 0.95rem; }
-
         /* ===== CTA BANNER ===== */
         .cta-banner {
             text-align: center; padding: 5rem 2rem;
-            background: linear-gradient(135deg, rgba(129,140,248,0.08), rgba(99,102,241,0.04));
+            background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(129,140,248,0.04));
             border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
         }
-        .cta-banner h2 { font-size: clamp(1.8rem, 3.5vw, 2.5rem); font-weight: 800; margin-bottom: 1rem; }
-        .cta-banner p { color: var(--text-secondary); max-width: 540px; margin: 0 auto 2rem; font-size: 1.05rem; }
+        .cta-banner h2 { font-size: clamp(1.6rem, 3.5vw, 2.4rem); font-weight: 800; margin-bottom: 1rem; }
+        .cta-banner p { color: var(--text-secondary); max-width: 520px; margin: 0 auto 2rem; font-size: 1rem; }
 
         /* ===== FOOTER ===== */
-        footer { padding: 4rem 0 2rem; border-top: 1px solid var(--border); }
-        .footer-grid {
-            display: grid; grid-template-columns: 2fr repeat(3, 1fr);
-            gap: 3rem; margin-bottom: 3rem;
-        }
-        .footer-brand p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.75rem; line-height: 1.7; }
-        .footer-col h4 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; color: var(--text-secondary); }
-        .footer-col a { display: block; color: var(--text-muted); text-decoration: none; font-size: 0.9rem; padding: 0.3rem 0; transition: color 0.2s; }
-        .footer-col a:hover { color: var(--text-primary); }
-        .footer-bottom {
+        footer { padding: 3rem 0 2rem; border-top: 1px solid var(--border); }
+        .footer-inner {
             display: flex; justify-content: space-between; align-items: center;
-            padding-top: 2rem; border-top: 1px solid var(--border);
-            color: var(--text-muted); font-size: 0.82rem; flex-wrap: wrap; gap: 1rem;
+            flex-wrap: wrap; gap: 1.5rem;
         }
-        .footer-social { display: flex; gap: 1rem; }
-        .footer-social a {
-            color: var(--text-muted); text-decoration: none; font-size: 0.85rem;
-            transition: color 0.2s;
-        }
-        .footer-social a:hover { color: var(--accent); }
+        .footer-links { display: flex; gap: 1.5rem; list-style: none; }
+        .footer-links a { color: var(--text-muted); text-decoration: none; font-size: 0.88rem; transition: color 0.2s; }
+        .footer-links a:hover { color: var(--text); }
+        .footer-copy { color: var(--text-muted); font-size: 0.82rem; }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
-            .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(9,9,11,0.98); backdrop-filter: blur(16px); flex-direction: column; padding: 1.5rem 2rem; gap: 1rem; border-bottom: 1px solid var(--border); }
+            .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(15,15,23,0.98); backdrop-filter: blur(16px); flex-direction: column; padding: 1.5rem 2rem; gap: 1rem; border-bottom: 1px solid var(--border); }
             .nav-links.open { display: flex; }
             .hamburger { display: flex; }
-            .hero { padding: 8rem 0 4rem; min-height: auto; }
-            .hero h1 { font-size: 2rem; }
-            .hero-stats { gap: 1.5rem; }
-            .steps { flex-direction: column; align-items: center; }
-            .step-connector { transform: rotate(90deg); min-width: auto; margin: -0.5rem 0; }
-            .cap-grid { grid-template-columns: 1fr; }
+            .hero { padding: 7rem 0 4rem; min-height: auto; }
+            .hero h1 { font-size: 1.8rem; }
+            .stats-bar { gap: 1.5rem; }
+            .features-grid { grid-template-columns: 1fr; }
+            .steps-container { flex-direction: column; align-items: center; }
+            .step-arrow { transform: rotate(90deg); }
             .pricing-grid { grid-template-columns: 1fr; max-width: 400px; }
-            .footer-grid { grid-template-columns: 1fr 1fr; gap: 2rem; }
-            .demo-iframe { height: 400px; }
-            section { padding: 4rem 0; }
+            section { padding: 3.5rem 0; }
+            .footer-inner { flex-direction: column; text-align: center; }
         }
-
         @media (max-width: 480px) {
             .container { padding: 0 1rem; }
-            .hero h1 { font-size: 1.7rem; }
-            .footer-grid { grid-template-columns: 1fr; }
-            .trust-grid { grid-template-columns: 1fr 1fr; }
+            .hero h1 { font-size: 1.5rem; }
+            .stat-val { font-size: 1.2rem; }
+            .stats-bar { gap: 1rem; }
         }
     </style>
 </head>
 <body>
 
-<!-- ===== NAVIGATION ===== -->
+<!-- NAV -->
 <nav id="navbar">
     <div class="nav-inner">
         <a href="#" class="logo">
@@ -386,180 +345,145 @@
             <span></span><span></span><span></span>
         </button>
         <ul class="nav-links" id="navLinks">
-            <li><a href="#capabilities">Tính năng</a></li>
+            <li><a href="#features">Tính năng</a></li>
             <li><a href="#how-it-works">Cách hoạt động</a></li>
-            <li><a href="#demo">Demo</a></li>
             <li><a href="#pricing">Bảng giá</a></li>
-            <li><a href="/static/app.html" class="nav-cta">Dùng thử →</a></li>
+            <li><a href="/static/app.html" class="nav-cta">Bắt đầu miễn phí →</a></li>
         </ul>
     </div>
 </nav>
 
-<!-- ===== HERO ===== -->
+<!-- HERO -->
 <section class="hero" id="hero">
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="container hero-content">
-        <div class="hero-badge"><span class="dot"></span> Đang hoạt động — Phiên bản mới nhất</div>
-        <h1>AI Legal Agent<br><span class="gradient-text">Bộ phận pháp lý AI<br>cho doanh nghiệp Việt Nam</span></h1>
-        <p class="subtitle">Không chỉ chatbot. Đây là Agent thông minh — tự tra cứu luật, rà soát hợp đồng, soạn văn bản, quản lý rủi ro pháp lý.</p>
+        <div class="hero-badge"><span class="dot"></span> Đang hoạt động — 24/7</div>
+        <h1><span class="gradient-text">AI Legal Agent</span><br>Trợ lý pháp lý thông minh<br>cho doanh nghiệp</h1>
+        <p class="subtitle">Tra cứu luật, rà soát hợp đồng, soạn văn bản — tất cả trong một nền tảng</p>
         <div class="cta-group">
-            <a href="/static/app.html" class="btn btn-primary">Dùng thử miễn phí →</a>
-            <a href="#demo" class="btn btn-ghost">▶ Xem demo</a>
-        </div>
-        <div class="hero-stats">
-            <div class="hero-stat"><span class="val">40,000+</span><span class="lbl">Văn bản pháp luật</span></div>
-            <div class="hero-stat"><span class="val">97,000+</span><span class="lbl">Đoạn luật đã index</span></div>
-            <div class="hero-stat"><span class="val">24/7</span><span class="lbl">Luôn sẵn sàng</span></div>
-            <div class="hero-stat"><span class="val">&lt;5s</span><span class="lbl">Thời gian phản hồi</span></div>
+            <a href="/static/app.html" class="btn btn-primary">Bắt đầu miễn phí →</a>
+            <a href="#features" class="btn btn-ghost">Xem demo ▼</a>
         </div>
     </div>
 </section>
 
-<!-- ===== CAPABILITIES ===== -->
-<section class="capabilities" id="capabilities">
+<!-- STATS BAR -->
+<div class="stats-bar reveal">
+    <div class="stat-item"><span class="stat-val">40,000+</span><span class="stat-lbl">văn bản pháp luật</span></div>
+    <div class="stat-item"><span class="stat-val">11</span><span class="stat-lbl">công cụ AI</span></div>
+    <div class="stat-item"><span class="stat-val">15s</span><span class="stat-lbl">phản hồi trung bình</span></div>
+    <div class="stat-item"><span class="stat-val">24/7</span><span class="stat-lbl">sẵn sàng</span></div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="features">
     <div class="container">
         <div class="reveal">
-            <p class="section-label">Agent Capabilities</p>
-            <h2 class="section-title">7 công cụ AI pháp lý trong một Agent</h2>
-            <p class="section-subtitle">Mỗi công cụ là một chuyên gia. Kết hợp lại, bạn có một bộ phận pháp lý hoàn chỉnh.</p>
+            <p class="section-label">Tính năng</p>
+            <h2 class="section-title">Mọi thứ bạn cần trong một nền tảng</h2>
+            <p class="section-subtitle">Từ tra cứu luật đến soạn thảo hợp đồng — AI xử lý tất cả</p>
         </div>
-        <div class="cap-grid">
-            <div class="cap-card reveal">
-                <span class="cap-icon">🔍</span>
-                <h3>Tra cứu văn bản pháp luật</h3>
-                <p>Tìm kiếm thông minh trong 40,000+ văn bản pháp luật Việt Nam. Trích dẫn chính xác điều, khoản, nghị định.</p>
-                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
+        <div class="features-grid">
+            <div class="feature-card reveal">
+                <span class="feature-icon">💬</span>
+                <h3>Chat AI Pháp Lý</h3>
+                <p>Hỏi bất kỳ câu hỏi pháp lý, nhận câu trả lời có trích dẫn luật cụ thể</p>
             </div>
-            <div class="cap-card reveal">
-                <span class="cap-icon">📄</span>
-                <h3>Rà soát hợp đồng với AI</h3>
-                <p>Upload hợp đồng, AI tự động phát hiện rủi ro, điều khoản bất lợi, và đề xuất chỉnh sửa.</p>
-                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
+            <div class="feature-card reveal">
+                <span class="feature-icon">📄</span>
+                <h3>Rà soát hợp đồng</h3>
+                <p>Upload hợp đồng, AI phân tích rủi ro và đề xuất sửa đổi</p>
             </div>
-            <div class="cap-card reveal">
-                <span class="cap-icon">✍️</span>
-                <h3>Soạn thảo văn bản pháp lý</h3>
-                <p>Tạo hợp đồng, công văn, quyết định từ mẫu chuẩn. Tùy chỉnh theo yêu cầu cụ thể.</p>
-                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
+            <div class="feature-card reveal">
+                <span class="feature-icon">⚖️</span>
+                <h3>Tra cứu luật</h3>
+                <p>Tìm kiếm nhanh trong 40,000+ văn bản pháp luật Việt Nam</p>
             </div>
-            <div class="cap-card reveal">
-                <span class="cap-icon">📋</span>
-                <h3>Quản lý hợp đồng thông minh</h3>
-                <p>Theo dõi thời hạn, gia hạn, và trạng thái tất cả hợp đồng. Nhắc nhở tự động.</p>
-                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
+            <div class="feature-card reveal">
+                <span class="feature-icon">📊</span>
+                <h3>Risk Dashboard</h3>
+                <p>Tổng quan rủi ro tất cả hợp đồng, cảnh báo hết hạn</p>
             </div>
-            <div class="cap-card reveal">
-                <span class="cap-icon">⚠️</span>
-                <h3>Phân tích rủi ro pháp lý</h3>
-                <p>Đánh giá rủi ro tuân thủ, phát hiện vi phạm tiềm ẩn, đề xuất biện pháp phòng ngừa.</p>
-                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
+            <div class="feature-card reveal">
+                <span class="feature-icon">✍️</span>
+                <h3>Soạn văn bản</h3>
+                <p>AI soạn hợp đồng, điều khoản từ template chuyên nghiệp</p>
             </div>
-            <div class="cap-card reveal">
-                <span class="cap-icon">📂</span>
-                <h3>Quản lý tài liệu nội bộ</h3>
-                <p>Lưu trữ, phân loại, tìm kiếm tài liệu pháp lý nội bộ. Bảo mật và có kiểm soát.</p>
-                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
-            </div>
-            <div class="cap-card reveal">
-                <span class="cap-icon">🏢</span>
-                <h3>Hồ sơ pháp lý công ty</h3>
-                <p>Quản lý giấy phép, đăng ký kinh doanh, và toàn bộ hồ sơ pháp lý doanh nghiệp.</p>
-                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
+            <div class="feature-card reveal">
+                <span class="feature-icon">📈</span>
+                <h3>Analytics</h3>
+                <p>Thống kê sử dụng, top câu hỏi, performance tracking</p>
             </div>
         </div>
     </div>
 </section>
 
-<!-- ===== HOW IT WORKS ===== -->
-<section class="how-it-works" id="how-it-works">
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
     <div class="container">
         <div class="reveal">
-            <p class="section-label">How It Works</p>
+            <p class="section-label">Cách hoạt động</p>
             <h2 class="section-title">3 bước đơn giản</h2>
-            <p class="section-subtitle">Từ câu hỏi đến câu trả lời chuyên sâu — chỉ trong vài giây.</p>
+            <p class="section-subtitle">Từ đăng ký đến kết quả — nhanh chóng và dễ dàng</p>
         </div>
-        <div class="steps reveal">
-            <div class="step">
-                <div class="step-num">1</div>
-                <h3>Đặt câu hỏi</h3>
-                <p>Hỏi bất kỳ điều gì về pháp luật Việt Nam bằng ngôn ngữ tự nhiên.</p>
+        <div class="steps-container reveal">
+            <div class="step-card">
+                <div class="step-num">📝</div>
+                <h3>Đăng ký tài khoản</h3>
+                <p>Tạo tài khoản miễn phí, không cần thẻ tín dụng</p>
             </div>
-            <div class="step-connector">→</div>
-            <div class="step">
-                <div class="step-num">2</div>
-                <h3>Agent tự tra cứu</h3>
-                <p>AI tự động tìm luật liên quan, đọc hợp đồng, phân tích dữ liệu.</p>
+            <div class="step-arrow">→</div>
+            <div class="step-card">
+                <div class="step-num">📤</div>
+                <h3>Upload hợp đồng hoặc hỏi AI</h3>
+                <p>Tải lên hợp đồng cần rà soát hoặc đặt câu hỏi pháp lý</p>
             </div>
-            <div class="step-connector">→</div>
-            <div class="step">
-                <div class="step-num">3</div>
-                <h3>Nhận câu trả lời chuyên sâu</h3>
-                <p>Trả lời chi tiết với trích dẫn điều luật cụ thể và đề xuất hành động.</p>
+            <div class="step-arrow">→</div>
+            <div class="step-card">
+                <div class="step-num">✅</div>
+                <h3>Nhận phân tích chi tiết</h3>
+                <p>AI trả lời với trích dẫn luật và đề xuất hành động cụ thể</p>
             </div>
-        </div>
-    </div>
-</section>
-
-<!-- ===== DEMO ===== -->
-<section class="demo-section" id="demo">
-    <div class="container">
-        <div class="reveal">
-            <p class="section-label">Live Demo</p>
-            <h2 class="section-title">Thử ngay — không cần đăng ký</h2>
-            <p class="section-subtitle">Trải nghiệm trực tiếp AI Legal Agent.</p>
-        </div>
-        <div class="demo-frame-wrapper reveal">
-            <div class="demo-frame-bar">
-                <span class="demo-dot r"></span>
-                <span class="demo-dot y"></span>
-                <span class="demo-dot g"></span>
-                <span>legal-ai-agent — app</span>
-            </div>
-            <iframe src="/static/app.html" class="demo-iframe" loading="lazy" title="Legal AI Agent Demo"></iframe>
         </div>
     </div>
 </section>
 
-<!-- ===== PRICING ===== -->
-<section id="pricing">
+<!-- PRICING -->
+<section class="pricing" id="pricing">
     <div class="container">
         <div class="reveal">
-            <p class="section-label">Pricing</p>
+            <p class="section-label">Bảng giá</p>
             <h2 class="section-title">Chọn gói phù hợp</h2>
-            <p class="section-subtitle">Bắt đầu miễn phí. Nâng cấp khi cần.</p>
+            <p class="section-subtitle">Bắt đầu miễn phí, nâng cấp khi cần</p>
         </div>
         <div class="pricing-grid reveal">
-            <!-- Starter -->
+            <!-- Free -->
             <div class="price-card">
-                <h3>Starter</h3>
+                <h3>Free</h3>
                 <div class="price-amount">Miễn phí</div>
-                <div class="price-period">Bắt đầu ngay, không cần thẻ</div>
+                <div class="price-period">Bắt đầu ngay</div>
                 <ul class="price-features">
-                    <li><span class="check">✓</span> 20 câu hỏi / tháng</li>
-                    <li><span class="check">✓</span> 5 hợp đồng</li>
-                    <li><span class="check">✓</span> 10 tài liệu</li>
-                    <li><span class="cross">✗</span> Rà soát hợp đồng AI</li>
-                    <li><span class="cross">✗</span> Soạn thảo AI</li>
-                    <li><span class="cross">✗</span> API Access</li>
-                    <li><span class="check">✓</span> Hỗ trợ Email</li>
+                    <li><span class="check">✓</span> 10 câu hỏi / ngày</li>
+                    <li><span class="check">✓</span> 3 hợp đồng</li>
+                    <li><span class="check">✓</span> Tra cứu luật cơ bản</li>
+                    <li><span class="cross">✗</span> Rà soát AI nâng cao</li>
+                    <li><span class="cross">✗</span> Xuất báo cáo</li>
                 </ul>
                 <a href="/static/app.html" class="btn btn-ghost">Bắt đầu miễn phí</a>
             </div>
-            <!-- Professional -->
+            <!-- Pro -->
             <div class="price-card featured">
                 <div class="price-badge">Phổ biến nhất</div>
-                <h3>Professional</h3>
-                <div class="price-amount">499.000<span class="currency">đ</span></div>
+                <h3>Pro</h3>
+                <div class="price-amount">499K<span class="currency">đ</span></div>
                 <div class="price-period">/ tháng</div>
                 <ul class="price-features">
-                    <li><span class="check">✓</span> 500 câu hỏi / tháng</li>
-                    <li><span class="check">✓</span> 50 hợp đồng</li>
-                    <li><span class="check">✓</span> 100 tài liệu</li>
-                    <li><span class="check">✓</span> Rà soát hợp đồng AI</li>
-                    <li><span class="check">✓</span> Soạn thảo AI</li>
-                    <li><span class="check">✓</span> API Access</li>
-                    <li><span class="check">✓</span> Hỗ trợ Priority</li>
+                    <li><span class="check">✓</span> 100 câu hỏi / ngày</li>
+                    <li><span class="check">✓</span> Không giới hạn hợp đồng</li>
+                    <li><span class="check">✓</span> Rà soát AI nâng cao</li>
+                    <li><span class="check">✓</span> Xuất báo cáo PDF</li>
+                    <li><span class="check">✓</span> Hỗ trợ ưu tiên</li>
                 </ul>
                 <a href="/static/app.html" class="btn btn-primary">Dùng thử 14 ngày →</a>
             </div>
@@ -570,12 +494,10 @@
                 <div class="price-period">Tùy chỉnh theo nhu cầu</div>
                 <ul class="price-features">
                     <li><span class="check">✓</span> Không giới hạn câu hỏi</li>
-                    <li><span class="check">✓</span> Không giới hạn hợp đồng</li>
-                    <li><span class="check">✓</span> Không giới hạn tài liệu</li>
-                    <li><span class="check">✓</span> Rà soát hợp đồng AI</li>
-                    <li><span class="check">✓</span> Soạn thảo AI</li>
-                    <li><span class="check">✓</span> API Access</li>
-                    <li><span class="check">✓</span> Hỗ trợ Dedicated</li>
+                    <li><span class="check">✓</span> API access</li>
+                    <li><span class="check">✓</span> Priority support</li>
+                    <li><span class="check">✓</span> SSO & bảo mật nâng cao</li>
+                    <li><span class="check">✓</span> Dedicated account manager</li>
                 </ul>
                 <a href="mailto:contact@legal-ai.vn" class="btn btn-ghost">Liên hệ tư vấn</a>
             </div>
@@ -583,123 +505,63 @@
     </div>
 </section>
 
-<!-- ===== TRUST ===== -->
-<section class="trust" id="trust">
-    <div class="container">
-        <div class="reveal">
-            <p class="section-label">Trusted Data</p>
-            <h2 class="section-title">Dữ liệu pháp luật lớn nhất Việt Nam</h2>
-        </div>
-        <div class="trust-grid reveal">
-            <div class="trust-card">
-                <span class="trust-val">40,000+</span>
-                <span class="trust-lbl">Văn bản pháp luật</span>
-            </div>
-            <div class="trust-card">
-                <span class="trust-val">97,000+</span>
-                <span class="trust-lbl">Đoạn luật đã index</span>
-            </div>
-            <div class="trust-card">
-                <span class="trust-val">24/7</span>
-                <span class="trust-lbl">Cập nhật liên tục</span>
-            </div>
-            <div class="trust-card">
-                <span class="trust-val">🔒</span>
-                <span class="trust-lbl">Bảo mật dữ liệu</span>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ===== CTA BANNER ===== -->
+<!-- CTA BANNER -->
 <section class="cta-banner">
     <div class="container reveal">
-        <h2>Sẵn sàng số hóa bộ phận pháp lý?</h2>
+        <h2>Sẵn sàng số hóa pháp lý doanh nghiệp?</h2>
         <p>Bắt đầu miễn phí ngay hôm nay. Không cần thẻ tín dụng.</p>
-        <a href="/static/app.html" class="btn btn-primary">Dùng thử miễn phí →</a>
+        <a href="/static/app.html" class="btn btn-primary">Bắt đầu miễn phí →</a>
     </div>
 </section>
 
-<!-- ===== FOOTER ===== -->
+<!-- FOOTER -->
 <footer>
     <div class="container">
-        <div class="footer-grid">
-            <div class="footer-brand">
-                <a href="#" class="logo">
-                    <div class="logo-icon">⚖️</div>
-                    Legal AI Agent
-                </a>
-                <p>Bộ phận pháp lý AI cho doanh nghiệp Việt Nam. Tra cứu luật, rà soát hợp đồng, soạn văn bản — tất cả bằng AI.</p>
-            </div>
-            <div class="footer-col">
-                <h4>Sản phẩm</h4>
-                <a href="#capabilities">Tính năng</a>
-                <a href="#pricing">Bảng giá</a>
-                <a href="#demo">Demo</a>
-                <a href="/static/app.html">Ứng dụng</a>
-            </div>
-            <div class="footer-col">
-                <h4>Tài nguyên</h4>
-                <a href="#">API Docs</a>
-                <a href="#">Blog</a>
-                <a href="#">Hướng dẫn</a>
-                <a href="#">Changelog</a>
-            </div>
-            <div class="footer-col">
-                <h4>Liên hệ</h4>
-                <a href="mailto:contact@legal-ai.vn">Email</a>
-                <a href="#">Facebook</a>
-                <a href="#">LinkedIn</a>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <span>© 2025 Legal AI Agent. All rights reserved.</span>
-            <span>Powered by Claude AI</span>
+        <div class="footer-inner">
+            <a href="#" class="logo">
+                <div class="logo-icon">⚖️</div>
+                Legal AI Agent
+            </a>
+            <ul class="footer-links">
+                <li><a href="#features">Tính năng</a></li>
+                <li><a href="#pricing">Bảng giá</a></li>
+                <li><a href="mailto:contact@legal-ai.vn">Liên hệ</a></li>
+                <li><a href="#">Điều khoản</a></li>
+            </ul>
+            <div class="footer-copy">© 2026 AI Legal Agent. Made with ❤️ in Vietnam</div>
         </div>
     </div>
 </footer>
 
 <script>
-    // Navbar scroll effect
+    // Navbar scroll
     const nav = document.getElementById('navbar');
-    window.addEventListener('scroll', () => {
-        nav.classList.toggle('scrolled', window.scrollY > 50);
-    });
+    window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 50));
 
     // Mobile menu
-    const menuToggle = document.getElementById('menuToggle');
-    const navLinks = document.getElementById('navLinks');
-    menuToggle.addEventListener('click', () => {
-        navLinks.classList.toggle('open');
+    document.getElementById('menuToggle').addEventListener('click', () => {
+        document.getElementById('navLinks').classList.toggle('open');
     });
-    // Close menu on link click
-    navLinks.querySelectorAll('a').forEach(a => {
-        a.addEventListener('click', () => navLinks.classList.remove('open'));
+    document.querySelectorAll('#navLinks a').forEach(a => {
+        a.addEventListener('click', () => document.getElementById('navLinks').classList.remove('open'));
     });
 
-    // Intersection Observer for reveal animations
-    const revealEls = document.querySelectorAll('.reveal');
+    // Intersection Observer for reveal
     const observer = new IntersectionObserver((entries) => {
         entries.forEach((entry, i) => {
             if (entry.isIntersecting) {
-                // Stagger animation for cards within the same parent
                 const siblings = entry.target.parentElement.querySelectorAll('.reveal');
                 let delay = 0;
                 siblings.forEach((sib, idx) => {
-                    if (sib === entry.target) delay = idx * 80;
+                    if (sib === entry.target) delay = idx * 100;
                 });
-                setTimeout(() => {
-                    entry.target.classList.add('visible');
-                }, delay);
+                setTimeout(() => entry.target.classList.add('visible'), delay);
                 observer.unobserve(entry.target);
             }
         });
     }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 
-    revealEls.forEach(el => observer.observe(el));
-
-    // Make hero always visible (above fold)
-    document.querySelector('.hero').style.opacity = '1';
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 </script>
 
 </body>

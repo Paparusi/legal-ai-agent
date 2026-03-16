@@ -5902,5 +5902,13 @@ console.log(await resp.json());</code></pre>
             <span>Thêm</span>
         </button>
     </div>
+<script>
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/static/sw.js').catch(() => {});
+        });
+    }
+    </script>
 </body>
 </html>
