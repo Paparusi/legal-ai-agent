@@ -862,6 +862,13 @@
                                     <div class="welcome-action-desc">Kết nối Legal AI API</div>
                                 </div>
                             </div>
+                            <div class="welcome-action" onclick="openTabByType('contracts')">
+                                <div class="welcome-action-icon">⚖️</div>
+                                <div>
+                                    <div class="welcome-action-text">So sánh hợp đồng</div>
+                                    <div class="welcome-action-desc">So sánh nội dung, điều khoản</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1076,6 +1083,9 @@
         let currentDocFilter = 'all';
         let currentContractsView = 'cards';
         let chatAttachedFile = null;
+        let selectedContractsForCompare = new Set();
+        let timelineData = null;
+        let documentAnnotations = {};
 
         // Tab management
         let openTabs = [{ id: 'welcome', title: 'Tổng quan', icon: '🏠', closable: false, type: 'welcome' }];
@@ -1099,7 +1109,8 @@
             'search_company_docs': { icon: '📂', label: 'Tìm tài liệu công ty' },
             'analyze_contract_risk': { icon: '⚠️', label: 'Phân tích rủi ro' },
             'draft_document': { icon: '✍️', label: 'Soạn thảo văn bản' },
-            'get_company_profile': { icon: '🏢', label: 'Lấy thông tin công ty' }
+            'get_company_profile': { icon: '🏢', label: 'Lấy thông tin công ty' },
+            'compare_contracts': { icon: '⚖️', label: 'So sánh hợp đồng' }
         };
 
         let currentAgentAvatar = '🤖';
@@ -1434,12 +1445,7 @@
 
         // ===== DOCUMENT TAB =====
         function openDocumentTab(id) {
-            const tabId = 'document-' + id;
-            const doc = allDocuments.find(d => d.id === id);
-            if (!doc) return;
-            createTabContentPane(tabId, '<div class="document-viewer"><div class="document-toolbar"><button class="toolbar-btn" onclick="analyzeDocument(\'' + id + '\')">🔍 Phân tích AI</button><button class="toolbar-btn" onclick="askAiAboutDocument(\'' + escapeHtml(doc.name).replace(/'/g, "\\'") + '\')">💬 Hỏi AI</button><button class="toolbar-btn" onclick="deleteDocument(\'' + id + '\')">🗑️ Xóa</button></div><div class="document-content-area" id="docContent-' + id + '"><div class="loading-spinner"><div class="spinner-large" style="margin: 0 auto;"></div><div style="margin-top: 0.5rem;">Đang tải...</div></div></div></div>');
-            addTab({ id: tabId, title: doc.name, icon: getDocumentIcon(doc.mime_type), type: 'document' });
-            loadDocumentContent(id);
+            openDocumentTabWithAnnotations(id);
         }
 
         async function loadDocumentContent(id) {
@@ -1472,6 +1478,11 @@
         function getContractsTabHTML() {
             return `<div class="contracts-tab">
                 <div id="expiringAlert" class="hidden"></div>
+                <div id="compareBar" class="compare-bar hidden">
+                    <span class="compare-count">⚖️ <span id="compareCount">0</span> hợp đồng đã chọn</span>
+                    <button class="btn btn-secondary btn-small" onclick="clearCompareSelection()">Bỏ chọn</button>
+                    <button class="btn btn-primary btn-small" onclick="openCompareView()">⚖️ So sánh</button>
+                </div>
                 <div class="page-actions">
                     <input type="text" class="search-input" placeholder="🔍 Tìm kiếm..." onkeyup="filterContracts(this.value)">
                     <div class="contracts-view-toggle">
@@ -1488,7 +1499,7 @@
                 </div>
                 <div class="contracts-grid" id="contractsGrid"></div>
                 <div class="table-container hidden" id="contractsTable">
-                    <table><thead><tr><th>Tên</th><th>Loại</th><th>Bên liên quan</th><th>Trạng thái</th><th>Bắt đầu</th><th>Kết thúc</th><th>Giá trị</th><th>Hành động</th></tr></thead>
+                    <table><thead><tr><th style="width:30px;"></th><th>Tên</th><th>Loại</th><th>Bên liên quan</th><th>Trạng thái</th><th>Bắt đầu</th><th>Kết thúc</th><th>Giá trị</th><th>Hành động</th></tr></thead>
                     <tbody id="contractsTableBody"></tbody></table>
                 </div>
             </div>`;
@@ -1582,13 +1593,17 @@ console.log(await resp.json());</code></pre>
             }
             grid.innerHTML = allContracts.map(c => {
                 const status = getContractStatus(c);
-                return `<div class="contract-card" onclick="openContractTab('${c.id}')">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <div style="font-weight: 600; color: var(--text-active); font-size: 0.9rem;">${escapeHtml(c.name || c.title || 'Chưa đặt tên')}</div>
+                const checked = selectedContractsForCompare.has(c.id) ? 'checked' : '';
+                return `<div class="contract-card">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" class="contract-checkbox" ${checked} onclick="event.stopPropagation(); toggleCompareContract('${c.id}')" title="Chọn để so sánh">
+                            <div style="font-weight: 600; color: var(--text-active); font-size: 0.9rem; cursor: pointer;" onclick="openContractTab('${c.id}')">${escapeHtml(c.name || c.title || 'Chưa đặt tên')}</div>
+                        </div>
                         <span class="status-badge status-${status}">${getStatusText(status)}</span>
                     </div>
-                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.4rem;">${getContractTypeText(c.contract_type)} ${c.parties ? '· ' + escapeHtml(Array.isArray(c.parties) ? c.parties.join(', ') : c.parties) : ''}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">📅 ${formatDate(c.start_date)} — ${formatDate(c.end_date)} ${c.value ? '| 💰 ' + formatCurrency(c.value) : ''}</div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.4rem; cursor: pointer;" onclick="openContractTab('${c.id}')">${getContractTypeText(c.contract_type)} ${c.parties ? '· ' + escapeHtml(Array.isArray(c.parties) ? c.parties.join(', ') : c.parties) : ''}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); cursor: pointer;" onclick="openContractTab('${c.id}')">📅 ${formatDate(c.start_date)} — ${formatDate(c.end_date)} ${c.value ? '| 💰 ' + formatCurrency(c.value) : ''}</div>
                     <div style="display: flex; gap: 4px; margin-top: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.5rem;">
                         <button class="icon-btn" onclick="event.stopPropagation(); reviewContract('${c.id}')" title="Rà soát">🔍</button>
                         <button class="icon-btn" onclick="event.stopPropagation(); deleteContract('${c.id}')" title="Xóa">🗑️</button>
@@ -1598,7 +1613,9 @@ console.log(await resp.json());</code></pre>
             if (tbody) {
                 tbody.innerHTML = allContracts.map(c => {
                     const status = getContractStatus(c);
+                    const checked = selectedContractsForCompare.has(c.id) ? 'checked' : '';
                     return `<tr data-status="${status}">
+                        <td><input type="checkbox" class="contract-checkbox" ${checked} onclick="toggleCompareContract('${c.id}')"></td>
                         <td style="color: var(--text-active); font-weight: 500;">${escapeHtml(c.name || c.title || 'N/A')}</td>
                         <td>${getContractTypeText(c.contract_type)}</td>
                         <td>${escapeHtml(Array.isArray(c.parties) ? c.parties.join(', ') : (c.parties || '-'))}</td>
@@ -2262,7 +2279,7 @@ console.log(await resp.json());</code></pre>
             try {
                 const token = localStorage.getItem('token');
                 const response = await fetch('/v1/contracts', { headers: { 'Authorization': `Bearer ${token}` } });
-                if (response.ok) { const data = await response.json(); allContracts = data.contracts || data || []; renderExplorerTrees(); renderContractsInTab(); checkExpiringContracts(); }
+                if (response.ok) { const data = await response.json(); allContracts = data.contracts || data || []; renderExplorerTrees(); renderContractsInTab(); checkExpiringContracts(); loadTimeline(); }
             } catch (e) { console.error('Load contracts error:', e); }
         }
 
@@ -2583,6 +2600,407 @@ console.log(await resp.json());</code></pre>
             if (chatCollapsed) { chatCollapsed = false; localStorage.setItem('chatCollapsed', 'false'); applyChatWidth(); }
             startNewChat();
             setTimeout(() => { document.getElementById('chatInput').value = question; autoResize(document.getElementById('chatInput')); document.getElementById('sendBtn').disabled = false; }, 100);
+        }
+
+        // ===== CONTRACT COMPARISON =====
+        function toggleCompareContract(id) {
+            if (selectedContractsForCompare.has(id)) {
+                selectedContractsForCompare.delete(id);
+            } else {
+                if (selectedContractsForCompare.size >= 5) {
+                    showToast('Tối đa 5 hợp đồng', 'warning');
+                    return;
+                }
+                selectedContractsForCompare.add(id);
+            }
+            updateCompareBar();
+        }
+
+        function updateCompareBar() {
+            const bar = document.getElementById('compareBar');
+            const count = document.getElementById('compareCount');
+            if (!bar) return;
+            if (selectedContractsForCompare.size >= 2) {
+                bar.classList.remove('hidden');
+                if (count) count.textContent = selectedContractsForCompare.size;
+            } else {
+                bar.classList.add('hidden');
+            }
+        }
+
+        function clearCompareSelection() {
+            selectedContractsForCompare.clear();
+            updateCompareBar();
+            renderContractsInTab();
+        }
+
+        async function openCompareView() {
+            if (selectedContractsForCompare.size < 2) {
+                showToast('Chọn ít nhất 2 hợp đồng', 'warning');
+                return;
+            }
+            const ids = Array.from(selectedContractsForCompare);
+            const tabId = 'compare-' + ids.join('-').substring(0, 20);
+            const names = ids.map(id => {
+                const c = allContracts.find(x => x.id === id);
+                return c ? (c.name || c.title || 'HĐ') : id;
+            });
+            createTabContentPane(tabId, `<div class="comparison-view" id="compareContent-${tabId}">
+                <div style="text-align: center; padding: 3rem;">
+                    <div class="spinner-large" style="margin: 0 auto 1rem;"></div>
+                    <div style="color: var(--text-muted);">⚖️ Đang so sánh ${ids.length} hợp đồng...</div>
+                </div>
+            </div>`);
+            addTab({ id: tabId, title: 'So sánh: ' + names.slice(0, 2).join(' vs '), icon: '⚖️', type: 'compare' });
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/v1/contracts/compare', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contract_ids: ids })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    renderComparisonResults(tabId, data);
+                } else {
+                    const err = await response.json().catch(function() { return {}; });
+                    document.getElementById('compareContent-' + tabId).innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-title">' + escapeHtml(err.detail || 'Không thể so sánh') + '</div></div>';
+                }
+            } catch (e) {
+                document.getElementById('compareContent-' + tabId).innerHTML = '<div class="empty-state"><div class="empty-state-icon">❌</div><div class="empty-state-title">Lỗi kết nối</div></div>';
+            }
+        }
+
+        function renderComparisonResults(tabId, data) {
+            var el = document.getElementById('compareContent-' + tabId);
+            if (!el) return;
+            var comp = data.comparison || {};
+            var contracts = data.contracts || [];
+
+            var summaryHtml = '';
+            if (comp.summary) {
+                summaryHtml = '<div class="comparison-summary"><h3>📋 Tóm tắt so sánh</h3><div style="font-size: 0.85rem; color: var(--text); line-height: 1.6;">' + escapeHtml(comp.summary) + '</div></div>';
+            }
+            if (comp.raw_analysis) {
+                summaryHtml = '<div class="comparison-summary"><h3>📋 Phân tích so sánh</h3><div class="message-text" style="font-size: 0.85rem;">' + renderMarkdown(comp.raw_analysis) + '</div></div>';
+            }
+
+            var bestHtml = '';
+            if (comp.best_for_company) {
+                bestHtml = '<div class="comparison-summary" style="border-left: 3px solid var(--success);"><h3>🏆 Hợp đồng có lợi nhất</h3><div style="font-size: 0.9rem; font-weight: 600; color: var(--success); margin-bottom: 4px;">' + escapeHtml(comp.best_for_company.contract_name || '') + '</div><div style="font-size: 0.8rem; color: var(--text);">' + escapeHtml(comp.best_for_company.reason || '') + '</div></div>';
+            }
+
+            var diffHtml = '';
+            if (comp.differences && comp.differences.length > 0) {
+                diffHtml = '<div class="comparison-summary"><h3>🔍 Điểm khác biệt</h3>';
+                comp.differences.forEach(function(diff) {
+                    diffHtml += '<div style="margin-bottom: 1rem;"><div style="font-weight: 600; color: var(--accent); margin-bottom: 6px;">' + escapeHtml(diff.aspect || '') + '</div>';
+                    if (diff.details && diff.details.length > 0) {
+                        diff.details.forEach(function(d) {
+                            diffHtml += '<div class="diff-neutral"><strong>' + escapeHtml(d.contract || '') + ':</strong> ' + escapeHtml(d.content || '') + '</div>';
+                        });
+                    }
+                    if (diff.recommendation) {
+                        diffHtml += '<div class="diff-added">💡 ' + escapeHtml(diff.recommendation) + '</div>';
+                    }
+                    diffHtml += '</div>';
+                });
+                diffHtml += '</div>';
+            }
+
+            var inconsistenciesHtml = '';
+            if (comp.inconsistencies && comp.inconsistencies.length > 0) {
+                inconsistenciesHtml = '<div class="comparison-summary" style="border-left: 3px solid var(--danger);"><h3>⚠️ Điểm không nhất quán</h3>';
+                comp.inconsistencies.forEach(function(item) {
+                    inconsistenciesHtml += '<div class="diff-removed">' + escapeHtml(item) + '</div>';
+                });
+                inconsistenciesHtml += '</div>';
+            }
+
+            var contractsHtml = '';
+            if (comp.contracts && comp.contracts.length > 0) {
+                var cols = Math.min(comp.contracts.length, 3);
+                contractsHtml = '<div class="comparison-grid" style="grid-template-columns: repeat(' + cols + ', 1fr);">';
+                comp.contracts.forEach(function(c) {
+                    contractsHtml += '<div class="comparison-col"><h4>' + escapeHtml(c.name || c.id || '') + '</h4>';
+                    if (c.strengths && c.strengths.length > 0) {
+                        contractsHtml += '<div style="margin-bottom: 8px;"><div style="font-size: 0.75rem; font-weight: 600; color: var(--success); margin-bottom: 4px;">✅ Điểm mạnh</div>';
+                        c.strengths.forEach(function(s) { contractsHtml += '<div class="diff-added">' + escapeHtml(s) + '</div>'; });
+                        contractsHtml += '</div>';
+                    }
+                    if (c.weaknesses && c.weaknesses.length > 0) {
+                        contractsHtml += '<div><div style="font-size: 0.75rem; font-weight: 600; color: var(--danger); margin-bottom: 4px;">❌ Điểm yếu</div>';
+                        c.weaknesses.forEach(function(w) { contractsHtml += '<div class="diff-removed">' + escapeHtml(w) + '</div>'; });
+                        contractsHtml += '</div>';
+                    }
+                    contractsHtml += '</div>';
+                });
+                contractsHtml += '</div>';
+            }
+
+            var recsHtml = '';
+            if (comp.recommendations && comp.recommendations.length > 0) {
+                recsHtml = '<div class="comparison-summary"><h3>💡 Đề xuất chung</h3><ul class="review-list">';
+                comp.recommendations.forEach(function(r) { recsHtml += '<li>' + escapeHtml(r) + '</li>'; });
+                recsHtml += '</ul></div>';
+            }
+
+            el.innerHTML = summaryHtml + bestHtml + contractsHtml + diffHtml + inconsistenciesHtml + recsHtml;
+        }
+
+        // ===== TIMELINE =====
+        async function loadTimeline() {
+            try {
+                var token = localStorage.getItem('token');
+                var response = await fetch('/v1/contracts/timeline', { headers: { 'Authorization': 'Bearer ' + token } });
+                if (response.ok) {
+                    timelineData = await response.json();
+                    renderTimeline();
+                    updateTimelineStatusBar();
+                }
+            } catch (e) { console.error('Load timeline error:', e); }
+        }
+
+        function renderTimeline() {
+            var welcomeTab = document.querySelector('#tab-welcome .welcome-tab');
+            if (!welcomeTab || !timelineData) return;
+
+            var existingTimeline = document.getElementById('timelineSection');
+            if (existingTimeline) existingTimeline.remove();
+
+            var summary = timelineData.summary || {};
+            var items = timelineData.timeline || [];
+            if (items.length === 0) return;
+
+            var section = document.createElement('div');
+            section.id = 'timelineSection';
+            section.className = 'timeline-section';
+
+            var urgentCount = (summary.overdue || 0) + (summary.expiring_30_days || 0);
+            var titleExtra = urgentCount > 0 ? ' <span style="color: var(--danger); font-size: 0.8rem;">(' + urgentCount + ' cần chú ý)</span>' : '';
+            section.innerHTML = '<div class="timeline-section-title">📅 Timeline hợp đồng' + titleExtra + '</div>';
+
+            var container = document.createElement('div');
+            container.className = 'timeline-container';
+            var line = document.createElement('div');
+            line.className = 'timeline-line';
+            container.appendChild(line);
+
+            var todayStr = summary.today || new Date().toISOString().split('T')[0];
+            var todayInserted = false;
+
+            items.forEach(function(item) {
+                var endDate = item.end_date;
+                if (!todayInserted && endDate && endDate >= todayStr) {
+                    var todayMarker = document.createElement('div');
+                    todayMarker.className = 'timeline-today-marker';
+                    todayMarker.innerHTML = '<div class="timeline-dot today" style="left: -20px;"></div><span class="timeline-today-label">📍 Hôm nay</span>';
+                    container.appendChild(todayMarker);
+                    todayInserted = true;
+                }
+
+                var timelineItem = document.createElement('div');
+                timelineItem.className = 'timeline-item';
+
+                var dotClass = 'active';
+                var cardClass = '';
+                if (item.timeline_status === 'overdue') { dotClass = 'overdue'; cardClass = ' overdue'; }
+                else if (item.timeline_status === 'expiring_soon') { dotClass = 'expiring-soon'; cardClass = ' expiring-soon'; }
+
+                var daysText = '';
+                if (item.days_remaining !== null && item.days_remaining !== undefined) {
+                    if (item.days_remaining < 0) daysText = '<span style="color: var(--danger); font-weight: 600;">Quá hạn ' + Math.abs(item.days_remaining) + ' ngày</span>';
+                    else if (item.days_remaining === 0) daysText = '<span style="color: var(--warning); font-weight: 600;">Hết hạn hôm nay!</span>';
+                    else if (item.days_remaining <= 30) daysText = '<span style="color: var(--warning);">Còn ' + item.days_remaining + ' ngày</span>';
+                    else daysText = 'Còn ' + item.days_remaining + ' ngày';
+                }
+
+                timelineItem.innerHTML = '<div class="timeline-dot ' + dotClass + '"></div>' +
+                    '<div class="timeline-card' + cardClass + '" onclick="openContractTab(\'' + item.id + '\')">' +
+                    '<div class="timeline-date">' + formatDate(endDate) + '</div>' +
+                    '<div class="timeline-name">' + escapeHtml(item.name || 'Hợp đồng') + '</div>' +
+                    '<div class="timeline-meta">' +
+                    '<span>' + getContractTypeText(item.contract_type) + '</span>' +
+                    (daysText ? '<span>' + daysText + '</span>' : '') +
+                    '<button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); openContractTab(\'' + item.id + '\')">Xem</button>' +
+                    '</div></div>';
+                container.appendChild(timelineItem);
+            });
+
+            if (!todayInserted) {
+                var todayMarker = document.createElement('div');
+                todayMarker.className = 'timeline-today-marker';
+                todayMarker.innerHTML = '<div class="timeline-dot today" style="left: -20px;"></div><span class="timeline-today-label">📍 Hôm nay</span>';
+                container.appendChild(todayMarker);
+            }
+
+            section.appendChild(container);
+            welcomeTab.appendChild(section);
+        }
+
+        function updateTimelineStatusBar() {
+            if (!timelineData || !timelineData.summary) return;
+            var summary = timelineData.summary;
+            var urgentCount = (summary.overdue || 0) + (summary.expiring_30_days || 0);
+            if (urgentCount > 0) {
+                var statusRight = document.querySelector('.status-bar-right');
+                var existingWarning = document.getElementById('statusDeadlineWarning');
+                if (existingWarning) existingWarning.remove();
+                var warning = document.createElement('div');
+                warning.id = 'statusDeadlineWarning';
+                warning.className = 'status-item';
+                warning.style.cursor = 'pointer';
+                warning.onclick = function() { switchTab('welcome'); };
+                warning.innerHTML = '⚠️ ' + urgentCount + ' HĐ sắp hết hạn';
+                if (statusRight) statusRight.insertBefore(warning, statusRight.firstChild);
+            }
+        }
+
+        // ===== ANNOTATIONS =====
+        function openDocumentTabWithAnnotations(id) {
+            var tabId = 'document-' + id;
+            var doc = allDocuments.find(function(d) { return d.id === id; });
+            if (!doc) return;
+            createTabContentPane(tabId,
+                '<div class="document-viewer" style="flex-direction: row;">' +
+                '<div style="flex: 1; display: flex; flex-direction: column;">' +
+                '<div class="document-toolbar">' +
+                '<button class="toolbar-btn" onclick="analyzeDocument(\'' + id + '\')">🔍 Phân tích AI</button>' +
+                '<button class="toolbar-btn" onclick="askAiAboutDocument(\'' + escapeHtml(doc.name).replace(/'/g, "\\'") + '\')">💬 Hỏi AI</button>' +
+                '<button class="toolbar-btn" onclick="toggleAnnotationsPanel(\'' + id + '\')">💬 Ghi chú</button>' +
+                '<button class="toolbar-btn" onclick="deleteDocument(\'' + id + '\')">🗑️ Xóa</button>' +
+                '</div>' +
+                '<div class="document-content-area" id="docContent-' + id + '" onmouseup="handleTextSelection(\'' + id + '\')">' +
+                '<div class="loading-spinner"><div class="spinner-large" style="margin: 0 auto;"></div><div style="margin-top: 0.5rem;">Đang tải...</div></div>' +
+                '</div></div>' +
+                '<div class="annotations-panel hidden" id="annotationsPanel-' + id + '">' +
+                '<div class="annotations-header"><span>💬 Ghi chú</span><span id="annotationCount-' + id + '">0</span></div>' +
+                '<div class="annotations-list" id="annotationsList-' + id + '"></div>' +
+                '<div class="annotation-add-form">' +
+                '<textarea id="annotationInput-' + id + '" placeholder="Thêm ghi chú..."></textarea>' +
+                '<select class="annotation-type-select" id="annotationType-' + id + '">' +
+                '<option value="comment">💬 Bình luận</option>' +
+                '<option value="issue">⚠️ Vấn đề</option>' +
+                '<option value="suggestion">💡 Đề xuất</option>' +
+                '<option value="highlight">🔖 Đánh dấu</option>' +
+                '</select>' +
+                '<button class="btn btn-primary btn-small" style="width: 100%; margin-top: 4px;" onclick="addAnnotation(\'' + id + '\')">Thêm ghi chú</button>' +
+                '</div></div></div>'
+            );
+            addTab({ id: tabId, title: doc.name, icon: getDocumentIcon(doc.mime_type), type: 'document' });
+            loadDocumentContent(id);
+            loadAnnotations(id);
+        }
+
+        function toggleAnnotationsPanel(docId) {
+            var panel = document.getElementById('annotationsPanel-' + docId);
+            if (panel) panel.classList.toggle('hidden');
+        }
+
+        async function loadAnnotations(docId) {
+            try {
+                var token = localStorage.getItem('token');
+                var response = await fetch('/v1/documents/' + docId + '/annotations', { headers: { 'Authorization': 'Bearer ' + token } });
+                if (response.ok) {
+                    var data = await response.json();
+                    documentAnnotations[docId] = data.annotations || [];
+                    renderAnnotations(docId);
+                }
+            } catch (e) { console.error('Load annotations error:', e); }
+        }
+
+        function renderAnnotations(docId) {
+            var list = document.getElementById('annotationsList-' + docId);
+            var countEl = document.getElementById('annotationCount-' + docId);
+            if (!list) return;
+            var anns = documentAnnotations[docId] || [];
+            if (countEl) countEl.textContent = anns.length;
+            if (anns.length === 0) {
+                list.innerHTML = '<div style="text-align: center; padding: 1rem; color: var(--text-muted); font-size: 0.78rem;">Chưa có ghi chú</div>';
+                return;
+            }
+            list.innerHTML = anns.map(function(a) {
+                var typeIcon = { 'comment': '💬', 'issue': '⚠️', 'suggestion': '💡', 'highlight': '🔖' }[a.annotation_type] || '💬';
+                return '<div class="annotation-item ' + (a.annotation_type || 'comment') + '" onclick="scrollToAnnotation(\'' + docId + '\', ' + (a.start_offset || 0) + ')">' +
+                    (a.text_selection ? '<div class="annotation-selection">"' + escapeHtml(a.text_selection.substring(0, 80)) + '"</div>' : '') +
+                    '<div class="annotation-comment">' + typeIcon + ' ' + escapeHtml(a.comment) + '</div>' +
+                    '<div class="annotation-meta"><span>' + (a.author_name || (a.is_ai_generated ? '🤖 AI' : 'Bạn')) + '</span>' +
+                    '<button class="icon-btn" style="font-size: 0.65rem; min-width: 20px; min-height: 20px; padding: 2px;" onclick="event.stopPropagation(); deleteAnnotation(\'' + docId + '\', \'' + a.id + '\')">🗑️</button>' +
+                    '</div></div>';
+            }).join('');
+        }
+
+        var pendingAnnotationSelection = {};
+
+        function handleTextSelection(docId) {
+            var selection = window.getSelection();
+            var text = selection.toString().trim();
+            if (text && text.length > 2) {
+                pendingAnnotationSelection[docId] = {
+                    text: text.substring(0, 500),
+                    startOffset: 0,
+                    endOffset: text.length
+                };
+                var panel = document.getElementById('annotationsPanel-' + docId);
+                if (panel && panel.classList.contains('hidden')) panel.classList.remove('hidden');
+                var input = document.getElementById('annotationInput-' + docId);
+                if (input) input.placeholder = 'Ghi chú cho: "' + text.substring(0, 50) + '..."';
+            }
+        }
+
+        async function addAnnotation(docId) {
+            var input = document.getElementById('annotationInput-' + docId);
+            var typeSelect = document.getElementById('annotationType-' + docId);
+            var comment = input ? input.value.trim() : '';
+            if (!comment) { showToast('Nhập nội dung ghi chú', 'warning'); return; }
+
+            var sel = pendingAnnotationSelection[docId] || {};
+            var body = {
+                comment: comment,
+                annotation_type: typeSelect ? typeSelect.value : 'comment',
+                text_selection: sel.text || null,
+                start_offset: sel.startOffset || null,
+                end_offset: sel.endOffset || null
+            };
+
+            try {
+                var token = localStorage.getItem('token');
+                var response = await fetch('/v1/documents/' + docId + '/annotate', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                if (response.ok) {
+                    showToast('Đã thêm ghi chú', 'success');
+                    input.value = '';
+                    input.placeholder = 'Thêm ghi chú...';
+                    delete pendingAnnotationSelection[docId];
+                    loadAnnotations(docId);
+                } else {
+                    var err = await response.json().catch(function() { return {}; });
+                    showToast(err.detail || 'Không thể thêm ghi chú', 'error');
+                }
+            } catch (e) { showToast('Lỗi kết nối', 'error'); }
+        }
+
+        async function deleteAnnotation(docId, annotationId) {
+            try {
+                var token = localStorage.getItem('token');
+                var response = await fetch('/v1/documents/' + docId + '/annotations/' + annotationId, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (response.ok) {
+                    showToast('Đã xóa ghi chú', 'success');
+                    loadAnnotations(docId);
+                }
+            } catch (e) { showToast('Lỗi', 'error'); }
+        }
+
+        function scrollToAnnotation(docId, offset) {
+            var contentEl = document.getElementById('docContent-' + docId);
+            if (contentEl) contentEl.scrollTop = Math.max(0, offset - 100);
         }
 
         // ===== API =====
