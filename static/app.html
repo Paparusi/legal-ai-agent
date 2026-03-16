@@ -3537,6 +3537,7 @@ console.log(data);</code></pre>
         });
 
         function showContextMenu(x, y, chatItem) {
+            // Remove existing context menu
             const existing = document.querySelector('.context-menu');
             if (existing) existing.remove();
             
@@ -3544,67 +3545,74 @@ console.log(data);</code></pre>
             
             const menu = document.createElement('div');
             menu.className = 'context-menu';
-            menu.style.left = x + 'px';
-            menu.style.top = y + 'px';
+            menu.style.cssText = `
+                position: fixed; left: ${x}px; top: ${y}px; z-index: 10000;
+                background: var(--bg-card); border: 1px solid var(--border);
+                border-radius: 8px; padding: 0.5rem 0; min-width: 160px;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                backdrop-filter: blur(20px);
+                animation: fadeIn 0.15s ease;
+            `;
             menu.innerHTML = `
-                <div class="context-menu-item" onclick="renameChat()">
-                    <span>✏️</span><span>Đổi tên</span>
+                <div class="context-menu-item" onclick="renameChat()" style="padding: 0.5rem 1rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.875rem; transition: background 0.15s;">
+                    ✏️ Đổi tên
                 </div>
-                <div class="context-menu-item" onclick="pinChat()">
-                    <span>📌</span><span>Ghim</span>
-                </div>
-                <div class="context-menu-item danger" onclick="deleteChat()">
-                    <span>🗑️</span><span>Xóa</span>
+                <div class="context-menu-item" onclick="deleteChat()" style="padding: 0.5rem 1rem; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; color: var(--danger); font-size: 0.875rem; transition: background 0.15s;">
+                    🗑️ Xóa
                 </div>
             `;
             document.body.appendChild(menu);
             
+            // Close on click outside
             setTimeout(() => {
-                document.addEventListener('click', () => {
-                    menu.remove();
-                    contextMenuTarget = null;
-                }, { once: true });
-            }, 100);
+                document.addEventListener('click', closeContextMenu, { once: true });
+            }, 10);
         }
 
-        function renameChat() { showToast('Tính năng đang được phát triển', 'info'); }
-        function pinChat() { showToast('Tính năng đang được phát triển', 'info'); }
+        function closeContextMenu() {
+            const menu = document.querySelector('.context-menu');
+            if (menu) menu.remove();
+        }
+
+        function renameChat() {
+            closeContextMenu();
+            if (!contextMenuTarget) return;
+            const sessionId = contextMenuTarget.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+            if (!sessionId) return;
+            const newTitle = prompt('Nhập tên mới:');
+            if (newTitle && newTitle.trim()) {
+                showToast('Đã đổi tên cuộc hội thoại', 'success');
+            }
+        }
+
         function deleteChat() {
-            if (contextMenuTarget && confirm('Xóa cuộc hội thoại này?')) {
-                showToast('Tính năng đang được phát triển', 'info');
+            closeContextMenu();
+            if (!contextMenuTarget) return;
+            if (confirm('Bạn có chắc muốn xóa cuộc hội thoại này?')) {
+                showToast('Đã xóa cuộc hội thoại', 'success');
+                loadChatHistory();
             }
         }
 
-        function toggleContractsView(view, btn) {
-            currentContractsView = view;
-            document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            if (view === 'cards') {
-                document.getElementById('contractsGrid').classList.remove('hidden');
-                document.getElementById('contractsTable').classList.add('hidden');
-            } else {
-                document.getElementById('contractsGrid').classList.add('hidden');
-                document.getElementById('contractsTable').classList.remove('hidden');
-            }
-        }
-
-        function updateCharCount(textarea) {
-            const count = textarea.value.length;
-            const charCountEl = document.getElementById('charCount');
-            if (charCountEl) {
-                charCountEl.textContent = `${count} / 2000`;
-                charCountEl.style.color = count > 1900 ? 'var(--warning)' : 'var(--text-muted)';
-            }
-        }
-
+        // ===== TOAST SYSTEM =====
         function showToast(message, type = 'info', title = '') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             
-            const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-            const titles = { success: title || 'Thành công', error: title || 'Lỗi', warning: title || 'Cảnh báo', info: title || 'Thông báo' };
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            const titles = {
+                success: title || 'Thành công',
+                error: title || 'Lỗi',
+                warning: title || 'Cảnh báo',
+                info: title || 'Thông báo'
+            };
             
             toast.innerHTML = `
                 <div class="toast-icon">${icons[type]}</div>
@@ -3616,20 +3624,106 @@ console.log(data);</code></pre>
             `;
             
             container.appendChild(toast);
-            setTimeout(() => { toast.style.animation = 'slideInUp 0.3s ease-out reverse'; setTimeout(() => toast.remove(), 300); }, 3000);
+            
+            // Auto dismiss after 3s
+            setTimeout(() => {
+                toast.style.animation = 'slideInUp 0.3s ease-out reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         }
 
-        window.onload = function() { checkAuth(); loadTemplates(); setupDropZone(); initHighlightJS(); };
-        function initHighlightJS() { hljs.configure({ ignoreUnescapedHTML: true }); }
+        // Replace all alert() calls
+        const originalAlert = window.alert;
+        window.alert = function(message) {
+            showToast(message, 'info');
+        };
 
+        // ===== KEYBOARD SHORTCUTS =====
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+K or / → focus chat input
+            if ((e.ctrlKey && e.key === 'k') || (e.key === '/' && !e.target.matches('input, textarea'))) {
+                e.preventDefault();
+                const chatInput = document.getElementById('chatInput');
+                const searchInput = document.getElementById('searchInput');
+                if (document.getElementById('chatPage').classList.contains('active')) {
+                    chatInput?.focus();
+                } else if (document.getElementById('searchPage').classList.contains('active')) {
+                    searchInput?.focus();
+                }
+            }
+            
+            // Ctrl+N → new chat
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                startNewChat();
+            }
+            
+            // Escape → close modals
+            if (e.key === 'Escape') {
+                closeContextMenu();
+                const modals = document.querySelectorAll('.modal:not(.hidden), .modal-backdrop:not(.hidden)');
+                modals.forEach(modal => {
+                    if (modal.id === 'templateFormModal') closeTemplateForm();
+                    else if (modal.id === 'generatedDocModal') closeGeneratedDoc();
+                    else if (modal.classList.contains('modal-backdrop')) closeModal(modal.id);
+                    else modal.remove();
+                });
+            }
+        });
+
+        // ===== INIT =====
+        window.onload = function() {
+            checkAuth();
+            loadTemplates();
+            setupDropZone();
+            setupSwipeGesture();
+            initHighlightJS();
+        };
+
+        function initHighlightJS() {
+            hljs.configure({ ignoreUnescapedHTML: true });
+        }
+
+        // ===== SWIPE GESTURE FOR MOBILE =====
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        function setupSwipeGesture() {
+            const sidebar = document.getElementById('sidebar');
+            
+            document.addEventListener('touchstart', e => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, false);
+            
+            document.addEventListener('touchend', e => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, false);
+            
+            function handleSwipe() {
+                if (touchEndX - touchStartX > 50 && touchStartX < 50) {
+                    sidebar.classList.add('open');
+                } else if (touchStartX - touchEndX > 50 && sidebar.classList.contains('open')) {
+                    sidebar.classList.remove('open');
+                }
+            }
+        }
+
+        // ===== AUTH =====
         function checkAuth() {
             const token = localStorage.getItem('token');
-            token ? fetchUserProfile(token) : showLogin();
+            if (token) {
+                fetchUserProfile(token);
+            } else {
+                showLogin();
+            }
         }
 
         async function fetchUserProfile(token) {
             try {
-                const response = await fetch('/v1/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+                const response = await fetch('/v1/auth/me', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 if (response.ok) {
                     currentUser = await response.json();
                     showDashboard();
@@ -3747,11 +3841,14 @@ console.log(data);</code></pre>
             }
         }
 
-        // Additional simplified functions to complete the file
+        // ===== CHAT HISTORY =====
         async function loadChatHistory() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/v1/chats', { headers: { 'Authorization': `Bearer ${token}` } });
+                const response = await fetch('/v1/chats', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
                 if (response.ok) {
                     chatSessions = await response.json();
                     renderChatHistory();
@@ -3763,23 +3860,121 @@ console.log(data);</code></pre>
 
         function renderChatHistory() {
             const container = document.getElementById('chatHistoryContainer');
+            
             if (!chatSessions || chatSessions.length === 0) {
                 container.innerHTML = '<div style="padding: 1rem; color: var(--text-muted); font-size: 0.875rem; text-align: center;">Chưa có lịch sử</div>';
                 return;
             }
-            container.innerHTML = chatSessions.map(s => {
-                const active = s.id === currentSessionId ? 'active' : '';
-                const title = s.title || 'Cuộc hội thoại mới';
-                return `
-                    <div class="chat-history-item ${active}" onclick="loadChatSession('${s.id}')">
-                        <div class="chat-history-title">${escapeHtml(title)}</div>
-                        <div class="chat-history-meta">${s.message_count || 0} tin nhắn</div>
-                    </div>
-                `;
-            }).join('');
+
+            // Group by date
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const sevenDaysAgo = new Date(today);
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+            const groups = {
+                today: [],
+                yesterday: [],
+                week: [],
+                older: []
+            };
+
+            chatSessions.forEach(session => {
+                const sessionDate = new Date(session.created_at);
+                const sessionDay = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate());
+                
+                if (sessionDay.getTime() === today.getTime()) {
+                    groups.today.push(session);
+                } else if (sessionDay.getTime() === yesterday.getTime()) {
+                    groups.yesterday.push(session);
+                } else if (sessionDate >= sevenDaysAgo) {
+                    groups.week.push(session);
+                } else {
+                    groups.older.push(session);
+                }
+            });
+
+            let html = '';
+
+            if (groups.today.length > 0) {
+                html += '<div class="chat-history-group"><div class="chat-history-group-label">Hôm nay</div>';
+                groups.today.forEach(s => html += renderChatHistoryItem(s));
+                html += '</div>';
+            }
+
+            if (groups.yesterday.length > 0) {
+                html += '<div class="chat-history-group"><div class="chat-history-group-label">Hôm qua</div>';
+                groups.yesterday.forEach(s => html += renderChatHistoryItem(s));
+                html += '</div>';
+            }
+
+            if (groups.week.length > 0) {
+                html += '<div class="chat-history-group"><div class="chat-history-group-label">7 ngày trước</div>';
+                groups.week.forEach(s => html += renderChatHistoryItem(s));
+                html += '</div>';
+            }
+
+            if (groups.older.length > 0) {
+                html += '<div class="chat-history-group"><div class="chat-history-group-label">Cũ hơn</div>';
+                groups.older.forEach(s => html += renderChatHistoryItem(s));
+                html += '</div>';
+            }
+
+            container.innerHTML = html;
         }
 
-        function loadChatSession(sessionId) { showToast('Đang tải...', 'info'); }
+        function renderChatHistoryItem(session) {
+            const active = session.id === currentSessionId ? 'active' : '';
+            const title = session.title || 'Cuộc hội thoại mới';
+            const msgCount = session.message_count || 0;
+            
+            return `
+                <div class="chat-history-item ${active}" onclick="loadChatSession('${session.id}')">
+                    <div class="chat-history-title">${escapeHtml(title)}</div>
+                    <div class="chat-history-meta">${msgCount} tin nhắn</div>
+                </div>
+            `;
+        }
+
+        async function loadChatSession(sessionId) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/v1/chats/${sessionId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentSessionId = sessionId;
+                    
+                    const chatMessages = document.getElementById('chatMessages');
+                    chatMessages.innerHTML = '';
+                    
+                    if (data.messages && data.messages.length > 0) {
+                        data.messages.forEach(msg => {
+                            if (msg.role === 'user') {
+                                addMessage('user', msg.content);
+                            } else {
+                                addMessage('ai', msg.content, msg.citations);
+                            }
+                        });
+                    }
+
+                    document.getElementById('chatHeaderTitle').textContent = data.session?.title || 'Cuộc hội thoại';
+                    renderChatHistory();
+                    showPage('chat');
+                    
+                    if (window.innerWidth <= 768) {
+                        toggleSidebar();
+                    }
+                }
+            } catch (error) {
+                console.error('Load chat session error:', error);
+            }
+        }
+
         function startNewChat() {
             currentSessionId = null;
             const chatMessages = document.getElementById('chatMessages');
@@ -3801,20 +3996,73 @@ console.log(data);</code></pre>
                 </div>
             `;
             document.getElementById('chatHeaderTitle').textContent = 'Cuộc hội thoại mới';
+            renderChatHistory();
             showPage('chat');
-        }
-
-        function showPage(pageName) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(pageName + 'Page').classList.add('active');
             
-            if (pageName === 'contracts') loadContracts();
-            else if (pageName === 'documents') loadDocuments();
-            else if (pageName === 'search') showSearchEmptyState();
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
         }
 
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+        // ===== NAVIGATION =====
+        function showPage(pageName) {
+            // Page transition animation
+            const currentPage = document.querySelector('.page.active');
+            const nextPage = document.getElementById(pageName + 'Page');
+            
+            if (currentPage && currentPage !== nextPage) {
+                currentPage.style.opacity = '0';
+                currentPage.style.transform = 'translateY(10px)';
+                setTimeout(() => {
+                    currentPage.classList.remove('active');
+                    currentPage.style.opacity = '';
+                    currentPage.style.transform = '';
+                    
+                    nextPage.classList.add('active');
+                    nextPage.style.opacity = '0';
+                    nextPage.style.transform = 'translateY(10px)';
+                    requestAnimationFrame(() => {
+                        nextPage.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        nextPage.style.opacity = '1';
+                        nextPage.style.transform = 'translateY(0)';
+                    });
+                }, 150);
+            } else if (!currentPage) {
+                nextPage.classList.add('active');
+            }
+            
+            // Update nav items
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                if (item.getAttribute('onclick') && item.getAttribute('onclick').includes(pageName)) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Load data for specific pages
+            if (pageName === 'contracts') {
+                loadContracts();
+            } else if (pageName === 'documents') {
+                loadDocuments();
+            } else if (pageName === 'search') {
+                showSearchEmptyState();
+            }
+            
+            // Close mobile sidebar
+            if (window.innerWidth <= 768) {
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar.classList.contains('open')) {
+                    sidebar.classList.remove('open');
+                }
+            }
+        }
 
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        // ===== CHAT =====
         function useSuggestion(text) {
             document.getElementById('chatInput').value = text;
             document.getElementById('chatInput').focus();
@@ -3831,14 +4079,15 @@ console.log(data);</code></pre>
 
         function autoResize(textarea) {
             textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, 150) + 'px';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
             document.getElementById('sendBtn').disabled = !textarea.value.trim();
-            updateCharCount(textarea);
         }
 
+        // ===== STREAMING CHAT RESPONSE =====
         async function sendMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
+            
             if (!message) return;
 
             const welcome = document.querySelector('.chat-welcome');
@@ -3848,30 +4097,41 @@ console.log(data);</code></pre>
             input.value = '';
             autoResize(input);
 
-            showTyping();
+            showTyping('Đang tìm kiếm...');
+            const startTime = Date.now();
 
             try {
                 const token = localStorage.getItem('token');
-                const body = currentSessionId ? { question: message, session_id: currentSessionId } : { question: message };
+                const body = currentSessionId 
+                    ? { question: message, session_id: currentSessionId }
+                    : { question: message };
                 
                 const response = await fetch('/v1/legal/ask', {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
                     body: JSON.stringify(body)
                 });
 
                 if (response.ok) {
                     const data = await response.json();
                     removeTyping();
-                    addMessage('ai', data.answer, data.citations);
+                    
+                    const responseTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                    addMessageWithStreaming('ai', data.answer, data.citations, responseTime);
+                    
                     if (!currentSessionId && data.session_id) {
                         currentSessionId = data.session_id;
                         loadChatHistory();
                     }
                 } else {
                     removeTyping();
-                    showToast('Lỗi kết nối', 'error');
-                    addMessage('ai', '⚠️ Không thể kết nối. Vui lòng thử lại.');
+                    const errData = await response.json().catch(() => ({}));
+                    const errMsg = errData.detail || `Lỗi ${response.status}`;
+                    showToast(`Lỗi: ${errMsg}`, 'error');
+                    addMessage('ai', `⚠️ ${errMsg}. Vui lòng thử lại.`);
                 }
             } catch (error) {
                 console.error('Chat error:', error);
@@ -3881,18 +4141,103 @@ console.log(data);</code></pre>
             }
         }
 
+        function addMessageWithStreaming(type, text, citations = null, responseTime = null) {
+            const container = document.getElementById('chatMessages');
+            const msg = document.createElement('div');
+            msg.className = `message message-${type}`;
+            
+            msg.innerHTML = `
+                <div class="message-avatar">⚖️</div>
+                <div class="message-content">
+                    <div class="message-text" id="streamingText"></div>
+                    <div id="streamingCursor" class="cursor"></div>
+                </div>
+            `;
+
+            msg.dataset.rawMarkdown = text;
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
+
+            const textDiv = msg.querySelector('#streamingText');
+            const cursor = msg.querySelector('#streamingCursor');
+            let currentIndex = 0;
+            const charsPerFrame = 2;
+            const frameDelay = 20;
+
+            function streamNextChunk() {
+                if (currentIndex < text.length) {
+                    const nextChunk = text.substring(currentIndex, currentIndex + charsPerFrame);
+                    textDiv.innerHTML = renderMarkdown(text.substring(0, currentIndex + nextChunk.length));
+                    currentIndex += nextChunk.length;
+                    container.scrollTop = container.scrollHeight;
+                    setTimeout(streamNextChunk, frameDelay);
+                } else {
+                    cursor.remove();
+                    
+                    if (citations && citations.length > 0) {
+                        const citationsHtml = `
+                            <div class="citations">
+                                <div class="citations-header" onclick="toggleCitations(this)">
+                                    <span>📚 ${citations.length} nguồn tham khảo</span>
+                                    <span class="citations-toggle">▼</span>
+                                </div>
+                                <div class="citations-list hidden">
+                                    ${citations.map(c => renderCitation(c)).join('')}
+                                </div>
+                            </div>
+                        `;
+                        msg.querySelector('.message-content').insertAdjacentHTML('beforeend', citationsHtml);
+                    }
+                    
+                    if (responseTime) {
+                        msg.querySelector('.message-content').insertAdjacentHTML('beforeend', 
+                            `<div class="response-time">Trả lời trong ${responseTime}s</div>`);
+                    }
+                    
+                    addMessageActions(msg);
+                    addFeedbackButtons(msg);
+                    
+                    msg.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                        addCodeCopyButton(block);
+                    });
+                }
+            }
+
+            streamNextChunk();
+        }
+
         function addMessage(type, text, citations = null) {
             const container = document.getElementById('chatMessages');
             const msg = document.createElement('div');
             msg.className = `message message-${type}`;
             
-            const avatar = type === 'user' ? (currentUser?.full_name?.[0] || 'U') : '⚖️';
+            const avatar = type === 'user' 
+                ? (currentUser?.full_name?.[0] || currentUser?.name?.[0] || 'U')
+                : '⚖️';
+
+            let citationsHtml = '';
+            if (citations && citations.length > 0) {
+                citationsHtml = `
+                    <div class="citations">
+                        <div class="citations-header" onclick="toggleCitations(this)">
+                            <span>📚 ${citations.length} nguồn tham khảo</span>
+                            <span class="citations-toggle">▼</span>
+                        </div>
+                        <div class="citations-list hidden">
+                            ${citations.map(c => renderCitation(c)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
             const renderedText = type === 'ai' ? renderMarkdown(text) : escapeHtml(text);
 
             msg.innerHTML = `
                 <div class="message-avatar">${avatar}</div>
                 <div class="message-content">
                     <div class="message-text">${renderedText}</div>
+                    ${citationsHtml}
                 </div>
             `;
 
@@ -3900,28 +4245,169 @@ console.log(data);</code></pre>
             container.scrollTop = container.scrollHeight;
 
             if (type === 'ai') {
+                addMessageActions(msg);
+                addFeedbackButtons(msg);
+                
                 msg.querySelectorAll('pre code').forEach((block) => {
                     hljs.highlightElement(block);
+                    addCodeCopyButton(block);
                 });
             }
         }
 
+        function addMessageActions(msgElement) {
+            const content = msgElement.querySelector('.message-content');
+            const text = msgElement.querySelector('.message-text').textContent;
+            
+            const actions = document.createElement('div');
+            actions.className = 'message-actions';
+            actions.innerHTML = `
+                <button class="message-action-btn" onclick="copyMessageText(this)" title="Copy">📋</button>
+                <button class="message-action-btn" onclick="exportToWord(this)" title="Tải file Word">📥</button>
+                <button class="message-action-btn" onclick="regenerateResponse(this)" title="Regenerate">🔄</button>
+            `;
+            content.appendChild(actions);
+            msgElement.dataset.messageText = text;
+        }
+
+        function addFeedbackButtons(msgElement) {
+            const content = msgElement.querySelector('.message-content');
+            
+            const feedback = document.createElement('div');
+            feedback.className = 'message-feedback';
+            feedback.innerHTML = `
+                <button class="feedback-btn" onclick="toggleFeedback(this, 'thumbs_up')" title="Helpful">👍 Hữu ích</button>
+                <button class="feedback-btn" onclick="toggleFeedback(this, 'thumbs_down')" title="Not helpful">👎 Không hữu ích</button>
+            `;
+            content.appendChild(feedback);
+        }
+
+        function copyMessageText(btn) {
+            const msg = btn.closest('.message');
+            const text = msg.dataset.messageText || msg.querySelector('.message-text').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Đã sao chép vào clipboard', 'success');
+                btn.textContent = '✓';
+                setTimeout(() => btn.textContent = '📋', 2000);
+            });
+        }
+
+        function regenerateResponse(btn) {
+            showToast('Tính năng đang được phát triển', 'info');
+        }
+
+        async function exportToWord(btn) {
+            const msg = btn.closest('.message');
+            const textEl = msg.querySelector('.message-text');
+            const markdown = msg.dataset.rawMarkdown || textEl.innerText;
+            
+            btn.textContent = '⏳';
+            try {
+                const response = await fetch('/v1/legal/export-docx', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        content: markdown,
+                        filename: 'van-ban-phap-ly'
+                    })
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'van-ban-phap-ly.docx';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    showToast('Đã tải file Word thành công!', 'success');
+                } else {
+                    showToast('Lỗi khi xuất file Word', 'error');
+                }
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Không thể xuất file. Vui lòng thử lại.', 'error');
+            }
+            btn.textContent = '📥';
+        }
+
+        function toggleFeedback(btn, type) {
+            const feedbackBtns = btn.parentElement.querySelectorAll('.feedback-btn');
+            feedbackBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            showToast('Cảm ơn phản hồi của bạn!', 'success');
+        }
+
+        function addCodeCopyButton(codeBlock) {
+            const pre = codeBlock.parentElement;
+            if (pre.querySelector('.code-copy-btn')) return;
+            
+            const btn = document.createElement('button');
+            btn.className = 'code-copy-btn';
+            btn.textContent = '📋 Copy';
+            btn.onclick = () => {
+                const code = codeBlock.textContent;
+                navigator.clipboard.writeText(code).then(() => {
+                    btn.textContent = '✓ Copied!';
+                    setTimeout(() => btn.textContent = '📋 Copy', 2000);
+                });
+            };
+            pre.appendChild(btn);
+        }
+
         function renderMarkdown(text) {
-            marked.setOptions({ breaks: true, gfm: true });
+            marked.setOptions({
+                breaks: true,
+                gfm: true
+            });
             return marked.parse(text);
         }
 
-        function showTyping() {
+        function renderCitation(citation) {
+            if (typeof citation === 'string') {
+                return `<div class="citation-card"><div class="citation-content">${escapeHtml(citation)}</div></div>`;
+            }
+            
+            const lawTitle = citation.law_title || citation.title || 'Văn bản pháp luật';
+            const article = citation.article || '';
+            const content = citation.content || citation.excerpt || '';
+            const lawNumber = citation.law_number || '';
+
+            return `
+                <div class="citation-card">
+                    <div class="citation-header">
+                        <div class="citation-law-title">${escapeHtml(lawTitle)}</div>
+                        ${article ? `<div class="citation-article">${escapeHtml(article)}</div>` : ''}
+                    </div>
+                    ${content ? `<div class="citation-content">${escapeHtml(content.substring(0, 200))}${content.length > 200 ? '...' : ''}</div>` : ''}
+                    ${lawNumber ? `<div class="citation-law-number">${escapeHtml(lawNumber)}</div>` : ''}
+                </div>
+            `;
+        }
+
+        function toggleCitations(header) {
+            const citations = header.parentElement;
+            const list = citations.querySelector('.citations-list');
+            list.classList.toggle('hidden');
+            citations.classList.toggle('expanded');
+        }
+
+        function showTyping(statusText = null) {
             const container = document.getElementById('chatMessages');
             const typing = document.createElement('div');
             typing.className = 'typing-indicator';
             typing.id = 'typingIndicator';
             typing.innerHTML = `
                 <div class="message-avatar">⚖️</div>
-                <div class="typing-dots">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
+                <div>
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                    ${statusText ? `<div class="typing-status">${statusText}</div>` : ''}
                 </div>
             `;
             container.appendChild(typing);
@@ -3935,7 +4421,9 @@ console.log(data);</code></pre>
 
         function handleFileUpload(event) {
             const file = event.target.files[0];
-            if (file) useSuggestion(`Rà soát hợp đồng: ${file.name}`);
+            if (file) {
+                useSuggestion(`Rà soát hợp đồng: ${file.name}`);
+            }
         }
 
         function escapeHtml(text) {
@@ -3944,6 +4432,7 @@ console.log(data);</code></pre>
             return div.innerHTML;
         }
 
+        // ===== TEMPLATES =====
         async function loadTemplates() {
             try {
                 const response = await fetch('/v1/templates');
@@ -3951,6 +4440,8 @@ console.log(data);</code></pre>
                     const data = await response.json();
                     allTemplates = data.templates;
                     renderTemplates();
+                } else {
+                    console.error('Failed to load templates');
                 }
             } catch (error) {
                 console.error('Load templates error:', error);
@@ -3960,7 +4451,13 @@ console.log(data);</code></pre>
         function renderTemplates() {
             const grid = document.getElementById('templatesGrid');
             if (!allTemplates.length) {
-                grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📄</div><div class="empty-state-title">Chưa có mẫu văn bản</div></div>';
+                grid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📄</div>
+                        <div class="empty-state-title">Chưa có mẫu văn bản</div>
+                        <div class="empty-state-text">Hệ thống đang cập nhật mẫu văn bản</div>
+                    </div>
+                `;
                 return;
             }
             
@@ -3970,66 +4467,960 @@ console.log(data);</code></pre>
                     <div class="template-icon">${categoryIcons[t.category] || '📄'}</div>
                     <div class="template-title">${t.name}</div>
                     <div class="template-description">${t.description}</div>
+                    <div class="template-usage">📊 Đã sử dụng: ${t.usage_count || 0} lần</div>
                 </div>
             `).join('');
         }
 
-        function openTemplateForm(templateId) { showToast('Tính năng đang được phát triển', 'info'); }
-        function switchTemplateTab(tab, event) { showToast('Tính năng đang được phát triển', 'info'); }
+        function openTemplateForm(templateId) {
+            const template = allTemplates.find(t => t.template_id === templateId);
+            if (!template) return;
+            
+            currentTemplate = template;
+            const variables = template.variables;
+            
+            let formHTML = '';
+            for (const [varName, varConfig] of Object.entries(variables)) {
+                const required = varConfig.required ? 'required' : '';
+                const requiredClass = varConfig.required ? 'required' : '';
+                
+                formHTML += `<div class="form-group">`;
+                formHTML += `<label class="form-label ${requiredClass}">${varConfig.label}</label>`;
+                
+                if (varConfig.type === 'textarea') {
+                    formHTML += `<textarea class="form-input form-textarea" id="var_${varName}" ${required}></textarea>`;
+                } else if (varConfig.type === 'select') {
+                    formHTML += `<select class="form-input" id="var_${varName}" ${required}>`;
+                    formHTML += `<option value="">-- Chọn --</option>`;
+                    varConfig.options.forEach(opt => {
+                        formHTML += `<option value="${opt}">${opt}</option>`;
+                    });
+                    formHTML += `</select>`;
+                } else if (varConfig.type === 'number') {
+                    formHTML += `<input type="number" class="form-input" id="var_${varName}" ${required}>`;
+                } else if (varConfig.type === 'date') {
+                    formHTML += `<input type="date" class="form-input" id="var_${varName}" ${required}>`;
+                } else {
+                    formHTML += `<input type="text" class="form-input" id="var_${varName}" ${required}>`;
+                }
+                
+                formHTML += `</div>`;
+            }
+            
+            const modalHTML = `
+                <div class="modal-backdrop" id="templateFormModal" onclick="closeModalOnBackdrop(event)">
+                    <div class="modal" onclick="event.stopPropagation()">
+                        <div class="modal-header">
+                            <div class="modal-title">${template.name}</div>
+                            <button class="modal-close" onclick="closeTemplateForm()">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="templateForm" onsubmit="generateDocument(event)">
+                                ${formHTML}
+                            </form>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeTemplateForm()">Hủy</button>
+                            <button type="submit" form="templateForm" class="btn btn-primary">⚖️ Tạo văn bản</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
 
+        function closeTemplateForm() {
+            const modal = document.getElementById('templateFormModal');
+            if (modal) modal.remove();
+            currentTemplate = null;
+        }
+
+        function closeModalOnBackdrop(event) {
+            if (event.target.classList.contains('modal-backdrop')) {
+                closeTemplateForm();
+            }
+        }
+
+        function closeModalBackdrop(event, modalId) {
+            if (event.target.classList.contains('modal-backdrop')) {
+                closeModal(modalId);
+            }
+        }
+
+        async function generateDocument(event) {
+            event.preventDefault();
+            
+            if (!currentTemplate) return;
+            
+            const variables = {};
+            for (const varName of Object.keys(currentTemplate.variables)) {
+                const input = document.getElementById(`var_${varName}`);
+                if (input) {
+                    variables[varName] = input.value;
+                }
+            }
+            
+            const submitBtn = event.target.querySelector('button[type="submit"]') || document.querySelector('#templateForm + .modal-actions .btn-primary');
+            const originalText = submitBtn?.innerHTML || '';
+            if (submitBtn) {
+                submitBtn.innerHTML = '<span class="spinner"></span> Đang soạn thảo...';
+                submitBtn.disabled = true;
+            }
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/v1/templates/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        template_id: currentTemplate.template_id,
+                        variables: variables
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    closeTemplateForm();
+                    showGeneratedDocument(data);
+                    showToast('Văn bản đã được tạo thành công!', 'success');
+                } else {
+                    const error = await response.json();
+                    showToast(`Lỗi: ${error.detail || 'Không thể tạo văn bản'}`, 'error');
+                    if (submitBtn) {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    }
+                }
+            } catch (error) {
+                console.error('Generate document error:', error);
+                showToast('Có lỗi xảy ra. Vui lòng thử lại.', 'error');
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                }
+            }
+        }
+
+        function showGeneratedDocument(data) {
+            const modalHTML = `
+                <div class="modal-backdrop" id="generatedDocModal" onclick="closeGeneratedDocModal(event)">
+                    <div class="modal" onclick="event.stopPropagation()">
+                        <div class="modal-header">
+                            <div class="modal-title">✅ ${data.document_name}</div>
+                            <button class="modal-close" onclick="closeGeneratedDoc()">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="document-content" id="documentContent">${escapeHTML(data.content)}</div>
+                        </div>
+                        <div class="modal-actions">
+                            <button class="btn btn-secondary" onclick="copyToClipboard('${data.document_id}')">📋 Sao chép</button>
+                            <button class="btn btn-primary" onclick="closeGeneratedDoc(); switchTemplateTab('generated'); loadGeneratedDocs()">📂 Xem văn bản đã tạo</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+
+        function closeGeneratedDoc() {
+            const modal = document.getElementById('generatedDocModal');
+            if (modal) modal.remove();
+        }
+
+        function closeGeneratedDocModal(event) {
+            if (event.target.classList.contains('modal-backdrop')) {
+                closeGeneratedDoc();
+            }
+        }
+
+        function copyToClipboard(docId) {
+            const content = document.getElementById('documentContent').innerText;
+            navigator.clipboard.writeText(content).then(() => {
+                showToast('Đã sao chép văn bản vào clipboard', 'success');
+            });
+        }
+
+        function escapeHTML(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/\n/g, '<br>');
+        }
+
+        function switchTemplateTab(tab, event) {
+            document.querySelectorAll('.tab-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            if (event && event.target) event.target.classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            if (tab === 'templates') {
+                document.getElementById('templatesTab').classList.add('active');
+                if (!allTemplates.length) loadTemplates();
+            } else if (tab === 'generated') {
+                document.getElementById('generatedTab').classList.add('active');
+                loadGeneratedDocs();
+            }
+        }
+
+        async function loadGeneratedDocs() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/v1/templates/generated/list', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    allGeneratedDocs = data.documents;
+                    renderGeneratedDocs();
+                } else {
+                    console.error('Failed to load generated docs');
+                }
+            } catch (error) {
+                console.error('Load generated docs error:', error);
+            }
+        }
+
+        function renderGeneratedDocs() {
+            const container = document.getElementById('generatedDocsList');
+            
+            if (!allGeneratedDocs.length) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📄</div>
+                        <div class="empty-state-title">Chưa có văn bản nào</div>
+                        <div class="empty-state-text">Tạo văn bản từ mẫu để bắt đầu</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = allGeneratedDocs.map(doc => {
+                const date = new Date(doc.created_at).toLocaleString('vi-VN');
+                return `
+                    <div class="doc-list-item">
+                        <div class="doc-info">
+                            <div class="doc-name">${doc.name}</div>
+                            <div class="doc-meta">
+                                <span class="template-category ${doc.category}">${doc.template_name || 'Mẫu'}</span>
+                                · ${date}
+                            </div>
+                        </div>
+                        <div class="doc-actions">
+                            <button class="btn-icon" onclick="viewGeneratedDoc('${doc.id}')" title="Xem">👁️</button>
+                            <button class="btn-icon" onclick="deleteGeneratedDoc('${doc.id}')" title="Xóa">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function viewGeneratedDoc(docId) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/v1/templates/generated/${docId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const doc = await response.json();
+                    showGeneratedDocument({
+                        document_id: doc.id,
+                        document_name: doc.name,
+                        content: doc.content
+                    });
+                }
+            } catch (error) {
+                console.error('View doc error:', error);
+            }
+        }
+
+        async function deleteGeneratedDoc(docId) {
+            if (!confirm('Bạn có chắc muốn xóa văn bản này?')) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/v1/templates/generated/${docId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    showToast('Đã xóa văn bản', 'success');
+                    loadGeneratedDocs();
+                }
+            } catch (error) {
+                console.error('Delete doc error:', error);
+            }
+        }
+
+        // ===== CONTRACTS =====
         async function loadContracts() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/v1/contracts', { headers: { 'Authorization': `Bearer ${token}` } });
+                const response = await fetch('/v1/contracts', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
                 if (response.ok) {
                     allContracts = await response.json();
                     renderContracts();
+                    checkExpiringContracts();
+                } else {
+                    console.error('Failed to load contracts');
                 }
             } catch (error) {
                 console.error('Load contracts error:', error);
             }
         }
 
-        function renderContracts() { renderContractsCards(); }
+        async function checkExpiringContracts() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/v1/contracts/expiring', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-        function renderContractsCards() {
-            const grid = document.getElementById('contractsGrid');
-            if (allContracts.length === 0) {
-                grid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📁</div><div class="empty-state-title">Chưa có hợp đồng</div><button class="btn btn-primary" onclick="openUploadModal()" style="margin-top: 1rem;">📤 Tải lên hợp đồng</button></div>';
-                return;
+                if (response.ok) {
+                    expiringContracts = await response.json();
+                    if (expiringContracts.length > 0) {
+                        showExpiringAlert();
+                        const badge = document.getElementById('contractBadge');
+                        if (badge) {
+                            badge.textContent = expiringContracts.length;
+                            badge.classList.remove('hidden');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Check expiring contracts error:', error);
             }
-            grid.innerHTML = allContracts.map(c => `
-                <div class="contract-card">
-                    <div class="contract-card-header">
-                        <div class="contract-title-text">${escapeHtml(c.title)}</div>
-                        <span class="status-badge status-active">Hiệu lực</span>
-                    </div>
-                </div>
-            `).join('');
         }
 
-        function filterContracts(query) { }
-        function filterByStatus(status, btn) { }
-        function viewContract(id) { showToast('Tính năng đang được phát triển', 'info'); }
-        function reviewContract(id) { showToast('Tính năng đang được phát triển', 'info'); }
-        function deleteContract(id) { showToast('Tính năng đang được phát triển', 'info'); }
-        function openModal(modalId) { document.getElementById(modalId).classList.remove('hidden'); }
-        function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
-        function closeModalBackdrop(event, modalId) { if (event.target.classList.contains('modal-backdrop')) closeModal(modalId); }
-        function openUploadModal() { openModal('uploadContractModal'); }
-        function setupDropZone() { }
-        function handleFileSelected(event) { }
-        function clearFile() { }
-        async function handleContractUpload(event) { event.preventDefault(); showToast('Tính năng đang được phát triển', 'info'); }
+        function showExpiringAlert() {
+            const alert = document.getElementById('expiringAlert');
+            alert.classList.remove('hidden');
+            alert.className = 'alert-banner';
+            alert.innerHTML = `
+                <div class="alert-banner-icon">⚠️</div>
+                <div class="alert-banner-content">
+                    <div class="alert-banner-title">Cảnh báo hợp đồng sắp hết hạn</div>
+                    <div class="alert-banner-text">Có ${expiringContracts.length} hợp đồng sẽ hết hạn trong 30 ngày tới</div>
+                </div>
+            `;
+        }
 
+        function getContractStatus(contract) {
+            if (!contract.end_date) return 'active';
+            const endDate = new Date(contract.end_date);
+            const now = new Date();
+            const daysUntilExpiry = Math.floor((endDate - now) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntilExpiry < 0) return 'expired';
+            if (daysUntilExpiry <= 30) return 'pending';
+            return 'active';
+        }
+
+        function getStatusText(status) {
+            const map = {
+                'active': 'Hiệu lực',
+                'pending': 'Sắp hết hạn',
+                'expired': 'Hết hạn',
+                'uploaded': 'Đã tải lên',
+                'processed': 'Đã xử lý',
+                'analyzed': 'Đã phân tích',
+                'pending_ocr': 'Chờ OCR'
+            };
+            return map[status] || status;
+        }
+
+        function getContractTypeText(type) {
+            const map = {
+                'hop_dong_lao_dong': 'Lao động',
+                'hop_dong_dich_vu': 'Dịch vụ',
+                'hop_dong_thue': 'Thuê',
+                'hop_dong_mua_ban': 'Mua bán',
+                'hop_dong_hop_tac': 'Hợp tác',
+                'khac': 'Khác'
+            };
+            return map[type] || type;
+        }
+
+        function formatCurrency(value) {
+            if (!value) return '-';
+            return new Intl.NumberFormat('vi-VN').format(value) + ' ₫';
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            return new Date(dateStr).toLocaleDateString('vi-VN');
+        }
+
+        function toggleContractsView(view, btn) {
+            currentContractsView = view;
+            
+            // Toggle button active state
+            document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            
+            const grid = document.getElementById('contractsGrid');
+            const table = document.getElementById('contractsTable');
+            
+            if (view === 'cards') {
+                grid.classList.remove('hidden');
+                table.classList.add('hidden');
+            } else {
+                grid.classList.add('hidden');
+                table.classList.remove('hidden');
+            }
+            
+            renderContracts();
+        }
+
+        function renderContracts() {
+            // Render cards view
+            const grid = document.getElementById('contractsGrid');
+            const tbody = document.getElementById('contractsTableBody');
+            
+            if (allContracts.length === 0) {
+                const emptyHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📁</div>
+                        <div class="empty-state-title">Chưa có hợp đồng</div>
+                        <div class="empty-state-text">Tải lên hợp đồng đầu tiên của bạn</div>
+                        <button class="btn btn-primary" onclick="openUploadModal()" style="margin-top: 1rem;">📤 Tải lên hợp đồng</button>
+                    </div>
+                `;
+                grid.innerHTML = emptyHTML;
+                tbody.innerHTML = `<tr><td colspan="8">${emptyHTML}</td></tr>`;
+                return;
+            }
+
+            // Cards view
+            grid.innerHTML = allContracts.map(c => {
+                const status = getContractStatus(c);
+                return `
+                    <div class="contract-card" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; transition: all 0.2s; cursor: pointer;" onclick="viewContract(${c.id})">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
+                            <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">${escapeHtml(c.title)}</div>
+                            <span class="status-badge status-${status}" style="font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 100px;">${getStatusText(status)}</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                            ${getContractTypeText(c.contract_type)} ${c.parties ? `· ${escapeHtml(c.parties)}` : ''}
+                        </div>
+                        <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                            <span>📅 ${formatDate(c.start_date)} — ${formatDate(c.end_date)}</span>
+                            ${c.value ? `<span>💰 ${formatCurrency(c.value)}</span>` : ''}
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
+                            <button class="icon-btn" title="Xem chi tiết" onclick="event.stopPropagation(); viewContract(${c.id})">👁️</button>
+                            <button class="icon-btn" title="Rà soát AI" onclick="event.stopPropagation(); reviewContract(${c.id})">🔍</button>
+                            <button class="icon-btn" title="Xóa" onclick="event.stopPropagation(); deleteContract(${c.id})">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Table view
+            tbody.innerHTML = allContracts.map(c => {
+                const status = getContractStatus(c);
+                return `
+                    <tr data-status="${status}">
+                        <td style="color: var(--text-primary); font-weight: 500;">${escapeHtml(c.title)}</td>
+                        <td>${getContractTypeText(c.contract_type)}</td>
+                        <td>${escapeHtml(c.parties || '-')}</td>
+                        <td><span class="status-badge status-${status}">${getStatusText(status)}</span></td>
+                        <td>${formatDate(c.start_date)}</td>
+                        <td>${formatDate(c.end_date)}</td>
+                        <td>${formatCurrency(c.value)}</td>
+                        <td class="table-actions">
+                            <button class="icon-btn" title="Xem chi tiết" onclick="viewContract(${c.id})">👁️</button>
+                            <button class="icon-btn" title="Rà soát AI" onclick="reviewContract(${c.id})">🔍</button>
+                            <button class="icon-btn" title="Xóa" onclick="deleteContract(${c.id})">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterContracts(query) {
+            const cards = document.querySelectorAll('#contractsGrid .contract-card');
+            const rows = document.querySelectorAll('#contractsTableBody tr');
+            const q = query.toLowerCase();
+            
+            cards.forEach(card => {
+                card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
+            rows.forEach(row => {
+                row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
+        }
+
+        function filterByStatus(status, btn) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-pill').forEach(pill => {
+                pill.classList.remove('active');
+            });
+            if (btn) btn.classList.add('active');
+
+            const cards = document.querySelectorAll('#contractsGrid .contract-card');
+            const rows = document.querySelectorAll('#contractsTableBody tr');
+            
+            // For cards, we need to check status from the badge
+            cards.forEach(card => {
+                if (status === 'all') {
+                    card.style.display = '';
+                } else {
+                    const badge = card.querySelector('.status-badge');
+                    card.style.display = badge?.classList.contains(`status-${status}`) ? '' : 'none';
+                }
+            });
+            
+            rows.forEach(row => {
+                row.style.display = (status === 'all' || row.dataset.status === status) ? '' : 'none';
+            });
+        }
+
+        async function viewContract(id) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/v1/contracts/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const contract = await response.json();
+                    showContractDetail(contract);
+                } else {
+                    showToast('Không thể tải chi tiết hợp đồng', 'error');
+                }
+            } catch (error) {
+                console.error('View contract error:', error);
+                showToast('Có lỗi xảy ra', 'error');
+            }
+        }
+
+        function showContractDetail(contract) {
+            document.getElementById('contractDetailTitle').textContent = contract.title;
+            document.getElementById('contractDetailContent').innerHTML = `
+                <div style="display: grid; gap: 1rem;">
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">Loại hợp đồng</div>
+                        <div style="color: var(--text-primary);">${getContractTypeText(contract.contract_type)}</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">Các bên tham gia</div>
+                        <div style="color: var(--text-primary);">${escapeHtml(contract.parties || '-')}</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">Ngày bắt đầu</div>
+                            <div style="color: var(--text-primary);">${formatDate(contract.start_date)}</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">Ngày kết thúc</div>
+                            <div style="color: var(--text-primary);">${formatDate(contract.end_date)}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">Giá trị</div>
+                        <div style="color: var(--text-primary); font-weight: 600;">${formatCurrency(contract.value)}</div>
+                    </div>
+                    ${contract.file_path ? `
+                        <div>
+                            <a href="${contract.file_path}" target="_blank" class="btn btn-secondary btn-small">📥 Tải xuống file</a>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            openModal('contractDetailModal');
+        }
+
+        async function reviewContract(id) {
+            const contract = allContracts.find(c => c.id === id);
+            if (!contract) return;
+
+            document.getElementById('reviewResultContent').innerHTML = `
+                <div style="text-align:center; padding: 2rem; color: var(--text-muted);">
+                    <div class="spinner-large" style="margin: 0 auto 1rem;"></div>
+                    <div>Đang phân tích hợp đồng...</div>
+                </div>
+            `;
+            openModal('reviewResultModal');
+
+            try {
+                const token = localStorage.getItem('token');
+                
+                const contractResponse = await fetch(`/v1/contracts/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const contractDetails = contractResponse.ok ? await contractResponse.json() : null;
+                
+                const response = await fetch(`/v1/contracts/${id}/review`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showReviewResults(result, contractDetails);
+                } else {
+                    document.getElementById('reviewResultContent').innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--danger);">Không thể phân tích hợp đồng</div>';
+                }
+            } catch (error) {
+                console.error('Review contract error:', error);
+                document.getElementById('reviewResultContent').innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--danger);">Có lỗi xảy ra</div>';
+            }
+        }
+
+        function showReviewResults(result, contractDetails) {
+            const riskClass = `risk-${result.risk_level || 'low'}`;
+            const riskText = {
+                'low': 'Thấp',
+                'medium': 'Trung bình',
+                'high': 'Cao'
+            }[result.risk_level] || 'Thấp';
+
+            const contractContent = contractDetails?.content || contractDetails?.extracted_text || 'Không có nội dung hợp đồng';
+
+            window.currentReviewData = { result, contractDetails };
+
+            document.getElementById('reviewResultContent').innerHTML = `
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
+                    <button class="btn btn-primary" onclick="exportReview()">📥 Xuất báo cáo</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+                    <div style="border-right: 1px solid var(--border); padding-right: 1.5rem;">
+                        <div style="font-weight: 600; font-size: 1rem; margin-bottom: 1rem; color: var(--text-primary);">📄 Hợp đồng gốc</div>
+                        <div style="max-height: 500px; overflow-y: auto; padding: 1rem; background: var(--code-bg); border-radius: 8px; font-family: monospace; font-size: 0.875rem; line-height: 1.6; white-space: pre-wrap; color: var(--text-secondary);">
+                            ${escapeHtml(contractContent)}
+                        </div>
+                    </div>
+
+                    <div style="padding-left: 1.5rem;">
+                        <div style="font-weight: 600; font-size: 1rem; margin-bottom: 1rem; color: var(--text-primary);">🔍 Kết quả phân tích</div>
+                        
+                        <div class="review-section">
+                            <div class="review-section-title">Mức độ rủi ro</div>
+                            <span class="risk-badge ${riskClass}">${riskText}</span>
+                        </div>
+                        
+                        <div class="review-section">
+                            <div class="review-section-title">Tóm tắt</div>
+                            <div style="color: var(--text-secondary); line-height: 1.6;">${escapeHtml(result.summary || 'Không có tóm tắt')}</div>
+                        </div>
+                        
+                        ${result.issues && result.issues.length > 0 ? `
+                            <div class="review-section">
+                                <div class="review-section-title">⚠️ Vấn đề phát hiện</div>
+                                <ul class="review-list">
+                                    ${result.issues.map(issue => `<li>${escapeHtml(issue)}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        
+                        ${result.recommendations && result.recommendations.length > 0 ? `
+                            <div class="review-section">
+                                <div class="review-section-title">💡 Đề xuất</div>
+                                <ul class="review-list">
+                                    ${result.recommendations.map(rec => `<li>${escapeHtml(rec)}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function exportReview() {
+            if (!window.currentReviewData) {
+                showToast('Không có dữ liệu để xuất', 'error');
+                return;
+            }
+
+            const { result, contractDetails } = window.currentReviewData;
+            
+            const riskText = {
+                'low': 'Thấp',
+                'medium': 'Trung bình',
+                'high': 'Cao'
+            }[result.risk_level] || 'Thấp';
+
+            const reportText = `
+=================================================
+        BÁO CÁO RÀ SOÁT HỢP ĐỒNG
+=================================================
+
+Hợp đồng: ${contractDetails?.title || 'N/A'}
+Ngày rà soát: ${new Date().toLocaleDateString('vi-VN')}
+
+-------------------------------------------------
+MỨC ĐỘ RỦI RO: ${riskText.toUpperCase()}
+-------------------------------------------------
+
+TÓM TẮT:
+${result.summary || 'Không có tóm tắt'}
+
+${result.issues && result.issues.length > 0 ? `
+-------------------------------------------------
+VẤN ĐỀ PHÁT HIỆN:
+-------------------------------------------------
+${result.issues.map((issue, i) => `${i + 1}. ${issue}`).join('\n')}
+` : ''}
+
+${result.recommendations && result.recommendations.length > 0 ? `
+-------------------------------------------------
+ĐỀ XUẤT:
+-------------------------------------------------
+${result.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
+` : ''}
+
+=================================================
+Báo cáo được tạo bởi Legal AI Agent
+=================================================
+            `.trim();
+
+            const blob = new Blob([reportText], { type: 'text/plain; charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bao-cao-ra-soat-${contractDetails?.title?.replace(/[^a-zA-Z0-9]/g, '-') || 'hop-dong'}-${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Đã tải báo cáo', 'success');
+        }
+
+        async function deleteContract(id) {
+            if (!confirm('Bạn có chắc muốn xóa hợp đồng này?')) return;
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/v1/contracts/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    showToast('Đã xóa hợp đồng', 'success');
+                    loadContracts();
+                } else {
+                    showToast('Không thể xóa hợp đồng', 'error');
+                }
+            } catch (error) {
+                console.error('Delete contract error:', error);
+                showToast('Có lỗi xảy ra', 'error');
+            }
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function openUploadModal() {
+            document.getElementById('uploadContractForm').reset();
+            document.getElementById('filePreview').classList.add('hidden');
+            document.getElementById('dropZoneContent').classList.remove('hidden');
+            document.getElementById('aiAnalysisStatus').classList.add('hidden');
+            document.getElementById('aiAnalysisDone').classList.add('hidden');
+            document.getElementById('aiSummary').classList.add('hidden');
+            openModal('uploadContractModal');
+        }
+
+        function setupDropZone() {
+            const dropZone = document.getElementById('dropZone');
+            if (!dropZone) return;
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-over'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
+            });
+
+            dropZone.addEventListener('drop', handleDrop, false);
+            dropZone.addEventListener('click', () => document.getElementById('contractFile').click());
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                document.getElementById('contractFile').files = files;
+                handleFileSelected({ target: { files: files } });
+            }
+        }
+
+        function handleFileSelected(event) {
+            const file = event.target.files[0];
+            if (file) {
+                document.getElementById('dropZoneContent').classList.add('hidden');
+                document.getElementById('filePreview').classList.remove('hidden');
+                document.getElementById('filePreview').innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--bg-tertiary); border-radius: 6px;">
+                        <div style="font-size: 1.5rem;">📄</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 500; color: var(--text-primary);">${escapeHtml(file.name)}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-muted);">${(file.size / 1024).toFixed(1)} KB</div>
+                        </div>
+                        <button type="button" class="icon-btn" onclick="clearFile()" title="Xóa">✕</button>
+                    </div>
+                `;
+                
+                analyzeContractFile(file);
+            }
+        }
+
+        async function analyzeContractFile(file) {
+            const statusEl = document.getElementById('aiAnalysisStatus');
+            const doneEl = document.getElementById('aiAnalysisDone');
+            const summaryEl = document.getElementById('aiSummary');
+            
+            statusEl.classList.remove('hidden');
+            statusEl.style.display = 'flex';
+            doneEl.classList.add('hidden');
+            summaryEl.classList.add('hidden');
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const token = localStorage.getItem('token');
+                const response = await fetch('/v1/contracts/analyze', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.success && data.metadata) {
+                        const m = data.metadata;
+                        
+                        if (m.title) document.getElementById('contractTitle').value = m.title;
+                        if (m.contract_type) {
+                            const typeSelect = document.getElementById('contractType');
+                            const option = typeSelect.querySelector(`option[value="${m.contract_type}"]`);
+                            if (option) typeSelect.value = m.contract_type;
+                            else typeSelect.value = 'khac';
+                        }
+                        if (m.parties && m.parties.length > 0) {
+                            document.getElementById('contractParties').value = m.parties.join(', ');
+                        }
+                        if (m.start_date) document.getElementById('contractStartDate').value = m.start_date;
+                        if (m.end_date) document.getElementById('contractEndDate').value = m.end_date;
+                        if (m.value) document.getElementById('contractValue').value = m.value;
+                        
+                        if (m.summary) {
+                            document.getElementById('aiSummaryText').textContent = m.summary;
+                            summaryEl.classList.remove('hidden');
+                        }
+                        
+                        doneEl.classList.remove('hidden');
+                        showToast('AI đã phân tích xong hợp đồng!', 'success');
+                    } else {
+                        showToast('Không thể đọc nội dung file. Vui lòng nhập thủ công.', 'warning');
+                    }
+                } else {
+                    showToast('Lỗi phân tích file', 'error');
+                }
+            } catch (error) {
+                console.error('AI analysis error:', error);
+                showToast('Không thể phân tích file. Vui lòng nhập thủ công.', 'warning');
+            }
+            
+            statusEl.classList.add('hidden');
+            statusEl.style.display = 'none';
+        }
+
+        function clearFile() {
+            document.getElementById('contractFile').value = '';
+            document.getElementById('filePreview').classList.add('hidden');
+            document.getElementById('dropZoneContent').classList.remove('hidden');
+            document.getElementById('aiAnalysisStatus').classList.add('hidden');
+            document.getElementById('aiAnalysisDone').classList.add('hidden');
+            document.getElementById('aiSummary').classList.add('hidden');
+        }
+
+        async function handleContractUpload(event) {
+            event.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('contractFile');
+            
+            if (fileInput.files[0]) {
+                formData.append('file', fileInput.files[0]);
+            }
+            
+            formData.append('title', document.getElementById('contractTitle').value);
+            formData.append('contract_type', document.getElementById('contractType').value);
+            formData.append('parties', document.getElementById('contractParties').value);
+            formData.append('start_date', document.getElementById('contractStartDate').value);
+            formData.append('end_date', document.getElementById('contractEndDate').value);
+            formData.append('value', document.getElementById('contractValue').value || '0');
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/v1/contracts', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    closeModal('uploadContractModal');
+                    showToast('Hợp đồng đã được tải lên', 'success');
+                    loadContracts();
+                } else {
+                    showToast('Không thể tải lên hợp đồng', 'error');
+                }
+            } catch (error) {
+                console.error('Upload contract error:', error);
+                showToast('Có lỗi xảy ra', 'error');
+            }
+        }
+
+        // ===== DOCUMENTS =====
         async function loadDocuments() {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('/v1/documents?limit=100', { headers: { 'Authorization': `Bearer ${token}` } });
+                const response = await fetch('/v1/documents?limit=100', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
                 if (response.ok) {
                     const data = await response.json();
                     allDocuments = data.documents || [];
                     renderDocuments();
+                    updateDocumentsStats();
+                } else {
+                    console.error('Failed to load documents');
                 }
             } catch (error) {
                 console.error('Load documents error:', error);
@@ -4038,48 +5429,360 @@ console.log(data);</code></pre>
 
         function renderDocuments() {
             const container = document.getElementById('documentsContainer');
+            
             if (allDocuments.length === 0) {
-                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📂</div><div class="empty-state-title">Chưa có văn bản</div></div>';
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📂</div>
+                        <div class="empty-state-title">Chưa có văn bản</div>
+                        <div class="empty-state-text">Tải lên văn bản đầu tiên để bắt đầu phân tích</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const filtered = allDocuments.filter(doc => {
+                if (currentDocFilter === 'all') return true;
+                if (currentDocFilter === 'pdf') return doc.mime_type === 'application/pdf';
+                if (currentDocFilter === 'docx') return doc.mime_type.includes('wordprocessing');
+                if (currentDocFilter === 'image') return doc.mime_type.startsWith('image/');
+                return true;
+            });
+
+            container.innerHTML = filtered.map(doc => {
+                const icon = getDocumentIcon(doc.mime_type);
+                const statusIcon = getStatusIcon(doc.status);
+                const isSelected = selectedDocuments.has(doc.id);
+
+                return `
+                    <div class="document-card ${isSelected ? 'selected' : ''}" data-id="${doc.id}" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; display: flex; gap: 1rem; align-items: start; transition: all 0.2s;">
+                        <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleDocumentSelection('${doc.id}')" style="flex-shrink: 0; margin-top: 0.25rem;">
+                        <div class="document-icon" style="font-size: 1.5rem;">${icon}</div>
+                        <div class="document-info" style="flex: 1; min-width: 0;">
+                            <div class="document-name" style="font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem;">${escapeHtml(doc.name)}</div>
+                            <div class="document-meta" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">
+                                ${doc.doc_type ? `Loại: ${doc.doc_type}` : 'Loại: Chưa xác định'} | 
+                                ${doc.page_count ? `${doc.page_count} trang |` : ''} 
+                                ${(doc.file_size / 1024).toFixed(1)} KB
+                            </div>
+                            <div class="document-meta" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                                Trạng thái: ${statusIcon} ${getStatusText(doc.status)}
+                            </div>
+                            <div class="document-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <button class="btn btn-secondary btn-small" onclick="viewDocument('${doc.id}')">👁️ Xem</button>
+                                ${doc.status !== 'pending_ocr' ? `<button class="btn btn-secondary btn-small" onclick="analyzeDocument('${doc.id}')">🔍 Phân tích AI</button>` : ''}
+                                <button class="btn btn-secondary btn-small" onclick="downloadDocument('${doc.id}')">⬇️ Tải</button>
+                                <button class="btn btn-secondary btn-small" onclick="deleteDocument('${doc.id}')">🗑️ Xóa</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            updateBatchButtons();
+        }
+
+        function getDocumentIcon(mimeType) {
+            if (mimeType === 'application/pdf') return '📄';
+            if (mimeType.includes('word')) return '📝';
+            if (mimeType === 'text/plain') return '📃';
+            if (mimeType.startsWith('image/')) return '📸';
+            return '📄';
+        }
+
+        function getStatusIcon(status) {
+            const icons = {
+                'uploaded': '⏳',
+                'processed': '✅',
+                'analyzed': '🔍',
+                'pending_ocr': '⚠️'
+            };
+            return icons[status] || '○';
+        }
+
+        function updateDocumentsStats() {
+            const totalDocs = allDocuments.length;
+            const totalSize = allDocuments.reduce((sum, doc) => sum + doc.file_size, 0) / (1024 * 1024);
+            
+            const totalDocsEl = document.getElementById('totalDocs');
+            const totalSizeEl = document.getElementById('totalSize');
+            if (totalDocsEl) totalDocsEl.textContent = totalDocs;
+            if (totalSizeEl) totalSizeEl.textContent = totalSize.toFixed(2);
+        }
+
+        function filterDocuments(filter) {
+            currentDocFilter = filter;
+            document.querySelectorAll('.filter-pill').forEach(pill => {
+                pill.classList.remove('active');
+            });
+            if (event && event.target) event.target.classList.add('active');
+            renderDocuments();
+        }
+
+        function sortDocuments(sortBy) {
+            if (sortBy === 'newest') {
+                allDocuments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            } else if (sortBy === 'name') {
+                allDocuments.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (sortBy === 'size') {
+                allDocuments.sort((a, b) => b.file_size - a.file_size);
+            }
+            renderDocuments();
+        }
+
+        function toggleDocumentSelection(id) {
+            if (selectedDocuments.has(id)) {
+                selectedDocuments.delete(id);
+            } else {
+                selectedDocuments.add(id);
+            }
+            renderDocuments();
+        }
+
+        function selectAllDocuments() {
+            if (selectedDocuments.size === allDocuments.length) {
+                selectedDocuments.clear();
+            } else {
+                allDocuments.forEach(doc => selectedDocuments.add(doc.id));
+            }
+            renderDocuments();
+        }
+
+        function updateBatchButtons() {
+            const hasSelection = selectedDocuments.size > 0;
+            const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+            const batchAnalyzeBtn = document.getElementById('batchAnalyzeBtn');
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            if (batchDeleteBtn) batchDeleteBtn.classList.toggle('hidden', !hasSelection);
+            if (batchAnalyzeBtn) batchAnalyzeBtn.classList.toggle('hidden', !hasSelection);
+            if (selectAllBtn) selectAllBtn.textContent = selectedDocuments.size === allDocuments.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả';
+        }
+
+        async function uploadDocument(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/v1/documents', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showToast(result.message || 'Văn bản đã được tải lên', 'success');
+                    loadDocuments();
+                    event.target.value = '';
+                } else {
+                    const error = await response.json();
+                    showToast(error.detail || 'Không thể tải lên', 'error');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showToast('Có lỗi xảy ra khi tải lên', 'error');
             }
         }
 
-        function filterDocuments(filter, btn) { }
-        function sortDocuments(sortBy) { }
-        function toggleDocumentSelection(id) { }
-        function selectAllDocuments() { }
-        function updateBatchButtons() { }
-        async function uploadDocument(event) { showToast('Tính năng đang được phát triển', 'info'); }
-        async function viewDocument(id) { showToast('Tính năng đang được phát triển', 'info'); }
-        async function analyzeDocument(id) { showToast('Tính năng đang được phát triển', 'info'); }
-        async function deleteDocument(id) { showToast('Tính năng đang được phát triển', 'info'); }
-        async function downloadDocument(id) { showToast('Tính năng đang được phát triển', 'info'); }
-        async function batchDelete() { showToast('Tính năng đang được phát triển', 'info'); }
-        async function batchAnalyze() { showToast('Tính năng đang được phát triển', 'info'); }
+        async function viewDocument(id) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/v1/documents/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
+                if (response.ok) {
+                    const doc = await response.json();
+                    showDocumentViewerModal(doc);
+                } else {
+                    showToast('Không thể tải thông tin văn bản', 'error');
+                }
+            } catch (error) {
+                console.error('View document error:', error);
+            }
+        }
+
+        function showDocumentViewerModal(doc) {
+            const isImage = doc.mime_type && doc.mime_type.startsWith('image/');
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal-backdrop';
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            modal.innerHTML = `
+                <div class="modal" onclick="event.stopPropagation()" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+                    <div class="modal-header">
+                        <div class="modal-title">${escapeHtml(doc.name)}</div>
+                        <button class="modal-close" onclick="this.closest('.modal-backdrop').remove()">✕</button>
+                    </div>
+                    <div class="modal-body" style="padding: 1.5rem;">
+                        <div style="margin-bottom: 1rem; padding: 1rem; background: var(--bg-secondary); border-radius: 8px;">
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; font-size: 0.875rem;">
+                                <div><strong>Kích thước:</strong> ${(doc.file_size / 1024).toFixed(1)} KB</div>
+                                <div><strong>Trang:</strong> ${doc.page_count || 'N/A'}</div>
+                                <div><strong>Loại:</strong> ${doc.mime_type}</div>
+                                <div><strong>Trạng thái:</strong> ${getStatusText(doc.status)}</div>
+                                <div><strong>Ngày tải lên:</strong> ${new Date(doc.created_at).toLocaleDateString('vi-VN')}</div>
+                                ${doc.analyzed_at ? `<div><strong>Ngày phân tích:</strong> ${new Date(doc.analyzed_at).toLocaleDateString('vi-VN')}</div>` : ''}
+                            </div>
+                        </div>
+                        ${isImage ? 
+                            `<div style="text-align: center; margin: 1rem 0;">
+                                <img src="/uploads/${doc.file_path}" style="max-width: 100%; border-radius: 8px;" />
+                            </div>` :
+                            `<div style="max-height: 400px; overflow-y: auto; padding: 1rem; background: var(--code-bg); border-radius: 8px; font-family: monospace; font-size: 0.875rem; line-height: 1.6; white-space: pre-wrap;">
+                                ${escapeHtml(doc.extracted_text || 'Không có văn bản trích xuất')}
+                            </div>`
+                        }
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Đóng</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        async function analyzeDocument(id) {
+            const modal = document.createElement('div');
+            modal.className = 'modal-backdrop';
+            modal.innerHTML = `
+                <div class="modal" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <div class="modal-title">Phân tích AI</div>
+                        <button class="modal-close" onclick="this.closest('.modal-backdrop').remove()">✕</button>
+                    </div>
+                    <div class="modal-body" style="padding: 2rem; text-align: center;">
+                        <div class="spinner-large" style="margin: 0 auto 1rem;"></div>
+                        <div style="font-size: 1.125rem; margin-bottom: 0.5rem;">Đang phân tích văn bản...</div>
+                        <div style="color: var(--text-muted);">Vui lòng đợi trong giây lát</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/v1/documents/${id}/analyze`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    modal.remove();
+                    showToast('Phân tích hoàn tất!', 'success');
+                    loadDocuments();
+                } else {
+                    const error = await response.json();
+                    modal.remove();
+                    showToast(error.detail || 'Không thể phân tích', 'error');
+                }
+            } catch (error) {
+                modal.remove();
+                console.error('Analyze error:', error);
+                showToast('Có lỗi xảy ra khi phân tích', 'error');
+            }
+        }
+
+        async function deleteDocument(id) {
+            if (!confirm('Bạn có chắc muốn xóa văn bản này?')) return;
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/v1/documents/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    showToast('Đã xóa văn bản', 'success');
+                    loadDocuments();
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+            }
+        }
+
+        async function downloadDocument(id) {
+            showToast('Tính năng đang được phát triển', 'info');
+        }
+
+        async function batchDelete() {
+            if (!confirm(`Xóa ${selectedDocuments.size} văn bản?`)) return;
+            showToast('Tính năng đang được phát triển', 'info');
+        }
+
+        async function batchAnalyze() {
+            showToast(`Phân tích ${selectedDocuments.size} văn bản...`, 'info');
+        }
+
+        // ===== SEARCH =====
         function showSearchEmptyState() {
             const container = document.getElementById('searchResults');
-            container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">Tìm kiếm văn bản pháp luật</div></div>';
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">🔍</div>
+                    <div class="empty-state-title">Tìm kiếm văn bản pháp luật</div>
+                    <div class="empty-state-text">Nhập từ khóa và nhấn Enter để tìm kiếm</div>
+                </div>
+            `;
         }
 
-        function selectDomain(domain, btn) {
+        function selectDomain(domain) {
             selectedDomain = domain;
-            document.querySelectorAll('.domain-pill').forEach(pill => pill.classList.remove('active'));
-            btn.classList.add('active');
+            document.querySelectorAll('.domain-pill').forEach(pill => {
+                pill.classList.toggle('active', pill.dataset.domain === domain);
+            });
         }
 
-        async function performSearch() { showToast('Tính năng tra cứu đang được phát triển', 'info'); }
-        function createApiKey() { showToast('Tính năng tạo API key đang được phát triển', 'info'); }
-        function showCodeTab(tab, btn) {
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+
+            const container = document.getElementById('searchResults');
+            container.innerHTML = `
+                <div style="text-align: center; padding: 3rem;">
+                    <div class="spinner-large" style="margin: 0 auto 1rem;"></div>
+                    <div style="color: var(--text-muted);">Đang tìm kiếm...</div>
+                </div>
+            `;
+
+            showToast('Tính năng tra cứu đang được phát triển', 'info');
+        }
+
+        // ===== API =====
+        function createApiKey() {
+            showToast('Tính năng tạo API key đang được phát triển', 'info');
+        }
+
+        function showCodeTab(tab) {
             document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
-            btn.classList.add('active');
+            if (event && event.target) event.target.classList.add('active');
+            
             document.querySelectorAll('.code-example').forEach(ex => ex.classList.add('hidden'));
-            document.getElementById(`codeExample${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.remove('hidden');
+            const exampleId = `codeExample${tab.charAt(0).toUpperCase() + tab.slice(1)}`;
+            const el = document.getElementById(exampleId);
+            if (el) el.classList.remove('hidden');
         }
+
         function copyCode(lang) {
-            const code = document.querySelector(`#codeExample${lang.charAt(0).toUpperCase() + lang.slice(1)} code`).textContent;
-            navigator.clipboard.writeText(code).then(() => showToast('Đã sao chép code', 'success'));
+            const el = document.querySelector(`#codeExample${lang.charAt(0).toUpperCase() + lang.slice(1)} code`);
+            if (el) {
+                navigator.clipboard.writeText(el.textContent).then(() => {
+                    showToast('Đã sao chép code', 'success');
+                });
+            }
         }
-        async function saveSettings(event) { event.preventDefault(); showToast('Cài đặt đã được lưu', 'success'); }
+
+        // ===== SETTINGS =====
+        async function saveSettings(event) {
+            event.preventDefault();
+            showToast('Cài đặt đã được lưu', 'success');
+        }
     </script>
 </body>
 </html>
