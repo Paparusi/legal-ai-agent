@@ -3,30 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Legal AI Agent - Trợ Lý Pháp Lý AI Cho Doanh Nghiệp Việt Nam</title>
+    <title>AI Legal Agent — Bộ phận pháp lý AI cho doanh nghiệp Việt Nam</title>
+    <meta name="description" content="Agent AI pháp lý thông minh — tự tra cứu luật, rà soát hợp đồng, soạn văn bản, quản lý rủi ro pháp lý cho doanh nghiệp Việt Nam.">
+    <meta property="og:title" content="AI Legal Agent — Bộ phận pháp lý AI cho doanh nghiệp Việt Nam">
+    <meta property="og:description" content="Không chỉ chatbot. Đây là Agent thông minh — tự tra cứu 40,000+ văn bản pháp luật, rà soát hợp đồng, soạn văn bản pháp lý.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/static/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
             --bg-dark: #09090b;
-            --card-bg: #18181b;
-            --border: #2e2e32;
+            --bg-card: #18181b;
+            --bg-card-hover: #1f1f23;
+            --border: #27272a;
+            --border-hover: #3f3f46;
             --text-primary: #fafafa;
             --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
             --accent: #818cf8;
             --accent-dark: #6366f1;
+            --accent-glow: rgba(129, 140, 248, 0.15);
+            --accent-glow-strong: rgba(129, 140, 248, 0.3);
+            --green: #34d399;
+            --amber: #fbbf24;
         }
 
-        html {
-            scroll-behavior: smooth;
-        }
+        html { scroll-behavior: smooth; }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -34,917 +41,666 @@
             color: var(--text-primary);
             line-height: 1.6;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Navigation */
+        /* ===== NAV ===== */
         nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: rgba(9, 9, 11, 0.8);
-            backdrop-filter: blur(12px);
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            background: rgba(9, 9, 11, 0.85);
+            backdrop-filter: blur(16px);
             border-bottom: 1px solid var(--border);
+            transition: box-shadow 0.3s;
         }
+        nav.scrolled { box-shadow: 0 4px 30px rgba(0,0,0,0.4); }
 
-        .nav-container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .nav-inner {
+            max-width: 1280px; margin: 0 auto;
+            padding: 0.875rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
         }
-
         .logo {
-            font-size: 1.25rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            font-size: 1.2rem; font-weight: 800;
+            display: flex; align-items: center; gap: 0.5rem;
+            text-decoration: none; color: var(--text-primary);
         }
-
-        .nav-links {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
+        .logo-icon {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem;
         }
-
+        .nav-links { display: flex; gap: 2rem; align-items: center; list-style: none; }
         .nav-links a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.95rem;
-            transition: color 0.2s;
+            color: var(--text-secondary); text-decoration: none;
+            font-size: 0.9rem; font-weight: 500; transition: color 0.2s;
         }
-
-        .nav-links a:hover {
-            color: var(--text-primary);
-        }
-
-        .nav-btn {
+        .nav-links a:hover { color: var(--text-primary); }
+        .nav-cta {
             padding: 0.5rem 1.25rem;
-            background: transparent;
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .nav-btn:hover {
-            border-color: var(--accent);
-            background: rgba(129, 140, 248, 0.1);
-        }
-
-        /* Mobile Menu Toggle */
-        .menu-toggle {
-            display: none;
-            flex-direction: column;
-            gap: 4px;
-            cursor: pointer;
-        }
-
-        .menu-toggle span {
-            width: 24px;
-            height: 2px;
-            background: var(--text-primary);
-            transition: 0.3s;
-        }
-
-        /* Container */
-        .container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0 2rem;
-        }
-
-        section {
-            padding: 6rem 0;
-            opacity: 0;
-            transform: translateY(30px);
-            transition: opacity 0.8s, transform 0.8s;
-        }
-
-        section.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        /* Hero Section */
-        .hero {
-            padding-top: 10rem;
-            padding-bottom: 8rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .gradient-orb {
-            position: absolute;
-            top: -200px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(129, 140, 248, 0.3), rgba(99, 102, 241, 0.1), transparent);
-            filter: blur(80px);
-            animation: pulse 8s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.3; }
-            50% { transform: translateX(-50%) scale(1.1); opacity: 0.5; }
-        }
-
-        .hero-content {
-            text-align: center;
-            position: relative;
-            z-index: 1;
-        }
-
-        .hero h1 {
-            font-size: clamp(2.5rem, 6vw, 4.5rem);
-            font-weight: 900;
-            line-height: 1.1;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .hero p {
-            font-size: clamp(1rem, 2vw, 1.25rem);
-            color: var(--text-secondary);
-            max-width: 700px;
-            margin: 0 auto 2.5rem;
-        }
-
-        .cta-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-bottom: 4rem;
-        }
-
-        .btn-primary {
-            padding: 0.875rem 2rem;
             background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
+            color: #fff !important; border-radius: 8px; font-weight: 600 !important;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
+        .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 4px 20px var(--accent-glow-strong); }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(129, 140, 248, 0.3);
-        }
+        .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 4px; }
+        .hamburger span { width: 22px; height: 2px; background: var(--text-primary); border-radius: 2px; transition: 0.3s; }
 
-        .btn-outline {
-            padding: 0.875rem 2rem;
-            background: transparent;
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn-outline:hover {
-            border-color: var(--accent);
-            background: rgba(129, 140, 248, 0.1);
-        }
-
-        .stats {
-            display: flex;
-            gap: 3rem;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .stat-item {
+        /* ===== SHARED ===== */
+        .container { max-width: 1280px; margin: 0 auto; padding: 0 2rem; }
+        section { padding: 6rem 0; }
+        .section-label {
+            text-transform: uppercase; font-size: 0.8rem; font-weight: 700;
+            letter-spacing: 0.12em; color: var(--accent); margin-bottom: 0.75rem;
             text-align: center;
         }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent);
-            display: block;
-        }
-
-        .stat-label {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        /* Features Grid */
-        .features {
-            background: var(--bg-dark);
-        }
-
         .section-title {
-            font-size: clamp(2rem, 4vw, 3rem);
-            font-weight: 800;
-            text-align: center;
-            margin-bottom: 3rem;
+            font-size: clamp(2rem, 4vw, 3rem); font-weight: 800;
+            text-align: center; margin-bottom: 1rem; line-height: 1.15;
+        }
+        .section-subtitle {
+            text-align: center; color: var(--text-secondary);
+            max-width: 640px; margin: 0 auto 3.5rem; font-size: 1.05rem;
         }
 
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-top: 3rem;
+        /* Intersection Observer fade-in */
+        .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.7s ease, transform 0.7s ease; }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+
+        /* ===== HERO ===== */
+        .hero {
+            position: relative; padding: 11rem 0 7rem; overflow: hidden;
+            min-height: 100vh; display: flex; align-items: center;
+        }
+        /* Grid pattern */
+        .hero::before {
+            content: ''; position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(129,140,248,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(129,140,248,0.05) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 70%);
+            -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 70%);
+        }
+        /* Gradient orbs */
+        .orb {
+            position: absolute; border-radius: 50%; filter: blur(100px); pointer-events: none;
+            animation: orbFloat 10s ease-in-out infinite;
+        }
+        .orb-1 { width: 600px; height: 600px; top: -180px; left: 50%; transform: translateX(-50%); background: radial-gradient(circle, rgba(129,140,248,0.3), transparent 70%); }
+        .orb-2 { width: 400px; height: 400px; bottom: -100px; right: -100px; background: radial-gradient(circle, rgba(99,102,241,0.2), transparent 70%); animation-delay: -5s; }
+
+        @keyframes orbFloat {
+            0%, 100% { opacity: 0.4; transform: translateX(-50%) scale(1); }
+            50% { opacity: 0.6; transform: translateX(-50%) scale(1.08); }
         }
 
-        .feature-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 2rem;
-            transition: all 0.3s;
-        }
+        .hero-content { text-align: center; position: relative; z-index: 2; }
 
-        .feature-card:hover {
-            border-color: var(--accent);
-            transform: translateY(-4px);
-            box-shadow: 0 10px 40px rgba(129, 140, 248, 0.1);
-        }
-
-        .feature-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            display: block;
-        }
-
-        .feature-card h3 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            margin-bottom: 0.75rem;
-        }
-
-        .feature-card p {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-            line-height: 1.6;
-        }
-
-        /* How It Works */
-        .how-it-works {
-            background: var(--bg-dark);
-        }
-
-        .steps {
-            display: flex;
-            gap: 2rem;
-            justify-content: center;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-top: 3rem;
-            position: relative;
-        }
-
-        .step {
-            flex: 1;
-            min-width: 250px;
-            max-width: 350px;
-            text-align: center;
-            position: relative;
-        }
-
-        .step-number {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin: 0 auto 1.5rem;
-        }
-
-        .step h3 {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .step p {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .arrow {
-            color: var(--accent);
-            font-size: 2rem;
-            margin-top: 2rem;
-        }
-
-        /* Demo Section */
-        .demo {
-            background: var(--bg-dark);
-        }
-
-        .demo-container {
-            max-width: 900px;
-            margin: 3rem auto 0;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 2rem;
-        }
-
-        .chat-bubble {
-            margin-bottom: 1.5rem;
-        }
-
-        .chat-bubble.user {
-            text-align: right;
-        }
-
-        .chat-message {
-            display: inline-block;
-            padding: 1rem 1.5rem;
-            border-radius: 12px;
-            max-width: 80%;
-        }
-
-        .chat-bubble.user .chat-message {
-            background: var(--accent);
-            color: white;
-        }
-
-        .chat-bubble.ai .chat-message {
-            background: rgba(129, 140, 248, 0.1);
-            border: 1px solid var(--border);
-            text-align: left;
-        }
-
-        .citations {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-top: 1rem;
-        }
-
-        .citation-card {
-            background: var(--bg-dark);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 0.75rem 1rem;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        .citation-card strong {
-            color: var(--accent);
-        }
-
-        /* Pricing */
-        .pricing {
-            background: var(--bg-dark);
-        }
-
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            margin-top: 3rem;
-            max-width: 1100px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .pricing-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 2.5rem 2rem;
-            position: relative;
-            transition: all 0.3s;
-        }
-
-        .pricing-card:hover {
-            border-color: var(--accent);
-            transform: translateY(-4px);
-        }
-
-        .pricing-card.popular {
-            border-color: var(--accent);
-            box-shadow: 0 0 40px rgba(129, 140, 248, 0.2);
-        }
-
-        .popular-badge {
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
-            color: white;
-            padding: 0.25rem 1rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .pricing-card h3 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .price {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--accent);
-            margin: 1rem 0;
-        }
-
-        .price-period {
-            font-size: 1rem;
-            color: var(--text-secondary);
-            font-weight: 400;
-        }
-
-        .pricing-features {
-            list-style: none;
-            margin: 2rem 0;
-        }
-
-        .pricing-features li {
-            padding: 0.75rem 0;
-            border-bottom: 1px solid var(--border);
-            font-size: 0.95rem;
-        }
-
-        .pricing-features li:last-child {
-            border-bottom: none;
-        }
-
-        /* Social Proof */
-        .social-proof {
-            background: var(--bg-dark);
-            text-align: center;
-        }
-
-        .logos-grid {
-            display: flex;
-            gap: 2rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 3rem;
-        }
-
-        .company-logo {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1.5rem 2.5rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            min-width: 150px;
-        }
-
-        /* CTA Section */
-        .cta-section {
-            background: linear-gradient(135deg, rgba(129, 140, 248, 0.1), rgba(99, 102, 241, 0.05));
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-            text-align: center;
-        }
-
-        .cta-section h2 {
-            font-size: clamp(2rem, 4vw, 3rem);
-            font-weight: 800;
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.4rem 1rem; border-radius: 100px;
+            background: rgba(129,140,248,0.1); border: 1px solid rgba(129,140,248,0.2);
+            font-size: 0.85rem; color: var(--accent); font-weight: 600;
             margin-bottom: 2rem;
         }
+        .hero-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 2s infinite; }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-        /* Footer */
-        footer {
-            background: var(--bg-dark);
-            border-top: 1px solid var(--border);
-            padding: 4rem 0 2rem;
+        .hero h1 {
+            font-size: clamp(2.5rem, 5.5vw, 4.2rem); font-weight: 900; line-height: 1.1;
+            margin-bottom: 1.5rem;
+        }
+        .hero h1 .gradient-text {
+            background: linear-gradient(135deg, var(--accent), #a78bfa, var(--accent-dark));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero p.subtitle {
+            font-size: clamp(1rem, 2vw, 1.2rem); color: var(--text-secondary);
+            max-width: 720px; margin: 0 auto 2.5rem; line-height: 1.7;
         }
 
-        .footer-content {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0 2rem;
+        .cta-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 4rem; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.9rem 2rem; border-radius: 10px; font-size: 1rem;
+            font-weight: 600; cursor: pointer; transition: all 0.3s;
+            text-decoration: none; border: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: #fff; box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--accent-glow-strong); }
+        .btn-ghost {
+            background: transparent; color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .btn-ghost:hover { border-color: var(--accent); background: var(--accent-glow); }
+
+        /* Hero stats */
+        .hero-stats {
+            display: flex; gap: 3rem; justify-content: center; flex-wrap: wrap;
+        }
+        .hero-stat { text-align: center; }
+        .hero-stat .val { font-size: 1.6rem; font-weight: 800; color: var(--accent); display: block; }
+        .hero-stat .lbl { color: var(--text-muted); font-size: 0.85rem; }
+
+        /* ===== CAPABILITIES ===== */
+        .capabilities { background: linear-gradient(180deg, var(--bg-dark), #0c0c10, var(--bg-dark)); }
+        .cap-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 3rem;
-            margin-bottom: 3rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+        .cap-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 14px; padding: 2rem; position: relative;
+            transition: all 0.35s ease; overflow: hidden;
+        }
+        .cap-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0; transition: opacity 0.35s;
+        }
+        .cap-card:hover { border-color: var(--border-hover); transform: translateY(-6px); box-shadow: 0 20px 50px rgba(0,0,0,0.3); }
+        .cap-card:hover::before { opacity: 1; }
+        .cap-icon { font-size: 2.5rem; margin-bottom: 1rem; display: block; }
+        .cap-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.6rem; }
+        .cap-card p { color: var(--text-secondary); font-size: 0.92rem; margin-bottom: 1rem; line-height: 1.6; }
+        .cap-link {
+            color: var(--accent); font-size: 0.88rem; font-weight: 600;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;
+            transition: gap 0.2s;
+        }
+        .cap-link:hover { gap: 0.6rem; }
+
+        /* ===== HOW IT WORKS ===== */
+        .how-it-works { position: relative; }
+        .steps { display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; position: relative; }
+        .step {
+            flex: 1; min-width: 260px; max-width: 360px; text-align: center;
+            position: relative; padding: 2.5rem 1.5rem;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; transition: all 0.3s;
+        }
+        .step:hover { border-color: var(--border-hover); transform: translateY(-4px); }
+        .step-num {
+            width: 56px; height: 56px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.25rem; font-weight: 800; color: #fff;
+            margin: 0 auto 1.25rem;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        .step h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.6rem; }
+        .step p { color: var(--text-secondary); font-size: 0.92rem; }
+
+        /* Connector arrows between steps (desktop) */
+        .step-connector {
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; color: var(--accent); min-width: 40px;
+            animation: arrowPulse 2s ease-in-out infinite;
+        }
+        @keyframes arrowPulse {
+            0%, 100% { opacity: 0.4; transform: translateX(0); }
+            50% { opacity: 1; transform: translateX(6px); }
         }
 
-        .footer-section h4 {
-            font-size: 1rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
+        /* ===== DEMO ===== */
+        .demo-section { background: linear-gradient(180deg, var(--bg-dark), #0c0c10); }
+        .demo-frame-wrapper {
+            max-width: 900px; margin: 0 auto;
+            border-radius: 16px; overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+            position: relative;
         }
-
-        .footer-section ul {
-            list-style: none;
+        .demo-frame-bar {
+            background: #1c1c20; padding: 0.75rem 1rem;
+            display: flex; align-items: center; gap: 0.5rem;
         }
+        .demo-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .demo-dot.r { background: #ef4444; }
+        .demo-dot.y { background: #eab308; }
+        .demo-dot.g { background: #22c55e; }
+        .demo-frame-bar span { margin-left: 0.75rem; color: var(--text-muted); font-size: 0.8rem; }
+        .demo-iframe { width: 100%; height: 550px; border: none; background: var(--bg-dark); }
 
-        .footer-section ul li {
-            margin-bottom: 0.75rem;
+        /* ===== PRICING ===== */
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; max-width: 1020px; margin: 0 auto; }
+        .price-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 2.5rem 2rem; position: relative;
+            transition: all 0.3s; display: flex; flex-direction: column;
         }
+        .price-card:hover { transform: translateY(-4px); }
+        .price-card.featured {
+            border-color: var(--accent);
+            box-shadow: 0 0 60px var(--accent-glow);
+        }
+        .price-badge {
+            position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: #fff; font-size: 0.75rem; font-weight: 700; padding: 0.3rem 1rem;
+            border-radius: 100px; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .price-card h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .price-amount { font-size: 2.2rem; font-weight: 900; margin-bottom: 0.25rem; }
+        .price-amount .currency { font-size: 1rem; font-weight: 600; color: var(--text-secondary); }
+        .price-period { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 2rem; }
+        .price-features { list-style: none; margin-bottom: 2rem; flex: 1; }
+        .price-features li {
+            padding: 0.5rem 0; display: flex; align-items: center; gap: 0.6rem;
+            color: var(--text-secondary); font-size: 0.9rem;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .price-features li:last-child { border: none; }
+        .check { color: var(--green); font-weight: 700; }
+        .cross { color: var(--text-muted); }
+        .price-card .btn { width: 100%; justify-content: center; }
 
-        .footer-section a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.9rem;
+        /* ===== TRUST ===== */
+        .trust { background: linear-gradient(180deg, var(--bg-dark), #0c0c10, var(--bg-dark)); }
+        .trust-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem; max-width: 960px; margin: 0 auto;
+        }
+        .trust-card {
+            text-align: center; padding: 2.5rem 1.5rem;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 14px; transition: all 0.3s;
+        }
+        .trust-card:hover { border-color: var(--border-hover); transform: translateY(-4px); }
+        .trust-val { font-size: 2.2rem; font-weight: 900; color: var(--accent); display: block; margin-bottom: 0.4rem; }
+        .trust-lbl { color: var(--text-secondary); font-size: 0.95rem; }
+
+        /* ===== CTA BANNER ===== */
+        .cta-banner {
+            text-align: center; padding: 5rem 2rem;
+            background: linear-gradient(135deg, rgba(129,140,248,0.08), rgba(99,102,241,0.04));
+            border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+        }
+        .cta-banner h2 { font-size: clamp(1.8rem, 3.5vw, 2.5rem); font-weight: 800; margin-bottom: 1rem; }
+        .cta-banner p { color: var(--text-secondary); max-width: 540px; margin: 0 auto 2rem; font-size: 1.05rem; }
+
+        /* ===== FOOTER ===== */
+        footer { padding: 4rem 0 2rem; border-top: 1px solid var(--border); }
+        .footer-grid {
+            display: grid; grid-template-columns: 2fr repeat(3, 1fr);
+            gap: 3rem; margin-bottom: 3rem;
+        }
+        .footer-brand p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.75rem; line-height: 1.7; }
+        .footer-col h4 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 1rem; color: var(--text-secondary); }
+        .footer-col a { display: block; color: var(--text-muted); text-decoration: none; font-size: 0.9rem; padding: 0.3rem 0; transition: color 0.2s; }
+        .footer-col a:hover { color: var(--text-primary); }
+        .footer-bottom {
+            display: flex; justify-content: space-between; align-items: center;
+            padding-top: 2rem; border-top: 1px solid var(--border);
+            color: var(--text-muted); font-size: 0.82rem; flex-wrap: wrap; gap: 1rem;
+        }
+        .footer-social { display: flex; gap: 1rem; }
+        .footer-social a {
+            color: var(--text-muted); text-decoration: none; font-size: 0.85rem;
             transition: color 0.2s;
         }
+        .footer-social a:hover { color: var(--accent); }
 
-        .footer-section a:hover {
-            color: var(--accent);
-        }
-
-        .footer-bottom {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 2rem 2rem 0;
-            border-top: 1px solid var(--border);
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        /* Responsive */
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-                position: absolute;
-                top: 100%;
-                left: 0;
-                right: 0;
-                background: rgba(9, 9, 11, 0.98);
-                flex-direction: column;
-                padding: 2rem;
-                border-bottom: 1px solid var(--border);
-            }
+            .nav-links { display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(9,9,11,0.98); backdrop-filter: blur(16px); flex-direction: column; padding: 1.5rem 2rem; gap: 1rem; border-bottom: 1px solid var(--border); }
+            .nav-links.open { display: flex; }
+            .hamburger { display: flex; }
+            .hero { padding: 8rem 0 4rem; min-height: auto; }
+            .hero h1 { font-size: 2rem; }
+            .hero-stats { gap: 1.5rem; }
+            .steps { flex-direction: column; align-items: center; }
+            .step-connector { transform: rotate(90deg); min-width: auto; margin: -0.5rem 0; }
+            .cap-grid { grid-template-columns: 1fr; }
+            .pricing-grid { grid-template-columns: 1fr; max-width: 400px; }
+            .footer-grid { grid-template-columns: 1fr 1fr; gap: 2rem; }
+            .demo-iframe { height: 400px; }
+            section { padding: 4rem 0; }
+        }
 
-            .nav-links.active {
-                display: flex;
-            }
-
-            .menu-toggle {
-                display: flex;
-            }
-
-            .hero {
-                padding-top: 8rem;
-            }
-
-            section {
-                padding: 4rem 0;
-            }
-
-            .stats {
-                gap: 2rem;
-            }
-
-            .steps .arrow {
-                display: none;
-            }
-
-            .chat-message {
-                max-width: 95%;
-            }
+        @media (max-width: 480px) {
+            .container { padding: 0 1rem; }
+            .hero h1 { font-size: 1.7rem; }
+            .footer-grid { grid-template-columns: 1fr; }
+            .trust-grid { grid-template-columns: 1fr 1fr; }
         }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav>
-        <div class="nav-container">
-            <div class="logo">⚖️ Legal AI</div>
-            <div class="menu-toggle" onclick="toggleMenu()">
-                <span></span>
-                <span></span>
-                <span></span>
+
+<!-- ===== NAVIGATION ===== -->
+<nav id="navbar">
+    <div class="nav-inner">
+        <a href="#" class="logo">
+            <div class="logo-icon">⚖️</div>
+            Legal AI Agent
+        </a>
+        <button class="hamburger" id="menuToggle" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="navLinks">
+            <li><a href="#capabilities">Tính năng</a></li>
+            <li><a href="#how-it-works">Cách hoạt động</a></li>
+            <li><a href="#demo">Demo</a></li>
+            <li><a href="#pricing">Bảng giá</a></li>
+            <li><a href="/static/app.html" class="nav-cta">Dùng thử →</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero" id="hero">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="container hero-content">
+        <div class="hero-badge"><span class="dot"></span> Đang hoạt động — Phiên bản mới nhất</div>
+        <h1>AI Legal Agent<br><span class="gradient-text">Bộ phận pháp lý AI<br>cho doanh nghiệp Việt Nam</span></h1>
+        <p class="subtitle">Không chỉ chatbot. Đây là Agent thông minh — tự tra cứu luật, rà soát hợp đồng, soạn văn bản, quản lý rủi ro pháp lý.</p>
+        <div class="cta-group">
+            <a href="/static/app.html" class="btn btn-primary">Dùng thử miễn phí →</a>
+            <a href="#demo" class="btn btn-ghost">▶ Xem demo</a>
+        </div>
+        <div class="hero-stats">
+            <div class="hero-stat"><span class="val">40,000+</span><span class="lbl">Văn bản pháp luật</span></div>
+            <div class="hero-stat"><span class="val">97,000+</span><span class="lbl">Đoạn luật đã index</span></div>
+            <div class="hero-stat"><span class="val">24/7</span><span class="lbl">Luôn sẵn sàng</span></div>
+            <div class="hero-stat"><span class="val">&lt;5s</span><span class="lbl">Thời gian phản hồi</span></div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== CAPABILITIES ===== -->
+<section class="capabilities" id="capabilities">
+    <div class="container">
+        <div class="reveal">
+            <p class="section-label">Agent Capabilities</p>
+            <h2 class="section-title">7 công cụ AI pháp lý trong một Agent</h2>
+            <p class="section-subtitle">Mỗi công cụ là một chuyên gia. Kết hợp lại, bạn có một bộ phận pháp lý hoàn chỉnh.</p>
+        </div>
+        <div class="cap-grid">
+            <div class="cap-card reveal">
+                <span class="cap-icon">🔍</span>
+                <h3>Tra cứu văn bản pháp luật</h3>
+                <p>Tìm kiếm thông minh trong 40,000+ văn bản pháp luật Việt Nam. Trích dẫn chính xác điều, khoản, nghị định.</p>
+                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
             </div>
-            <div class="nav-links" id="navLinks">
-                <a href="#features">Tính năng</a>
-                <a href="#pricing">Bảng giá</a>
-                <a href="#api">API</a>
-                <a href="#contact">Liên hệ</a>
-                <a href="/static/app.html" class="nav-btn">Đăng nhập</a>
+            <div class="cap-card reveal">
+                <span class="cap-icon">📄</span>
+                <h3>Rà soát hợp đồng với AI</h3>
+                <p>Upload hợp đồng, AI tự động phát hiện rủi ro, điều khoản bất lợi, và đề xuất chỉnh sửa.</p>
+                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
+            </div>
+            <div class="cap-card reveal">
+                <span class="cap-icon">✍️</span>
+                <h3>Soạn thảo văn bản pháp lý</h3>
+                <p>Tạo hợp đồng, công văn, quyết định từ mẫu chuẩn. Tùy chỉnh theo yêu cầu cụ thể.</p>
+                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
+            </div>
+            <div class="cap-card reveal">
+                <span class="cap-icon">📋</span>
+                <h3>Quản lý hợp đồng thông minh</h3>
+                <p>Theo dõi thời hạn, gia hạn, và trạng thái tất cả hợp đồng. Nhắc nhở tự động.</p>
+                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
+            </div>
+            <div class="cap-card reveal">
+                <span class="cap-icon">⚠️</span>
+                <h3>Phân tích rủi ro pháp lý</h3>
+                <p>Đánh giá rủi ro tuân thủ, phát hiện vi phạm tiềm ẩn, đề xuất biện pháp phòng ngừa.</p>
+                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
+            </div>
+            <div class="cap-card reveal">
+                <span class="cap-icon">📂</span>
+                <h3>Quản lý tài liệu nội bộ</h3>
+                <p>Lưu trữ, phân loại, tìm kiếm tài liệu pháp lý nội bộ. Bảo mật và có kiểm soát.</p>
+                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
+            </div>
+            <div class="cap-card reveal">
+                <span class="cap-icon">🏢</span>
+                <h3>Hồ sơ pháp lý công ty</h3>
+                <p>Quản lý giấy phép, đăng ký kinh doanh, và toàn bộ hồ sơ pháp lý doanh nghiệp.</p>
+                <a href="/static/app.html" class="cap-link">Xem thêm →</a>
             </div>
         </div>
-    </nav>
+    </div>
+</section>
 
-    <!-- Hero Section -->
-    <section class="hero visible">
-        <div class="gradient-orb"></div>
-        <div class="container">
-            <div class="hero-content">
-                <h1>Trợ Lý Pháp Lý AI<br>Cho Doanh Nghiệp Việt Nam</h1>
-                <p>Tư vấn pháp luật, soạn thảo văn bản, rà soát hợp đồng — tất cả bằng AI</p>
-                <div class="cta-buttons">
-                    <a href="/static/app.html" class="btn-primary">Dùng thử miễn phí</a>
-                    <a href="#demo" class="btn-outline">Xem demo</a>
-                </div>
-                <div class="stats">
-                    <div class="stat-item">
-                        <span class="stat-value">40,000+</span>
-                        <span class="stat-label">văn bản pháp luật</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value">&lt; 15s</span>
-                        <span class="stat-label">phản hồi</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value">99.9%</span>
-                        <span class="stat-label">uptime</span>
-                    </div>
-                </div>
+<!-- ===== HOW IT WORKS ===== -->
+<section class="how-it-works" id="how-it-works">
+    <div class="container">
+        <div class="reveal">
+            <p class="section-label">How It Works</p>
+            <h2 class="section-title">3 bước đơn giản</h2>
+            <p class="section-subtitle">Từ câu hỏi đến câu trả lời chuyên sâu — chỉ trong vài giây.</p>
+        </div>
+        <div class="steps reveal">
+            <div class="step">
+                <div class="step-num">1</div>
+                <h3>Đặt câu hỏi</h3>
+                <p>Hỏi bất kỳ điều gì về pháp luật Việt Nam bằng ngôn ngữ tự nhiên.</p>
+            </div>
+            <div class="step-connector">→</div>
+            <div class="step">
+                <div class="step-num">2</div>
+                <h3>Agent tự tra cứu</h3>
+                <p>AI tự động tìm luật liên quan, đọc hợp đồng, phân tích dữ liệu.</p>
+            </div>
+            <div class="step-connector">→</div>
+            <div class="step">
+                <div class="step-num">3</div>
+                <h3>Nhận câu trả lời chuyên sâu</h3>
+                <p>Trả lời chi tiết với trích dẫn điều luật cụ thể và đề xuất hành động.</p>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <!-- Features Section -->
-    <section class="features" id="features">
-        <div class="container">
-            <h2 class="section-title">Tính năng nổi bật</h2>
-            <div class="features-grid">
-                <div class="feature-card">
-                    <span class="feature-icon">💬</span>
-                    <h3>Tư vấn pháp luật</h3>
-                    <p>Hỏi đáp pháp lý 24/7 với AI được huấn luyện trên hệ thống pháp luật Việt Nam</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">📄</span>
-                    <h3>Soạn thảo văn bản</h3>
-                    <p>Tạo hợp đồng, quyết định, công văn chuyên nghiệp chỉ trong vài giây</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">🔍</span>
-                    <h3>Rà soát hợp đồng</h3>
-                    <p>AI phát hiện rủi ro, điều khoản thiếu và đưa ra khuyến nghị cải thiện</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">📚</span>
-                    <h3>Tra cứu luật</h3>
-                    <p>40,000+ văn bản pháp luật với tìm kiếm thông minh và trích dẫn chính xác</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">🔑</span>
-                    <h3>Cloud API</h3>
-                    <p>Tích hợp dễ dàng vào hệ thống ERP, CRM của doanh nghiệp bạn</p>
-                </div>
-                <div class="feature-card">
-                    <span class="feature-icon">🏢</span>
-                    <h3>Multi-tenant</h3>
-                    <p>Quản lý nhiều công ty, phân quyền linh hoạt cho từng thành viên</p>
-                </div>
+<!-- ===== DEMO ===== -->
+<section class="demo-section" id="demo">
+    <div class="container">
+        <div class="reveal">
+            <p class="section-label">Live Demo</p>
+            <h2 class="section-title">Thử ngay — không cần đăng ký</h2>
+            <p class="section-subtitle">Trải nghiệm trực tiếp AI Legal Agent.</p>
+        </div>
+        <div class="demo-frame-wrapper reveal">
+            <div class="demo-frame-bar">
+                <span class="demo-dot r"></span>
+                <span class="demo-dot y"></span>
+                <span class="demo-dot g"></span>
+                <span>legal-ai-agent — app</span>
+            </div>
+            <iframe src="/static/app.html" class="demo-iframe" loading="lazy" title="Legal AI Agent Demo"></iframe>
+        </div>
+    </div>
+</section>
+
+<!-- ===== PRICING ===== -->
+<section id="pricing">
+    <div class="container">
+        <div class="reveal">
+            <p class="section-label">Pricing</p>
+            <h2 class="section-title">Chọn gói phù hợp</h2>
+            <p class="section-subtitle">Bắt đầu miễn phí. Nâng cấp khi cần.</p>
+        </div>
+        <div class="pricing-grid reveal">
+            <!-- Starter -->
+            <div class="price-card">
+                <h3>Starter</h3>
+                <div class="price-amount">Miễn phí</div>
+                <div class="price-period">Bắt đầu ngay, không cần thẻ</div>
+                <ul class="price-features">
+                    <li><span class="check">✓</span> 20 câu hỏi / tháng</li>
+                    <li><span class="check">✓</span> 5 hợp đồng</li>
+                    <li><span class="check">✓</span> 10 tài liệu</li>
+                    <li><span class="cross">✗</span> Rà soát hợp đồng AI</li>
+                    <li><span class="cross">✗</span> Soạn thảo AI</li>
+                    <li><span class="cross">✗</span> API Access</li>
+                    <li><span class="check">✓</span> Hỗ trợ Email</li>
+                </ul>
+                <a href="/static/app.html" class="btn btn-ghost">Bắt đầu miễn phí</a>
+            </div>
+            <!-- Professional -->
+            <div class="price-card featured">
+                <div class="price-badge">Phổ biến nhất</div>
+                <h3>Professional</h3>
+                <div class="price-amount">499.000<span class="currency">đ</span></div>
+                <div class="price-period">/ tháng</div>
+                <ul class="price-features">
+                    <li><span class="check">✓</span> 500 câu hỏi / tháng</li>
+                    <li><span class="check">✓</span> 50 hợp đồng</li>
+                    <li><span class="check">✓</span> 100 tài liệu</li>
+                    <li><span class="check">✓</span> Rà soát hợp đồng AI</li>
+                    <li><span class="check">✓</span> Soạn thảo AI</li>
+                    <li><span class="check">✓</span> API Access</li>
+                    <li><span class="check">✓</span> Hỗ trợ Priority</li>
+                </ul>
+                <a href="/static/app.html" class="btn btn-primary">Dùng thử 14 ngày →</a>
+            </div>
+            <!-- Enterprise -->
+            <div class="price-card">
+                <h3>Enterprise</h3>
+                <div class="price-amount">Liên hệ</div>
+                <div class="price-period">Tùy chỉnh theo nhu cầu</div>
+                <ul class="price-features">
+                    <li><span class="check">✓</span> Không giới hạn câu hỏi</li>
+                    <li><span class="check">✓</span> Không giới hạn hợp đồng</li>
+                    <li><span class="check">✓</span> Không giới hạn tài liệu</li>
+                    <li><span class="check">✓</span> Rà soát hợp đồng AI</li>
+                    <li><span class="check">✓</span> Soạn thảo AI</li>
+                    <li><span class="check">✓</span> API Access</li>
+                    <li><span class="check">✓</span> Hỗ trợ Dedicated</li>
+                </ul>
+                <a href="mailto:contact@legal-ai.vn" class="btn btn-ghost">Liên hệ tư vấn</a>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <!-- How It Works -->
-    <section class="how-it-works">
-        <div class="container">
-            <h2 class="section-title">Cách thức hoạt động</h2>
-            <div class="steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <h3>Đăng ký tài khoản</h3>
-                    <p>Tạo tài khoản miễn phí chỉ trong 30 giây</p>
-                </div>
-                <div class="arrow">→</div>
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <h3>Hỏi câu hỏi pháp lý</h3>
-                    <p>Đặt câu hỏi hoặc upload hợp đồng cần rà soát</p>
-                </div>
-                <div class="arrow">→</div>
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <h3>Nhận câu trả lời có trích dẫn</h3>
-                    <p>AI phản hồi kèm căn cứ pháp lý chính xác</p>
-                </div>
+<!-- ===== TRUST ===== -->
+<section class="trust" id="trust">
+    <div class="container">
+        <div class="reveal">
+            <p class="section-label">Trusted Data</p>
+            <h2 class="section-title">Dữ liệu pháp luật lớn nhất Việt Nam</h2>
+        </div>
+        <div class="trust-grid reveal">
+            <div class="trust-card">
+                <span class="trust-val">40,000+</span>
+                <span class="trust-lbl">Văn bản pháp luật</span>
+            </div>
+            <div class="trust-card">
+                <span class="trust-val">97,000+</span>
+                <span class="trust-lbl">Đoạn luật đã index</span>
+            </div>
+            <div class="trust-card">
+                <span class="trust-val">24/7</span>
+                <span class="trust-lbl">Cập nhật liên tục</span>
+            </div>
+            <div class="trust-card">
+                <span class="trust-val">🔒</span>
+                <span class="trust-lbl">Bảo mật dữ liệu</span>
             </div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <!-- Demo Section -->
-    <section class="demo" id="demo">
-        <div class="container">
-            <h2 class="section-title">Trải nghiệm thực tế</h2>
-            <div class="demo-container">
-                <div class="chat-bubble user">
-                    <div class="chat-message">
-                        Thời gian thử việc tối đa là bao lâu?
-                    </div>
-                </div>
-                <div class="chat-bubble ai">
-                    <div class="chat-message">
-                        Theo Điều 25 Bộ luật Lao động 2019, thời gian thử việc tối đa được quy định như sau:<br><br>
-                        • Công việc yêu cầu trình độ từ cao đẳng trở lên: <strong>60 ngày</strong><br>
-                        • Công việc yêu cầu trình độ trung cấp, công nhân kỹ thuật: <strong>30 ngày</strong><br>
-                        • Công việc khác: <strong>6 ngày làm việc</strong><br><br>
-                        Lưu ý: Mỗi công việc chỉ được thử việc một lần.
-                    </div>
-                </div>
-                <div class="citations">
-                    <div class="citation-card">
-                        <strong>Điều 25 BLLĐ 2019</strong> - Thời hạn thử việc
-                    </div>
-                    <div class="citation-card">
-                        <strong>Khoản 1, Điều 25</strong> - Quy định cụ thể thời gian
-                    </div>
-                </div>
+<!-- ===== CTA BANNER ===== -->
+<section class="cta-banner">
+    <div class="container reveal">
+        <h2>Sẵn sàng số hóa bộ phận pháp lý?</h2>
+        <p>Bắt đầu miễn phí ngay hôm nay. Không cần thẻ tín dụng.</p>
+        <a href="/static/app.html" class="btn btn-primary">Dùng thử miễn phí →</a>
+    </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+    <div class="container">
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <a href="#" class="logo">
+                    <div class="logo-icon">⚖️</div>
+                    Legal AI Agent
+                </a>
+                <p>Bộ phận pháp lý AI cho doanh nghiệp Việt Nam. Tra cứu luật, rà soát hợp đồng, soạn văn bản — tất cả bằng AI.</p>
             </div>
-        </div>
-    </section>
-
-    <!-- Pricing Section -->
-    <section class="pricing" id="pricing">
-        <div class="container">
-            <h2 class="section-title">Bảng giá phù hợp mọi quy mô</h2>
-            <div class="pricing-grid">
-                <div class="pricing-card">
-                    <h3>Starter</h3>
-                    <div class="price">1.500.000₫<span class="price-period">/tháng</span></div>
-                    <ul class="pricing-features">
-                        <li>200 requests/tháng</li>
-                        <li>5 users</li>
-                        <li>Basic support</li>
-                        <li>Tra cứu pháp luật</li>
-                        <li>Tư vấn cơ bản</li>
-                    </ul>
-                    <a href="/static/app.html" class="btn-outline" style="width: 100%; text-align: center;">Bắt đầu</a>
-                </div>
-                <div class="pricing-card popular">
-                    <div class="popular-badge">Phổ biến nhất</div>
-                    <h3>Pro</h3>
-                    <div class="price">3.500.000₫<span class="price-period">/tháng</span></div>
-                    <ul class="pricing-features">
-                        <li>1,000 requests/tháng</li>
-                        <li>20 users</li>
-                        <li>Priority support</li>
-                        <li>Full features + API</li>
-                        <li>Rà soát hợp đồng</li>
-                    </ul>
-                    <a href="/static/app.html" class="btn-primary" style="width: 100%; text-align: center;">Bắt đầu</a>
-                </div>
-                <div class="pricing-card">
-                    <h3>Enterprise</h3>
-                    <div class="price">Liên hệ<span class="price-period"></span></div>
-                    <ul class="pricing-features">
-                        <li>Unlimited requests</li>
-                        <li>Unlimited users</li>
-                        <li>Dedicated support</li>
-                        <li>Custom integration</li>
-                        <li>On-premise option</li>
-                    </ul>
-                    <a href="#contact" class="btn-outline" style="width: 100%; text-align: center;">Liên hệ</a>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Social Proof -->
-    <section class="social-proof">
-        <div class="container">
-            <h2 class="section-title">Được tin dùng bởi các doanh nghiệp Việt Nam</h2>
-            <div class="logos-grid">
-                <div class="company-logo">Công ty A</div>
-                <div class="company-logo">Tập đoàn B</div>
-                <div class="company-logo">Startup C</div>
-                <div class="company-logo">Doanh nghiệp D</div>
-            </div>
-        </div>
-    </section>
-
-    <!-- CTA Section -->
-    <section class="cta-section">
-        <div class="container">
-            <h2>Bắt đầu miễn phí ngay hôm nay</h2>
-            <a href="/static/app.html" class="btn-primary">Đăng ký miễn phí</a>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer id="contact">
-        <div class="footer-content">
-            <div class="footer-section">
-                <h4>⚖️ Legal AI</h4>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
-                    Trợ lý pháp lý AI cho doanh nghiệp Việt Nam
-                </p>
-            </div>
-            <div class="footer-section">
+            <div class="footer-col">
                 <h4>Sản phẩm</h4>
-                <ul>
-                    <li><a href="#features">Tính năng</a></li>
-                    <li><a href="#pricing">Bảng giá</a></li>
-                    <li><a href="#demo">Demo</a></li>
-                    <li><a href="/static/admin.html">Admin</a></li>
-                </ul>
+                <a href="#capabilities">Tính năng</a>
+                <a href="#pricing">Bảng giá</a>
+                <a href="#demo">Demo</a>
+                <a href="/static/app.html">Ứng dụng</a>
             </div>
-            <div class="footer-section" id="api">
+            <div class="footer-col">
                 <h4>Tài nguyên</h4>
-                <ul>
-                    <li><a href="#">API Docs</a></li>
-                    <li><a href="#">Blog</a></li>
-                    <li><a href="#">Hướng dẫn</a></li>
-                    <li><a href="#">Câu hỏi thường gặp</a></li>
-                </ul>
+                <a href="#">API Docs</a>
+                <a href="#">Blog</a>
+                <a href="#">Hướng dẫn</a>
+                <a href="#">Changelog</a>
             </div>
-            <div class="footer-section">
+            <div class="footer-col">
                 <h4>Liên hệ</h4>
-                <ul>
-                    <li><a href="mailto:contact@legalai.vn">contact@legalai.vn</a></li>
-                    <li><a href="tel:+84123456789">+84 123 456 789</a></li>
-                    <li><a href="#">Hà Nội, Việt Nam</a></li>
-                </ul>
+                <a href="mailto:contact@legal-ai.vn">Email</a>
+                <a href="#">Facebook</a>
+                <a href="#">LinkedIn</a>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2026 Legal AI Agent. All rights reserved.</p>
+            <span>© 2025 Legal AI Agent. All rights reserved.</span>
+            <span>Powered by Claude AI</span>
         </div>
-    </footer>
+    </div>
+</footer>
 
-    <script>
-        // Mobile menu toggle
-        function toggleMenu() {
-            const navLinks = document.getElementById('navLinks');
-            navLinks.classList.toggle('active');
-        }
+<script>
+    // Navbar scroll effect
+    const nav = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+        nav.classList.toggle('scrolled', window.scrollY > 50);
+    });
 
-        // Intersection Observer for fade-in animations
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -100px 0px'
-        };
+    // Mobile menu
+    const menuToggle = document.getElementById('menuToggle');
+    const navLinks = document.getElementById('navLinks');
+    menuToggle.addEventListener('click', () => {
+        navLinks.classList.toggle('open');
+    });
+    // Close menu on link click
+    navLinks.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => navLinks.classList.remove('open'));
+    });
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
+    // Intersection Observer for reveal animations
+    const revealEls = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry, i) => {
+            if (entry.isIntersecting) {
+                // Stagger animation for cards within the same parent
+                const siblings = entry.target.parentElement.querySelectorAll('.reveal');
+                let delay = 0;
+                siblings.forEach((sib, idx) => {
+                    if (sib === entry.target) delay = idx * 80;
+                });
+                setTimeout(() => {
                     entry.target.classList.add('visible');
-                }
-            });
-        }, observerOptions);
-
-        // Observe all sections except hero (already visible)
-        document.querySelectorAll('section:not(.hero)').forEach(section => {
-            observer.observe(section);
-        });
-
-        // Smooth scroll for anchor links
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                const href = this.getAttribute('href');
-                if (href !== '#' && href !== '#contact' && href !== '#api') {
-                    e.preventDefault();
-                    const target = document.querySelector(href);
-                    if (target) {
-                        target.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                }
-                // Close mobile menu if open
-                document.getElementById('navLinks').classList.remove('active');
-            });
-        });
-
-        // Add scroll effect to nav
-        let lastScroll = 0;
-        window.addEventListener('scroll', () => {
-            const nav = document.querySelector('nav');
-            const currentScroll = window.pageYOffset;
-
-            if (currentScroll > 100) {
-                nav.style.boxShadow = '0 2px 20px rgba(0,0,0,0.3)';
-            } else {
-                nav.style.boxShadow = 'none';
+                }, delay);
+                observer.unobserve(entry.target);
             }
-
-            lastScroll = currentScroll;
         });
-    </script>
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    revealEls.forEach(el => observer.observe(el));
+
+    // Make hero always visible (above fold)
+    document.querySelector('.hero').style.opacity = '1';
+</script>
+
 </body>
 </html>
