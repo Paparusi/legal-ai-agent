@@ -2002,6 +2002,28 @@
         </div>
     </div>
 
+    <!-- Batch Upload Modal -->
+    <div class="batch-upload-modal hidden" id="batchUploadModal">
+        <div class="batch-upload-content">
+            <div class="batch-upload-header">
+                <h2>📦 Upload nhiều hợp đồng</h2>
+                <button onclick="closeBatchUpload()">✕</button>
+            </div>
+            <div class="batch-dropzone" id="batchDropzone" ondrop="handleBatchDrop(event)" ondragover="event.preventDefault()" ondragenter="this.classList.add('active')" ondragleave="this.classList.remove('active')">
+                <div class="batch-drop-icon">📁</div>
+                <p>Kéo thả files vào đây hoặc</p>
+                <button onclick="document.getElementById('batchFileInput').click()">Chọn files</button>
+                <input type="file" id="batchFileInput" multiple accept=".pdf,.docx,.doc,.txt" style="display:none" onchange="handleBatchFiles(this.files)">
+                <span class="batch-hint">PDF, DOCX, TXT — Tối đa 10 files, mỗi file ≤ 10MB</span>
+            </div>
+            <div class="batch-file-list" id="batchFileList"></div>
+            <div class="batch-footer hidden" id="batchFooter">
+                <span id="batchStatusText">0 files đã chọn</span>
+                <button class="btn btn-primary" onclick="uploadBatch()">📤 Upload tất cả</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ===== GLOBAL STATE =====
         let currentUser = null;
@@ -2342,6 +2364,9 @@
                 <div class="context-menu-item" onclick="openRiskDashboard(); this.closest('.context-menu').remove();">📊 Tổng quan rủi ro</div>
                 <div class="context-menu-item" onclick="openAnalytics(); this.closest('.context-menu').remove();">📈 Thống kê</div>
                 <div class="context-menu-item" onclick="openTabByType('api'); this.closest('.context-menu').remove();">🔑 API</div>
+                <div class="context-menu-item" onclick="openCalendar(); this.closest('.context-menu').remove();">📅 Lịch hợp đồng</div>
+                <div class="context-menu-item" onclick="openAuditLog(); this.closest('.context-menu').remove();">📋 Nhật ký</div>
+                <div class="context-menu-item" onclick="openBatchUpload(); this.closest('.context-menu').remove();">📦 Upload nhiều file</div>
             `;
             document.body.appendChild(menu);
             setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 10);
@@ -4029,7 +4054,10 @@ console.log(await resp.json());</code></pre>
             { cmd: '/so-sanh', icon: '⚖️', desc: 'So sánh hợp đồng', action: function() { openTabByType('contracts'); } },
             { cmd: '/mau', icon: '📋', desc: 'Tạo mẫu văn bản', action: function() { openTabByType('templates'); } },
             { cmd: '/moi', icon: '➕', desc: 'Cuộc hội thoại mới', action: function() { startNewChat(); } },
-            { cmd: '/upload', icon: '📤', desc: 'Tải lên hợp đồng', action: function() { openUploadModal(); } }
+            { cmd: '/upload', icon: '📤', desc: 'Tải lên hợp đồng', action: function() { openUploadModal(); } },
+            { cmd: '/lich', icon: '📅', desc: 'Lịch hợp đồng', action: function() { openCalendar(); } },
+            { cmd: '/nhatky', icon: '📋', desc: 'Nhật ký hoạt động', action: function() { openAuditLog(); } },
+            { cmd: '/batch', icon: '📦', desc: 'Upload nhiều file', action: function() { openBatchUpload(); } }
         ];
 
         function handleSlashCommands(textarea) {
@@ -4122,7 +4150,10 @@ console.log(await resp.json());</code></pre>
             { icon: '📈', label: 'Thống kê sử dụng', hint: '', category: 'Lệnh', action: function() { openAnalytics(); } },
             { icon: '⚙️', label: 'Cài đặt', hint: '', category: 'Lệnh', action: function() { openSettingsModal(); } },
             { icon: '🌙', label: 'Đổi giao diện sáng/tối', hint: '', category: 'Lệnh', action: function() { toggleTheme(); } },
-            { icon: '💬', label: 'Focus chat', hint: 'Ctrl+/', category: 'Lệnh', action: function() { document.getElementById('chatInput').focus(); } }
+            { icon: '💬', label: 'Focus chat', hint: 'Ctrl+/', category: 'Lệnh', action: function() { document.getElementById('chatInput').focus(); } },
+            { icon: '📅', label: 'Lịch hợp đồng', hint: '', category: 'Lệnh', action: function() { openCalendar(); } },
+            { icon: '📋', label: 'Nhật ký hoạt động', hint: '', category: 'Lệnh', action: function() { openAuditLog(); } },
+            { icon: '📦', label: 'Upload nhiều file', hint: '', category: 'Lệnh', action: function() { openBatchUpload(); } }
         ];
 
         function filterCommandPalette(query) {
@@ -5299,6 +5330,309 @@ console.log(await resp.json());</code></pre>
                 }
             }
         });
+
+        // ===== CONTRACT CALENDAR =====
+        var calYear, calMonth;
+
+        function initCalendar() {
+            var now = new Date();
+            calYear = now.getFullYear();
+            calMonth = now.getMonth();
+        }
+
+        function openCalendar() {
+            if (!calYear) initCalendar();
+            var tabId = 'calendar';
+            var existing = openTabs.find(function(t) { return t.id === tabId; });
+            if (!existing) {
+                openTabs.push({ id: tabId, title: '📅 Lịch hợp đồng', icon: '📅', type: 'calendar' });
+            }
+            renderTabs();
+            switchTab(tabId);
+            renderCalendar();
+        }
+
+        function calendarPrevMonth() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); }
+        function calendarNextMonth() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); }
+        function calendarToday() { var now = new Date(); calYear = now.getFullYear(); calMonth = now.getMonth(); renderCalendar(); }
+
+        async function renderCalendar() {
+            var months = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+            var titleEl = document.getElementById('calendarTitle');
+            if (titleEl) titleEl.textContent = months[calMonth] + ', ' + calYear;
+
+            var token = localStorage.getItem('token');
+            var events = [];
+            try {
+                var resp = await fetch('/v1/contracts/calendar?year=' + calYear + '&month=' + (calMonth + 1), {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (resp.ok) {
+                    var data = await resp.json();
+                    events = data.events || [];
+                }
+            } catch (e) {}
+
+            var firstDay = new Date(calYear, calMonth, 1).getDay();
+            var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+            var today = new Date();
+
+            var html = '';
+            var prevMonthDays = new Date(calYear, calMonth, 0).getDate();
+            for (var i = firstDay - 1; i >= 0; i--) {
+                html += '<div class="cal-day other-month">' + (prevMonthDays - i) + '</div>';
+            }
+
+            for (var d = 1; d <= daysInMonth; d++) {
+                var dateStr = calYear + '-' + String(calMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+                var isToday = today.getFullYear() === calYear && today.getMonth() === calMonth && today.getDate() === d;
+                var dayEvents = events.filter(function(e) { return e.date === dateStr; });
+                var hasStart = dayEvents.some(function(e) { return e.type === 'start'; });
+                var hasEnd = dayEvents.some(function(e) { return e.type === 'end'; });
+
+                var classes = 'cal-day';
+                if (isToday) classes += ' today';
+                if (hasStart && hasEnd) classes += ' has-event has-both';
+                else if (hasStart) classes += ' has-event has-start';
+                else if (hasEnd) classes += ' has-event has-end';
+
+                var titles = dayEvents.map(function(e) { return e.title; }).join(', ');
+                html += '<div class="' + classes + '" onclick="showDayEvents(\'' + dateStr + '\')" title="' + escapeHtml(titles) + '">' + d + '</div>';
+            }
+
+            var totalCells = firstDay + daysInMonth;
+            var remaining = 7 - (totalCells % 7);
+            if (remaining < 7) {
+                for (var j = 1; j <= remaining; j++) {
+                    html += '<div class="cal-day other-month">' + j + '</div>';
+                }
+            }
+
+            var daysEl = document.getElementById('calendarDays');
+            if (daysEl) daysEl.innerHTML = html;
+
+            var eventsEl = document.getElementById('calendarEventsList');
+            if (eventsEl) {
+                events.sort(function(a, b) { return a.date.localeCompare(b.date); });
+                eventsEl.innerHTML = events.map(function(e) {
+                    var warnClass = e.type === 'end' && e.days_left <= 30 ? 'end-warning' : '';
+                    var badge = '';
+                    if (e.days_left !== undefined) {
+                        badge = '<div class="cal-event-badge">' + (e.days_left > 0 ? 'Còn ' + e.days_left + ' ngày' : 'Đã hết hạn') + '</div>';
+                    }
+                    return '<div class="cal-event ' + e.type + ' ' + warnClass + '" onclick="openContractTab(\'' + e.contract_id + '\')">' +
+                        '<div class="cal-event-date">' + e.date.slice(5) + '</div>' +
+                        '<div class="cal-event-title">' + escapeHtml(e.title) + '</div>' +
+                        badge + '</div>';
+                }).join('') || '<div style="text-align:center;padding:1.5rem;color:var(--text-muted)">Không có sự kiện trong tháng này</div>';
+            }
+        }
+
+        function showDayEvents(dateStr) {
+            // Scroll to events list for that day
+            var eventsEl = document.getElementById('calendarEvents');
+            if (eventsEl) eventsEl.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // ===== AUDIT LOG =====
+        function openAuditLog() {
+            var tabId = 'audit-log';
+            var existing = openTabs.find(function(t) { return t.id === tabId; });
+            if (!existing) {
+                openTabs.push({ id: tabId, title: '📋 Nhật ký', icon: '📋', type: 'audit-log' });
+            }
+            renderTabs();
+            switchTab(tabId);
+            loadAuditLog();
+        }
+
+        async function loadAuditLog() {
+            var token = localStorage.getItem('token');
+            var filterEl = document.getElementById('auditFilter');
+            var filter = filterEl ? filterEl.value : '';
+            try {
+                var url = '/v1/audit-log?limit=50';
+                if (filter) url += '&action=' + filter;
+                var resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+                if (!resp.ok) {
+                    var el = document.getElementById('auditTimeline');
+                    if (el) el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted)">Chưa có hoạt động</div>';
+                    return;
+                }
+                var data = await resp.json();
+
+                var actionLabels = {
+                    login: '🔐 Đăng nhập', upload: '📤 Upload', chat: '💬 Chat AI',
+                    export: '📥 Xuất file', delete: '🗑️ Xóa', view: '👁️ Xem',
+                    create: '✨ Tạo mới', update: '✏️ Cập nhật'
+                };
+
+                var el = document.getElementById('auditTimeline');
+                if (el) {
+                    var logs = data.logs || [];
+                    el.innerHTML = logs.map(function(l) {
+                        return '<div class="audit-entry">' +
+                            '<div class="audit-dot ' + (l.action || '') + '"></div>' +
+                            '<div class="audit-info">' +
+                            '<div class="audit-action">' + (actionLabels[l.action] || l.action || '') + ' ' + (l.resource_type || '') + '</div>' +
+                            '<div class="audit-time">' + (l.created_at ? new Date(l.created_at).toLocaleString('vi-VN') : '') + '</div>' +
+                            '</div></div>';
+                    }).join('') || '<div style="text-align:center;padding:2rem;color:var(--text-muted)">Chưa có hoạt động</div>';
+                }
+            } catch (e) {
+                var el = document.getElementById('auditTimeline');
+                if (el) el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted)">Chưa có hoạt động</div>';
+            }
+        }
+
+        // ===== BATCH UPLOAD =====
+        var batchFiles = [];
+
+        function openBatchUpload() {
+            batchFiles = [];
+            document.getElementById('batchUploadModal').classList.remove('hidden');
+            renderBatchFiles();
+        }
+
+        function closeBatchUpload() {
+            document.getElementById('batchUploadModal').classList.add('hidden');
+            batchFiles = [];
+        }
+
+        function handleBatchDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('active');
+            handleBatchFiles(e.dataTransfer.files);
+        }
+
+        function handleBatchFiles(files) {
+            for (var i = 0; i < files.length; i++) {
+                if (batchFiles.length >= 10) break;
+                if (files[i].size > 10 * 1024 * 1024) continue;
+                batchFiles.push({ file: files[i], status: 'pending' });
+            }
+            renderBatchFiles();
+        }
+
+        function renderBatchFiles() {
+            var el = document.getElementById('batchFileList');
+            var footer = document.getElementById('batchFooter');
+
+            if (batchFiles.length === 0) {
+                el.innerHTML = '';
+                footer.classList.add('hidden');
+                return;
+            }
+
+            footer.classList.remove('hidden');
+            document.getElementById('batchStatusText').textContent = batchFiles.length + ' files đã chọn';
+
+            el.innerHTML = batchFiles.map(function(bf, i) {
+                var statusIcon = bf.status === 'success' ? '✅' : bf.status === 'error' ? '❌' : bf.status === 'uploading' ? '⏳' : '';
+                return '<div class="batch-file-item">' +
+                    '<span>📄</span>' +
+                    '<span class="batch-file-name">' + escapeHtml(bf.file.name) + '</span>' +
+                    '<span class="batch-file-size">' + (bf.file.size / 1024).toFixed(0) + ' KB</span>' +
+                    '<span class="batch-file-status">' + statusIcon + '</span>' +
+                    '<button class="batch-file-remove" onclick="batchFiles.splice(' + i + ',1);renderBatchFiles()">✕</button>' +
+                    '</div>';
+            }).join('');
+        }
+
+        async function uploadBatch() {
+            var token = localStorage.getItem('token');
+            var formData = new FormData();
+            batchFiles.forEach(function(bf) { formData.append('files', bf.file); });
+
+            batchFiles.forEach(function(bf) { bf.status = 'uploading'; });
+            renderBatchFiles();
+
+            try {
+                var resp = await fetch('/v1/contracts/batch-upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    body: formData
+                });
+
+                if (resp.ok) {
+                    var data = await resp.json();
+                    if (data.results) {
+                        data.results.forEach(function(r, i) {
+                            if (batchFiles[i]) batchFiles[i].status = r.status;
+                        });
+                    }
+                    renderBatchFiles();
+                    showToast('Upload xong: ' + (data.success || 0) + '/' + (data.total || batchFiles.length) + ' thành công', data.failed > 0 ? 'warning' : 'success');
+                    if (data.success > 0) { loadContracts(); }
+                } else {
+                    showToast('Lỗi upload', 'error');
+                    batchFiles.forEach(function(bf) { bf.status = 'error'; });
+                    renderBatchFiles();
+                }
+            } catch (e) {
+                showToast('Lỗi: ' + e.message, 'error');
+            }
+        }
+
+        // ===== UNIVERSAL SEARCH IN COMMAND PALETTE =====
+        var _universalSearchTimer = null;
+
+        async function universalSearchInPalette(query) {
+            if (query.length < 2) return;
+            var token = localStorage.getItem('token');
+            try {
+                var resp = await fetch('/v1/search/all?q=' + encodeURIComponent(query), {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!resp.ok) return;
+                var data = await resp.json();
+
+                var resultsEl = document.getElementById('commandResults');
+                if (!resultsEl) return;
+                var results = data.results || [];
+                if (results.length === 0) return; // Don't overwrite existing results if no universal results
+
+                var html = '<div class="command-result-group">Kết quả tìm kiếm</div>';
+                html += results.map(function(r) {
+                    return '<div class="command-result-item" onclick="handleSearchResult(\'' + (r.type || '') + '\', \'' + (r.id || '') + '\')">' +
+                        '<span class="cmd-icon">' + (r.icon || '📄') + '</span>' +
+                        '<div style="flex:1">' +
+                        '<div style="font-size:0.82rem;color:var(--text)">' + escapeHtml(r.name || '') + '</div>' +
+                        '<div style="font-size:0.72rem;color:var(--text-muted)">' + escapeHtml(r.subtitle || '') + '</div>' +
+                        '</div>' +
+                        '<span style="font-size:0.7rem;color:var(--text-muted)">' + escapeHtml(r.type || '') + '</span>' +
+                        '</div>';
+                }).join('') || '<div style="padding:1rem;text-align:center;color:var(--text-muted)">Không tìm thấy</div>';
+
+                // Append to existing results
+                resultsEl.insertAdjacentHTML('beforeend', html);
+            } catch (e) {}
+        }
+
+        function handleSearchResult(type, id) {
+            closeCommandPalette();
+            switch (type) {
+                case 'contract': openContractTab(id); break;
+                case 'document': openDocumentTabWithAnnotations(id); break;
+                case 'law': switchSidebarPanel('search'); break;
+                case 'chat': loadChatSession(id); break;
+                default: break;
+            }
+        }
+
+        // Patch filterCommandPalette to also trigger universal search
+        var _originalFilterCommandPalette = filterCommandPalette;
+        filterCommandPalette = function(query) {
+            _originalFilterCommandPalette(query);
+            // Debounced universal search for unprefixed queries
+            if (_universalSearchTimer) clearTimeout(_universalSearchTimer);
+            var q = query.toLowerCase().trim();
+            if (q.length >= 2 && !q.startsWith('/') && !q.startsWith('@') && !q.startsWith('?')) {
+                _universalSearchTimer = setTimeout(function() {
+                    universalSearchInPalette(q);
+                }, 300);
+            }
+        };
     </script>
 </body>
 </html>
