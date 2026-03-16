@@ -3398,6 +3398,316 @@ async def export_all_data(company: dict = Depends(verify_api_key)):
     )
 
 
+# ============================================
+# Feature: Contract Version Diff
+# ============================================
+
+@app.post("/v1/contracts/{contract_id}/diff")
+async def contract_version_diff(
+    contract_id: str,
+    request: dict = Body(...),
+    company: dict = Depends(verify_api_key)
+):
+    """Compare two versions of a contract or two different contracts"""
+    company_id = str(company["company_id"])
+    compare_with = request.get("compare_with")  # Another contract ID
+    
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get first contract
+        cur.execute("SELECT id, name, content FROM contracts WHERE id = %s AND company_id = %s AND status != 'deleted'", (contract_id, company_id))
+        contract1 = cur.fetchone()
+        if not contract1:
+            raise HTTPException(404, "Hợp đồng không tồn tại")
+        
+        if compare_with:
+            cur.execute("SELECT id, name, content FROM contracts WHERE id = %s AND company_id = %s AND status != 'deleted'", (compare_with, company_id))
+            contract2 = cur.fetchone()
+            if not contract2:
+                raise HTTPException(404, "Hợp đồng so sánh không tồn tại")
+        else:
+            # Compare with previous version from metadata
+            metadata = contract1.get("metadata") or {}
+            versions = metadata.get("versions", [])
+            if not versions:
+                raise HTTPException(400, "Không có phiên bản trước để so sánh")
+            contract2 = {"name": f"v{versions[-1].get('version', '?')}", "content": ""}
+    
+    # Simple diff: split into paragraphs and compare
+    import difflib
+    
+    text1 = (contract1.get("content") or "").strip()
+    text2 = (contract2.get("content") or "").strip()
+    
+    lines1 = text1.split('\n')
+    lines2 = text2.split('\n')
+    
+    differ = difflib.unified_diff(lines2, lines1, lineterm='', 
+                                   fromfile=contract2.get("name", "Phiên bản cũ"),
+                                   tofile=contract1.get("name", "Phiên bản mới"))
+    diff_text = '\n'.join(differ)
+    
+    # Also compute similarity ratio
+    ratio = difflib.SequenceMatcher(None, text1, text2).ratio()
+    
+    # Count changes
+    added = diff_text.count('\n+') - 1  # Exclude the +++ header
+    removed = diff_text.count('\n-') - 1  # Exclude the --- header
+    
+    return {
+        "contract1": {"id": str(contract1["id"]), "name": contract1["name"]},
+        "contract2": {"id": str(contract2.get("id", "")), "name": contract2.get("name", "")},
+        "diff": diff_text,
+        "similarity": round(ratio * 100, 1),
+        "changes": {"added": max(added, 0), "removed": max(removed, 0)},
+    }
+
+
+# ============================================
+# Feature: Smart Suggestions Based on Contract Content
+# ============================================
+
+@app.get("/v1/contracts/{contract_id}/suggestions")
+async def get_contract_suggestions(contract_id: str, company: dict = Depends(verify_api_key)):
+    """AI-powered suggestions for improving a contract"""
+    company_id = str(company["company_id"])
+    
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT name, content, contract_type FROM contracts WHERE id = %s AND company_id = %s AND status != 'deleted'", (contract_id, company_id))
+        contract = cur.fetchone()
+    
+    if not contract:
+        raise HTTPException(404, "Hợp đồng không tồn tại")
+    
+    content = (contract.get("content") or "")[:5000].lower()
+    suggestions = []
+    
+    # Check for common missing clauses
+    clause_checks = [
+        {"name": "Bảo mật thông tin", "keywords": ["bảo mật", "confidential", "bí mật"], "importance": "high",
+         "suggestion": "Nên thêm điều khoản bảo mật thông tin để bảo vệ dữ liệu kinh doanh."},
+        {"name": "Phạt vi phạm", "keywords": ["phạt", "vi phạm", "chế tài"], "importance": "high",
+         "suggestion": "Cần quy định mức phạt cụ thể khi vi phạm hợp đồng (tối đa 8% theo Luật TM 2005)."},
+        {"name": "Bất khả kháng", "keywords": ["bất khả kháng", "force majeure"], "importance": "medium",
+         "suggestion": "Nên có điều khoản bất khả kháng để xử lý các tình huống ngoài kiểm soát."},
+        {"name": "Giải quyết tranh chấp", "keywords": ["tranh chấp", "trọng tài", "tòa án"], "importance": "high",
+         "suggestion": "Cần quy định cơ quan giải quyết tranh chấp (tòa án hoặc trọng tài)."},
+        {"name": "Bồi thường thiệt hại", "keywords": ["bồi thường", "thiệt hại"], "importance": "medium",
+         "suggestion": "Nên quy định rõ phạm vi và giới hạn bồi thường thiệt hại."},
+        {"name": "Điều khoản chấm dứt", "keywords": ["chấm dứt", "hủy bỏ", "kết thúc hợp đồng"], "importance": "high",
+         "suggestion": "Cần quy định điều kiện và thủ tục chấm dứt hợp đồng trước hạn."},
+        {"name": "Bảo hành", "keywords": ["bảo hành", "warranty"], "importance": "low",
+         "suggestion": "Xem xét thêm điều khoản bảo hành cho sản phẩm/dịch vụ."},
+        {"name": "Sở hữu trí tuệ", "keywords": ["sở hữu trí tuệ", "bản quyền", "intellectual property"], "importance": "medium",
+         "suggestion": "Nên quy định quyền sở hữu trí tuệ đối với sản phẩm/tài liệu phát sinh."},
+    ]
+    
+    for check in clause_checks:
+        found = any(kw in content for kw in check["keywords"])
+        if not found:
+            suggestions.append({
+                "type": "missing_clause",
+                "name": check["name"],
+                "importance": check["importance"],
+                "suggestion": check["suggestion"],
+                "action": {"type": "generate_clause", "clause_name": check["name"]}
+            })
+    
+    # Check for vague terms
+    vague_terms = ["hợp lý", "phù hợp", "kịp thời", "nhanh chóng", "sớm nhất"]
+    found_vague = [t for t in vague_terms if t in content]
+    if found_vague:
+        suggestions.append({
+            "type": "vague_terms",
+            "importance": "medium",
+            "suggestion": f"Hợp đồng có các thuật ngữ mơ hồ: {', '.join(found_vague)}. Nên thay bằng con số/thời hạn cụ thể.",
+            "terms": found_vague
+        })
+    
+    # Check for missing dates/amounts
+    import re
+    has_amount = bool(re.search(r'\d+[.,]\d+.*?(VNĐ|đồng|USD|vnđ)', content))
+    if not has_amount:
+        suggestions.append({
+            "type": "missing_amount",
+            "importance": "high",
+            "suggestion": "Không tìm thấy giá trị hợp đồng cụ thể. Cần ghi rõ số tiền và đơn vị tiền tệ."
+        })
+    
+    # Sort by importance
+    importance_order = {"high": 0, "medium": 1, "low": 2}
+    suggestions.sort(key=lambda x: importance_order.get(x.get("importance", "low"), 3))
+    
+    return {
+        "contract_name": contract["name"],
+        "suggestions": suggestions,
+        "total": len(suggestions),
+        "score": max(0, 100 - len(suggestions) * 10)  # Simple quality score
+    }
+
+
+# ============================================
+# Feature: Bulk AI Analysis
+# ============================================
+
+@app.post("/v1/contracts/bulk-analyze")
+async def bulk_analyze_contracts(
+    request: dict = Body(...),
+    company: dict = Depends(verify_api_key)
+):
+    """Analyze multiple contracts and return summary"""
+    company_id = str(company["company_id"])
+    contract_ids = request.get("contract_ids", [])
+    
+    if not contract_ids:
+        # Analyze all contracts
+        with get_db() as conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            cur.execute("SELECT id FROM contracts WHERE company_id = %s AND status != 'deleted' LIMIT 20", (company_id,))
+            contract_ids = [str(r["id"]) for r in cur.fetchall()]
+    
+    results = []
+    for cid in contract_ids[:20]:
+        try:
+            with get_db() as conn:
+                cur = conn.cursor(cursor_factory=RealDictCursor)
+                cur.execute("SELECT id, name, content, contract_type, start_date, end_date, parties FROM contracts WHERE id = %s AND company_id = %s AND status != 'deleted'", (cid, company_id))
+                contract = cur.fetchone()
+            
+            if not contract:
+                continue
+            
+            content = (contract.get("content") or "")[:5000].lower()
+            
+            # Quick risk assessment without AI call
+            risk_score = 0
+            risks = []
+            
+            # Check missing essential clauses
+            essential = {
+                "phạt vi phạm": ["phạt", "vi phạm"],
+                "chấm dứt": ["chấm dứt", "hủy bỏ"],
+                "tranh chấp": ["tranh chấp", "tòa án", "trọng tài"],
+                "bảo mật": ["bảo mật", "confidential"],
+            }
+            for clause, keywords in essential.items():
+                if not any(kw in content for kw in keywords):
+                    risk_score += 15
+                    risks.append(f"Thiếu điều khoản {clause}")
+            
+            # Check dates
+            from datetime import date
+            if contract.get("end_date"):
+                days_left = (contract["end_date"] - date.today()).days
+                if days_left < 0:
+                    risk_score += 30
+                    risks.append(f"Đã hết hạn {abs(days_left)} ngày")
+                elif days_left <= 30:
+                    risk_score += 20
+                    risks.append(f"Sắp hết hạn ({days_left} ngày)")
+            
+            risk_level = "low" if risk_score < 20 else "medium" if risk_score < 50 else "high"
+            
+            results.append({
+                "id": str(contract["id"]),
+                "name": contract["name"],
+                "type": contract.get("contract_type", "N/A"),
+                "parties": contract.get("parties", []),
+                "risk_score": min(risk_score, 100),
+                "risk_level": risk_level,
+                "risks": risks,
+                "start_date": str(contract.get("start_date", "")),
+                "end_date": str(contract.get("end_date", "")),
+            })
+        except Exception as e:
+            print(f"Bulk analyze error for {cid}: {e}")
+    
+    # Summary
+    high_risk = sum(1 for r in results if r["risk_level"] == "high")
+    medium_risk = sum(1 for r in results if r["risk_level"] == "medium")
+    avg_score = sum(r["risk_score"] for r in results) / len(results) if results else 0
+    
+    return {
+        "analyzed": len(results),
+        "summary": {
+            "avg_risk_score": round(avg_score),
+            "high_risk": high_risk,
+            "medium_risk": medium_risk,
+            "low_risk": len(results) - high_risk - medium_risk
+        },
+        "results": sorted(results, key=lambda x: x["risk_score"], reverse=True)
+    }
+
+
+# ============================================
+# Feature: Company Profile Update
+# ============================================
+
+@app.put("/v1/company/profile")
+async def update_company_profile(
+    request: dict = Body(...),
+    company: dict = Depends(verify_api_key)
+):
+    """Update company profile"""
+    company_id = str(company["company_id"])
+    
+    allowed_fields = ["name", "tax_code", "address", "industry", "phone", "email", "website", "representative"]
+    updates = {k: v for k, v in request.items() if k in allowed_fields and v is not None}
+    
+    if not updates:
+        raise HTTPException(400, "Không có thông tin cần cập nhật")
+    
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Check which columns exist
+        cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'companies'")
+        existing_cols = {r["column_name"] for r in cur.fetchall()}
+        
+        valid_updates = {k: v for k, v in updates.items() if k in existing_cols}
+        
+        if not valid_updates:
+            # Store in metadata
+            cur.execute("SELECT metadata FROM companies WHERE id = %s", (company_id,))
+            row = cur.fetchone()
+            metadata = (row.get("metadata") if row else None) or {}
+            metadata.update(updates)
+            cur.execute("UPDATE companies SET metadata = %s WHERE id = %s", (json.dumps(metadata), company_id))
+        else:
+            set_clause = ", ".join(f"{k} = %s" for k in valid_updates)
+            values = list(valid_updates.values()) + [company_id]
+            cur.execute(f"UPDATE companies SET {set_clause} WHERE id = %s", values)
+        
+        conn.commit()
+    
+    return {"updated": list(updates.keys()), "success": True}
+
+@app.get("/v1/company/profile")
+async def get_company_profile(company: dict = Depends(verify_api_key)):
+    """Get company profile"""
+    company_id = str(company["company_id"])
+    
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT * FROM companies WHERE id = %s", (company_id,))
+        profile = cur.fetchone()
+    
+    if not profile:
+        raise HTTPException(404, "Công ty không tồn tại")
+    
+    return {
+        "id": str(profile["id"]),
+        "name": profile.get("name", ""),
+        "tax_code": profile.get("tax_code", ""),
+        "address": profile.get("address", ""),
+        "industry": profile.get("industry", ""),
+        "metadata": profile.get("metadata", {}),
+        "created_at": profile["created_at"].isoformat() if profile.get("created_at") else None
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8080)

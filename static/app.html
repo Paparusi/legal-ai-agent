@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Legal Agent — Trợ lý pháp lý AI cho doanh nghiệp Việt Nam</title>
+    <meta name="theme-color" content="#0f0f17">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icon-192.png">
+    <link rel="apple-touch-icon" href="/static/icon-192.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -2020,14 +2026,15 @@
 
         <!-- Settings Modal -->
         <div id="settingsModal" class="modal-backdrop hidden" onclick="closeModalBackdrop(event, 'settingsModal')">
-            <div class="modal settings-modal-content" onclick="event.stopPropagation()">
+            <div class="modal settings-modal-content" onclick="event.stopPropagation()" style="max-width:650px;">
                 <div class="modal-header">
                     <div class="modal-title">⚙️ Cài đặt</div>
                     <button class="modal-close" onclick="closeModal('settingsModal')">✕</button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="max-height:70vh;overflow-y:auto;">
+                    <!-- Profile / Personal Info -->
                     <div class="settings-card">
-                        <div class="settings-card-title">Thông tin cá nhân</div>
+                        <div class="settings-card-title">👤 Thông tin cá nhân</div>
                         <form class="settings-form" onsubmit="saveSettings(event)">
                             <div class="form-group">
                                 <label class="form-label">Họ tên</label>
@@ -2037,16 +2044,85 @@
                                 <label class="form-label">Email</label>
                                 <input type="email" class="form-input" id="settingsEmail" disabled>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Tên công ty</label>
-                                <input type="text" class="form-input" id="settingsCompany">
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-small">💾 Lưu</button>
+                            <button type="submit" class="btn btn-primary btn-small">💾 Lưu thông tin</button>
                         </form>
                     </div>
+
+                    <!-- Company Info -->
                     <div class="settings-card">
-                        <div class="settings-card-title">Bảo mật</div>
-                        <button class="btn btn-secondary btn-small" onclick="logout()">🚪 Đăng xuất</button>
+                        <div class="settings-card-title">🏢 Thông tin công ty</div>
+                        <form class="settings-form" onsubmit="saveCompanySettings(event)">
+                            <div class="form-group">
+                                <label class="form-label">Tên công ty</label>
+                                <input type="text" class="form-input" id="settingsCompany" placeholder="Công ty TNHH ABC">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Mã số thuế</label>
+                                <input type="text" class="form-input" id="settingsTaxCode" placeholder="0123456789">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Địa chỉ</label>
+                                <input type="text" class="form-input" id="settingsAddress" placeholder="123 Nguyễn Huệ, Q1, TP.HCM">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-small">💾 Lưu công ty</button>
+                        </form>
+                    </div>
+
+                    <!-- Theme Toggle -->
+                    <div class="settings-card">
+                        <div class="settings-card-title">🎨 Giao diện</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;">
+                            <span style="font-size:0.85rem;color:var(--text);">Chế độ tối / sáng</span>
+                            <label style="position:relative;display:inline-block;width:48px;height:26px;cursor:pointer;">
+                                <input type="checkbox" id="settingsThemeToggle" onchange="toggleTheme()" style="opacity:0;width:0;height:0;">
+                                <span style="position:absolute;inset:0;background:var(--bg-elevated);border:1px solid var(--border);border-radius:13px;transition:0.3s;"></span>
+                                <span id="settingsThemeSlider" style="position:absolute;left:3px;top:3px;width:20px;height:20px;background:var(--accent);border-radius:50%;transition:0.3s;"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Notifications -->
+                    <div class="settings-card">
+                        <div class="settings-card-title">🔔 Thông báo</div>
+                        <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                            <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text);cursor:pointer;">
+                                <input type="checkbox" id="notifContractExpiry" checked style="accent-color:var(--accent);width:16px;height:16px;">
+                                Hợp đồng sắp hết hạn
+                            </label>
+                            <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text);cursor:pointer;">
+                                <input type="checkbox" id="notifAIReview" checked style="accent-color:var(--accent);width:16px;height:16px;">
+                                AI hoàn thành rà soát
+                            </label>
+                            <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--text);cursor:pointer;">
+                                <input type="checkbox" id="notifNewLaw" style="accent-color:var(--accent);width:16px;height:16px;">
+                                Cập nhật luật mới
+                            </label>
+                        </div>
+                        <button class="btn btn-secondary btn-small" style="margin-top:0.75rem;" onclick="saveNotifPrefs()">💾 Lưu thông báo</button>
+                    </div>
+
+                    <!-- Data Export -->
+                    <div class="settings-card">
+                        <div class="settings-card-title">📦 Dữ liệu</div>
+                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                            <button class="btn btn-secondary btn-small" onclick="exportAllData()">📥 Xuất tất cả dữ liệu</button>
+                            <button class="btn btn-secondary btn-small" onclick="exportChatHistory()">💬 Xuất lịch sử chat</button>
+                            <button class="btn btn-secondary btn-small" onclick="exportContracts()">📄 Xuất hợp đồng</button>
+                        </div>
+                    </div>
+
+                    <!-- Account Info -->
+                    <div class="settings-card">
+                        <div class="settings-card-title">🔐 Tài khoản</div>
+                        <div style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.82rem;color:var(--text-secondary);">
+                            <div style="display:flex;justify-content:space-between;"><span>Gói dịch vụ:</span><span style="color:var(--accent);font-weight:600;" id="settingsPlan">Trial</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Câu hỏi còn lại:</span><span id="settingsQuota">20/20</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>Ngày đăng ký:</span><span id="settingsCreated">—</span></div>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+                            <button class="btn btn-primary btn-small" onclick="showToast('Liên hệ: contact@legal-ai.vn', 'info')">⬆️ Nâng cấp</button>
+                            <button class="btn btn-secondary btn-small" onclick="logout()">🚪 Đăng xuất</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4036,8 +4112,78 @@ console.log(await resp.json());</code></pre>
         }
 
         // ===== SETTINGS =====
-        function openSettingsModal() { openModal('settingsModal'); }
-        async function saveSettings(event) { event.preventDefault(); showToast('Đã lưu', 'success'); }
+        function openSettingsModal() {
+            openModal('settingsModal');
+            // Load company settings from localStorage
+            const companyData = JSON.parse(localStorage.getItem('companySettings') || '{}');
+            if (companyData.taxCode) document.getElementById('settingsTaxCode').value = companyData.taxCode;
+            if (companyData.address) document.getElementById('settingsAddress').value = companyData.address;
+            // Load notification prefs
+            const notifPrefs = JSON.parse(localStorage.getItem('notifPrefs') || '{"contractExpiry":true,"aiReview":true,"newLaw":false}');
+            document.getElementById('notifContractExpiry').checked = notifPrefs.contractExpiry !== false;
+            document.getElementById('notifAIReview').checked = notifPrefs.aiReview !== false;
+            document.getElementById('notifNewLaw').checked = !!notifPrefs.newLaw;
+            // Theme toggle state
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            document.getElementById('settingsThemeToggle').checked = isLight;
+            const slider = document.getElementById('settingsThemeSlider');
+            if (slider) slider.style.left = isLight ? '25px' : '3px';
+            // Account info
+            document.getElementById('settingsPlan').textContent = currentUser?.plan || 'Trial';
+            document.getElementById('settingsCreated').textContent = currentUser?.created || new Date().toLocaleDateString('vi-VN');
+        }
+        async function saveSettings(event) {
+            event.preventDefault();
+            const name = document.getElementById('settingsName').value;
+            if (currentUser) currentUser.name = name;
+            localStorage.setItem('userName', name);
+            document.getElementById('userName').textContent = name;
+            document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
+            showToast('Đã lưu thông tin cá nhân', 'success');
+        }
+        async function saveCompanySettings(event) {
+            event.preventDefault();
+            const data = {
+                company: document.getElementById('settingsCompany').value,
+                taxCode: document.getElementById('settingsTaxCode').value,
+                address: document.getElementById('settingsAddress').value
+            };
+            localStorage.setItem('companySettings', JSON.stringify(data));
+            if (currentUser) currentUser.company = data.company;
+            document.getElementById('userCompany').textContent = data.company || 'Company';
+            showToast('Đã lưu thông tin công ty', 'success');
+        }
+        function saveNotifPrefs() {
+            const prefs = {
+                contractExpiry: document.getElementById('notifContractExpiry').checked,
+                aiReview: document.getElementById('notifAIReview').checked,
+                newLaw: document.getElementById('notifNewLaw').checked
+            };
+            localStorage.setItem('notifPrefs', JSON.stringify(prefs));
+            showToast('Đã lưu cài đặt thông báo', 'success');
+        }
+        function exportAllData() {
+            const data = { contracts: allContracts, documents: allDocuments, chatSessions: chatSessions, settings: JSON.parse(localStorage.getItem('companySettings') || '{}') };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'legal-ai-export-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
+            URL.revokeObjectURL(url);
+            showToast('Đã xuất tất cả dữ liệu', 'success');
+        }
+        function exportChatHistory() {
+            const blob = new Blob([JSON.stringify(chatSessions, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'chat-history-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
+            URL.revokeObjectURL(url);
+            showToast('Đã xuất lịch sử chat', 'success');
+        }
+        function exportContracts() {
+            const blob = new Blob([JSON.stringify(allContracts, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'contracts-' + new Date().toISOString().slice(0,10) + '.json'; a.click();
+            URL.revokeObjectURL(url);
+            showToast('Đã xuất dữ liệu hợp đồng', 'success');
+        }
 
         // ===== ENHANCED CHAT INPUT =====
         let isStreaming = false;
