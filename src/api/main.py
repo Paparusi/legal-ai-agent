@@ -595,16 +595,17 @@ Hãy trả lời câu hỏi trên theo đúng nguyên tắc đã nêu."""
             
             # Save user question
             cur.execute("""
-                INSERT INTO messages (session_id, role, content, tokens_used, model)
-                VALUES (%s, 'user', %s, 0, '')
-            """, (session_id, query.question))
+                INSERT INTO messages (session_id, company_id, role, content, tokens_used, model)
+                VALUES (%s, %s, 'user', %s, 0, '')
+            """, (session_id, company["company_id"], query.question))
             
             # Save assistant answer with citations
             cur.execute("""
-                INSERT INTO messages (session_id, role, content, citations, confidence, tokens_used, model)
-                VALUES (%s, 'assistant', %s, %s, %s, %s, %s)
+                INSERT INTO messages (session_id, company_id, role, content, citations, confidence, tokens_used, model)
+                VALUES (%s, %s, 'assistant', %s, %s, %s, %s, %s)
             """, (
-                session_id, 
+                session_id,
+                company["company_id"],
                 result["content"], 
                 json.dumps(citations),
                 0.85 if sources else 0.5,
