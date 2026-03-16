@@ -1065,7 +1065,7 @@ async def run_agent_stream_final_text(
         tool_uses = [b for b in content_blocks if b.get("type") == "tool_use"]
 
         if not tool_uses:
-            # Final iteration — re-request with streaming for smooth text delivery
+            # Final iteration — use the text we already got (no double-call!)
             # Send citations
             if all_citations:
                 yield f"data: {json.dumps({'type': 'citations', 'citations': all_citations}, ensure_ascii=False)}\n\n"
@@ -1081,27 +1081,16 @@ async def run_agent_stream_final_text(
             if consulted:
                 yield f"data: {json.dumps({'type': 'sources', 'laws_consulted': consulted[:15]}, ensure_ascii=False)}\n\n"
 
-            # Stream the final text using true streaming
-            try:
-                async for event in _call_claude_with_tools_stream(messages, TOOLS, system=system_prompt):
-                    event_type = event.get("type", "")
-                    if event_type == "content_block_delta":
-                        delta = event.get("delta", {})
-                        if delta.get("type") == "text_delta":
-                            text = delta.get("text", "")
-                            full_response_parts.append(text)
-                            yield f"data: {json.dumps({'type': 'delta', 'text': text}, ensure_ascii=False)}\n\n"
-                    elif event_type == "message_stop":
-                        break
-            except Exception as e:
-                # Fallback: use the non-streamed response
-                text_parts = [b.get("text", "") for b in content_blocks if b.get("type") == "text"]
-                final_text = "".join(text_parts)
-                chunk_size = 20
-                for ci in range(0, len(final_text), chunk_size):
-                    chunk = final_text[ci:ci+chunk_size]
-                    full_response_parts.append(chunk)
-                    yield f"data: {json.dumps({'type': 'delta', 'text': chunk}, ensure_ascii=False)}\n\n"
+            # Use the text from the non-streaming response directly (avoid double API call)
+            text_parts = [b.get("text", "") for b in content_blocks if b.get("type") == "text"]
+            final_text = "".join(text_parts)
+            
+            # Stream it in small chunks for smooth UX
+            chunk_size = 15
+            for ci in range(0, len(final_text), chunk_size):
+                chunk = final_text[ci:ci+chunk_size]
+                full_response_parts.append(chunk)
+                yield f"data: {json.dumps({'type': 'delta', 'text': chunk}, ensure_ascii=False)}\n\n"
 
             # Emit inline actions from tool results
             answer_text = "".join(full_response_parts)
