@@ -21,8 +21,28 @@ import time
 import re as re_module
 import os
 from contextlib import contextmanager
+from collections import defaultdict
 import jwt
 from dotenv import load_dotenv
+
+# ============================================
+# Rate Limiter (in-memory)
+# ============================================
+rate_limits: dict = defaultdict(list)
+
+def check_rate_limit(company_id: str, max_requests: int = 20, window_seconds: int = 60):
+    """Check if company has exceeded rate limit"""
+    now = time.time()
+    rate_limits[company_id] = [t for t in rate_limits[company_id] if now - t < window_seconds]
+    if len(rate_limits[company_id]) >= max_requests:
+        raise HTTPException(status_code=429, detail=f"Rate limit exceeded. Max {max_requests} requests per minute.")
+    rate_limits[company_id].append(now)
+
+# ============================================
+# Search Cache (in-memory, TTL 1 hour)
+# ============================================
+search_cache: dict = {}
+CACHE_TTL = 3600
 
 # Load environment variables from .env file
 load_dotenv()
@@ -55,6 +75,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    duration = time.time() - start
+    if duration > 5:  # Log slow requests
+        print(f"SLOW REQUEST: {request.method} {request.url.path} took {duration:.2f}s")
+    return response
 
 # Include new routers
 app.include_router(auth.router)
@@ -250,12 +279,25 @@ async def call_claude(system_prompt: str, user_message: str, max_tokens: int = 4
                 "output_tokens": data["usage"]["output_tokens"],
                 "model": data["model"]
             }
+        except httpx.TimeoutException:
+            print(f"Claude API timeout")
+            raise HTTPException(status_code=504, detail="Hệ thống đang bận, vui lòng thử lại")
         except httpx.HTTPStatusError as e:
             print(f"Claude API error: {e.response.status_code} - {e.response.text[:200]}")
-            raise
+            if e.response.status_code == 429:
+                raise HTTPException(status_code=429, detail="Đã vượt giới hạn API, vui lòng chờ")
+            elif e.response.status_code == 529:
+                raise HTTPException(status_code=503, detail="Hệ thống đang bận, vui lòng thử lại")
+            raise HTTPException(status_code=502, detail=f"Lỗi AI engine: {e.response.status_code}")
+        except psycopg2.Error as e:
+            print(f"Database error in Claude call: {e}")
+            raise HTTPException(status_code=500, detail="Lỗi kết nối database")
+        except ValueError as e:
+            print(f"Claude config error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
         except Exception as e:
             print(f"Claude call error: {e}")
-            raise
+            raise HTTPException(status_code=500, detail="Hệ thống đang bận, vui lòng thử lại")
 
 
 async def call_claude_stream(system_prompt: str, user_message: str, max_tokens: int = 8192, history: list = None) -> AsyncGenerator[str, None]:
@@ -745,6 +787,24 @@ def multi_query_search(question: str, domains: Optional[List[str]] = None, limit
     return merged[:limit]
 
 
+def cached_search(query: str, domains=None, limit=10):
+    """Cached wrapper around multi_query_search with 1-hour TTL"""
+    domains_key = ",".join(sorted(domains)) if domains else "none"
+    cache_key = hashlib.md5(f"{query}:{domains_key}:{limit}".encode()).hexdigest()
+    now = time.time()
+    if cache_key in search_cache:
+        result, timestamp = search_cache[cache_key]
+        if now - timestamp < CACHE_TTL:
+            return result
+    result = multi_query_search(query, domains, limit)
+    search_cache[cache_key] = (result, now)
+    # Limit cache size
+    if len(search_cache) > 1000:
+        oldest = min(search_cache, key=lambda k: search_cache[k][1])
+        del search_cache[oldest]
+    return result
+
+
 # ============================================
 # Initialize Agent with shared functions
 # ============================================
@@ -762,30 +822,34 @@ legal_agent.init_agent(
 
 # Root endpoint moved to landing page above
 
+@app.get("/favicon.ico", include_in_schema=False)
+@app.get("/favicon.svg", include_in_schema=False)
+async def favicon():
+    return FileResponse(str(static_dir / "favicon.svg"), media_type="image/svg+xml")
+
+@app.get("/health")
 @app.get("/v1/health")
 async def health():
+    status = {"status": "ok", "version": "2.0.0", "timestamp": time.time(), "ai_engine": "claude-sonnet-4"}
     try:
         with get_db() as conn:
             cur = conn.cursor()
-            cur.execute("SELECT COUNT(*) FROM law_documents")
-            doc_count = cur.fetchone()[0]
-            cur.execute("SELECT COUNT(*) FROM law_chunks")
-            chunk_count = cur.fetchone()[0]
-        return {
-            "status": "healthy",
-            "database": {"documents": doc_count, "chunks": chunk_count},
-            "ai_engine": "claude-sonnet-4"
-        }
-    except Exception as e:
-        return {
-            "status": "degraded",
-            "database": {"error": str(e)},
-            "ai_engine": "claude-sonnet-4"
-        }
+            cur.execute("SELECT count(*) FROM law_documents")
+            status["documents"] = cur.fetchone()[0]
+            cur.execute("SELECT count(*) FROM law_chunks")
+            status["chunks"] = cur.fetchone()[0]
+            cur.execute("SELECT count(*) FROM companies")
+            status["companies"] = cur.fetchone()[0]
+            status["database"] = "connected"
+    except Exception:
+        status["database"] = "error"
+        status["status"] = "degraded"
+    return status
 
 @app.post("/v1/legal/ask", response_model=LegalResponse)
 async def legal_ask(query: LegalQuery, company: dict = Depends(verify_api_key)):
     """Tư vấn pháp luật - Legal Q&A (Agent-based with tool use)"""
+    check_rate_limit(str(company["company_id"]))
     
     # Load chat history for multi-turn conversation
     chat_history = []
@@ -894,6 +958,7 @@ async def legal_ask(query: LegalQuery, company: dict = Depends(verify_api_key)):
 @app.post("/v1/legal/ask-stream")
 async def legal_ask_stream(query: LegalQuery, company: dict = Depends(verify_api_key)):
     """Tư vấn pháp luật với streaming SSE - Agent-based with tool status events"""
+    check_rate_limit(str(company["company_id"]))
 
     # Load chat history
     chat_history = []
@@ -1037,8 +1102,8 @@ async def search_detailed(
 
     domain_list = domains.split(",") if domains else None
 
-    # Use multi_query_search for better results
-    results = multi_query_search(q, domain_list, min(limit, 50))
+    # Use cached_search for better results with caching
+    results = cached_search(q, domain_list, min(limit, 50))
 
     elapsed = _time.time() - start_time
 
@@ -1146,6 +1211,7 @@ async def search_detailed(
 @app.post("/v1/legal/review")
 async def contract_review(review: ContractReview, company: dict = Depends(verify_api_key)):
     """Rà soát hợp đồng - Contract Review"""
+    check_rate_limit(str(company["company_id"]))
     
     # Search relevant laws based on contract type
     search_terms = {
@@ -1154,7 +1220,7 @@ async def contract_review(review: ContractReview, company: dict = Depends(verify
         "hop_dong_dich_vu": "hợp đồng dịch vụ thuê khoán",
     }
     search_query = search_terms.get(review.contract_type, "hợp đồng điều khoản")
-    sources = search_laws(search_query, None, 15)
+    sources = cached_search(search_query, None, 15)
     
     context = "\n\n".join([
         f"[{src['law_title']}] {src.get('article', '')}\n{src['content'][:1500]}"
@@ -1214,9 +1280,10 @@ Hãy rà soát hợp đồng trên và trả về kết quả theo format JSON."
 @app.post("/v1/legal/draft")
 async def document_draft(draft: DocumentDraft, company: dict = Depends(verify_api_key)):
     """Soạn thảo văn bản - Document Drafting"""
+    check_rate_limit(str(company["company_id"]))
     
     # Search for templates and relevant laws
-    sources = search_laws(draft.doc_type.replace("_", " "), None, 10)
+    sources = cached_search(draft.doc_type.replace("_", " "), None, 10)
     
     context = "\n\n".join([
         f"[{src['law_title']}] {src.get('article', '')}\n{src['content'][:1500]}"
@@ -1271,7 +1338,7 @@ Hãy soạn thảo văn bản hoàn chỉnh."""
 async def search(q: str, domains: Optional[str] = None, limit: int = 10, company: dict = Depends(verify_api_key)):
     """Tìm kiếm luật - Law Search"""
     domain_list = domains.split(",") if domains else None
-    results = search_laws(q, domain_list, min(limit, 30))
+    results = cached_search(q, domain_list, min(limit, 30))
     
     return {
         "query": q,
