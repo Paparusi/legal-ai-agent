@@ -5,6 +5,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Cache bust: v2-2026-03-16
 COPY src/ ./src/
 COPY static/ ./static/
 
