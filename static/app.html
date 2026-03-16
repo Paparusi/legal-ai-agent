@@ -3178,27 +3178,31 @@
             <div id="searchPage" class="page page-container">
                 <div class="search-hero">
                     <div class="search-box">
-                        <input 
-                            type="text" 
-                            class="search-input-large" 
-                            placeholder="🔍 Tìm kiếm điều luật, nghị định, thông tư..." 
-                            id="searchInput"
-                            onkeydown="if(event.key==='Enter') performSearch()"
-                        >
+                        <div style="position: relative;">
+                            <input 
+                                type="text" 
+                                class="search-input-large" 
+                                placeholder="🔍 Tìm kiếm điều luật, nghị định, thông tư..." 
+                                id="searchInput"
+                                onkeydown="if(event.key==='Enter') performSearch()"
+                                oninput="showRecentSearches(this.value)"
+                                onfocus="showRecentSearches(this.value)"
+                            >
+                            <div id="recentSearchesDropdown" class="hidden" style="position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; margin-top: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 50; max-height: 240px; overflow-y: auto;"></div>
+                        </div>
                         <div class="domain-pills">
                             <div class="domain-pill active" data-domain="" onclick="selectDomain('', this)">Tất cả</div>
-                            <div class="domain-pill" data-domain="lao_dong" onclick="selectDomain('lao_dong', this)">Lao động</div>
-                            <div class="domain-pill" data-domain="thue" onclick="selectDomain('thue', this)">Thuế</div>
-                            <div class="domain-pill" data-domain="doanh_nghiep" onclick="selectDomain('doanh_nghiep', this)">Doanh nghiệp</div>
-                            <div class="domain-pill" data-domain="dan_su" onclick="selectDomain('dan_su', this)">Dân sự</div>
-                            <div class="domain-pill" data-domain="hinh_su" onclick="selectDomain('hinh_su', this)">Hình sự</div>
-                            <div class="domain-pill" data-domain="dat_dai" onclick="selectDomain('dat_dai', this)">Đất đai</div>
-                            <div class="domain-pill" data-domain="hanh_chinh" onclick="selectDomain('hanh_chinh', this)">Hành chính</div>
+                            <div class="domain-pill" data-domain="luat" onclick="selectDomain('luat', this)">Luật</div>
+                            <div class="domain-pill" data-domain="nghi_dinh" onclick="selectDomain('nghi_dinh', this)">Nghị Định</div>
+                            <div class="domain-pill" data-domain="thong_tu" onclick="selectDomain('thong_tu', this)">Thông Tư</div>
+                            <div class="domain-pill" data-domain="quyet_dinh" onclick="selectDomain('quyet_dinh', this)">Quyết Định</div>
                         </div>
                     </div>
                 </div>
                 <div class="search-results" id="searchResults">
                     <!-- Results will be rendered here -->
+                    <div id="searchStats" class="hidden" style="margin-bottom: 1rem; font-size: 0.875rem; color: var(--text-muted);"></div>
+                    <div id="searchResultsList"></div>
                 </div>
             </div>
 
@@ -4078,15 +4082,32 @@ console.log(data);</code></pre>
                 event.preventDefault();
                 sendMessage();
             }
+            if (event.key === 'Enter' && event.ctrlKey) {
+                event.preventDefault();
+                sendMessage();
+            }
         }
 
         function autoResize(textarea) {
             textarea.style.height = 'auto';
             textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
             document.getElementById('sendBtn').disabled = !textarea.value.trim();
+            updateCharCount();
+        }
+
+        function updateCharCount() {
+            const input = document.getElementById('chatInput');
+            const charCount = document.getElementById('charCount');
+            if (input && charCount) {
+                const len = input.value.length;
+                charCount.textContent = `${len} / 2000`;
+                charCount.style.color = len > 1800 ? 'var(--danger)' : len > 1500 ? 'var(--warning)' : 'var(--text-muted)';
+            }
         }
 
         // ===== STREAMING CHAT RESPONSE =====
+        let currentStreamController = null;
+
         async function sendMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
@@ -4099,16 +4120,26 @@ console.log(data);</code></pre>
             addMessage('user', message);
             input.value = '';
             autoResize(input);
+            updateCharCount();
 
             showTyping('Đang tìm kiếm...');
             const startTime = Date.now();
 
+            const token = localStorage.getItem('token');
+            const body = currentSessionId 
+                ? { question: message, session_id: currentSessionId }
+                : { question: message };
+
+            // Try SSE streaming first, fall back to regular
             try {
-                const token = localStorage.getItem('token');
-                const body = currentSessionId 
-                    ? { question: message, session_id: currentSessionId }
-                    : { question: message };
-                
+                const streamSuccess = await sendMessageStream(token, body, startTime);
+                if (streamSuccess) return;
+            } catch (e) {
+                console.warn('Stream failed, falling back to regular:', e);
+            }
+
+            // Fallback to regular /v1/legal/ask
+            try {
                 const response = await fetch('/v1/legal/ask', {
                     method: 'POST',
                     headers: {
@@ -4142,6 +4173,122 @@ console.log(data);</code></pre>
                 showToast('Không thể kết nối. Vui lòng thử lại.', 'error');
                 addMessage('ai', 'Không thể kết nối. Vui lòng thử lại.');
             }
+        }
+
+        async function sendMessageStream(token, body, startTime) {
+            const controller = new AbortController();
+            currentStreamController = controller;
+
+            const response = await fetch('/v1/legal/ask-stream', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body),
+                signal: controller.signal
+            });
+
+            if (!response.ok) throw new Error(`Stream response ${response.status}`);
+
+            removeTyping();
+
+            // Create streaming message bubble
+            const container = document.getElementById('chatMessages');
+            const msg = document.createElement('div');
+            msg.className = 'message message-ai';
+            msg.innerHTML = `
+                <div class="message-avatar">⚖️</div>
+                <div class="message-content">
+                    <div class="message-text" id="streamingTextLive"></div>
+                    <div id="streamingCursorLive" class="cursor"></div>
+                </div>
+            `;
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
+
+            const textDiv = msg.querySelector('#streamingTextLive');
+            const cursor = msg.querySelector('#streamingCursorLive');
+            let fullText = '';
+            let citations = null;
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const jsonStr = line.slice(6).trim();
+                        if (!jsonStr || jsonStr === '[DONE]') continue;
+
+                        try {
+                            const event = JSON.parse(jsonStr);
+                            if (event.type === 'token') {
+                                fullText += event.content;
+                                textDiv.innerHTML = renderMarkdown(fullText);
+                                container.scrollTop = container.scrollHeight;
+                            } else if (event.type === 'citations') {
+                                citations = event.content;
+                            } else if (event.type === 'done') {
+                                // Stream complete
+                            } else if (event.type === 'session_id' && event.content) {
+                                if (!currentSessionId) {
+                                    currentSessionId = event.content;
+                                    loadChatHistory();
+                                }
+                            }
+                        } catch (parseErr) {
+                            console.warn('SSE parse error:', parseErr);
+                        }
+                    }
+                }
+            } finally {
+                currentStreamController = null;
+            }
+
+            // Finalize message
+            cursor.remove();
+            textDiv.removeAttribute('id');
+            msg.dataset.rawMarkdown = fullText;
+
+            const responseTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+            if (citations && citations.length > 0) {
+                const citationsHtml = `
+                    <div class="citations">
+                        <div class="citations-header" onclick="toggleCitations(this)">
+                            <span>📚 ${citations.length} nguồn tham khảo</span>
+                            <span class="citations-toggle">▼</span>
+                        </div>
+                        <div class="citations-list hidden">
+                            ${citations.map(c => renderCitation(c)).join('')}
+                        </div>
+                    </div>
+                `;
+                msg.querySelector('.message-content').insertAdjacentHTML('beforeend', citationsHtml);
+            }
+
+            msg.querySelector('.message-content').insertAdjacentHTML('beforeend',
+                `<div class="response-time">Trả lời trong ${responseTime}s</div>`);
+
+            addMessageActions(msg);
+            addFeedbackButtons(msg);
+
+            msg.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+                addCodeCopyButton(block);
+            });
+
+            return true;
         }
 
         function addMessageWithStreaming(type, text, citations = null, responseTime = null) {
@@ -4296,7 +4443,25 @@ console.log(data);</code></pre>
         }
 
         function regenerateResponse(btn) {
-            showToast('Tính năng đang được phát triển', 'info');
+            const msg = btn.closest('.message');
+            if (!msg) return;
+
+            // Find the previous user message
+            let prevMsg = msg.previousElementSibling;
+            while (prevMsg && !prevMsg.classList.contains('message-user')) {
+                prevMsg = prevMsg.previousElementSibling;
+            }
+
+            if (prevMsg) {
+                const userText = prevMsg.querySelector('.message-text').textContent;
+                // Remove the AI message being regenerated
+                msg.remove();
+                // Re-send
+                document.getElementById('chatInput').value = userText;
+                sendMessage();
+            } else {
+                showToast('Không tìm thấy câu hỏi gốc', 'warning');
+            }
         }
 
         async function exportToWord(btn) {
@@ -4365,7 +4530,31 @@ console.log(data);</code></pre>
                 breaks: true,
                 gfm: true
             });
-            return marked.parse(text);
+            let html = marked.parse(text);
+            // Convert inline [1], [2] etc. to citation pills
+            html = html.replace(/\[(\d+)\]/g, '<span class="citation-pill" onclick="scrollToCitation($1)" title="Nguồn tham khảo $1">$1</span>');
+            return html;
+        }
+
+        function scrollToCitation(num) {
+            // Find the citations section and expand it, scroll to the specific citation
+            const citationsList = document.querySelectorAll('.citations-list');
+            citationsList.forEach(list => {
+                if (list.classList.contains('hidden')) {
+                    list.classList.remove('hidden');
+                    list.closest('.citations').classList.add('expanded');
+                }
+                const cards = list.querySelectorAll('.citation-card');
+                if (cards[num - 1]) {
+                    cards[num - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    cards[num - 1].style.borderColor = 'var(--accent)';
+                    cards[num - 1].style.boxShadow = '0 4px 16px var(--accent-bg)';
+                    setTimeout(() => {
+                        cards[num - 1].style.borderColor = '';
+                        cards[num - 1].style.boxShadow = '';
+                    }, 2000);
+                }
+            });
         }
 
         function renderCitation(citation) {
@@ -5730,10 +5919,23 @@ Báo cáo được tạo bởi Legal AI Agent
                     </div>
                     <div class="modal-actions">
                         <button class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove()">Đóng</button>
+                        <button class="btn btn-secondary" onclick="this.closest('.modal-backdrop').remove(); analyzeDocument('${doc.id}')">🔍 Phân tích AI</button>
+                        <button class="btn btn-primary" onclick="askAiAboutDocument('${escapeHtml(doc.name).replace(/'/g, "\\'")}'); this.closest('.modal-backdrop').remove();">💬 Hỏi AI</button>
                     </div>
                 </div>
             `;
             document.body.appendChild(modal);
+        }
+
+        function askAiAboutDocument(docName) {
+            const question = `Phân tích và giải thích nội dung văn bản: ${docName}`;
+            showPage('chat');
+            startNewChat();
+            setTimeout(() => {
+                document.getElementById('chatInput').value = question;
+                autoResize(document.getElementById('chatInput'));
+                document.getElementById('sendBtn').disabled = false;
+            }, 100);
         }
 
         async function analyzeDocument(id) {
@@ -5812,36 +6014,208 @@ Báo cáo được tạo bởi Legal AI Agent
 
         // ===== SEARCH =====
         function showSearchEmptyState() {
+            const statsEl = document.getElementById('searchStats');
+            const listEl = document.getElementById('searchResultsList');
+            if (statsEl) { statsEl.classList.add('hidden'); statsEl.textContent = ''; }
+            if (listEl) listEl.innerHTML = '';
             const container = document.getElementById('searchResults');
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">🔍</div>
-                    <div class="empty-state-title">Tìm kiếm văn bản pháp luật</div>
-                    <div class="empty-state-text">Nhập từ khóa và nhấn Enter để tìm kiếm</div>
-                </div>
-            `;
+            // Only show empty state if there's no results list content
+            if (listEl && !listEl.innerHTML.trim()) {
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔍</div>
+                        <div class="empty-state-title">Tìm kiếm văn bản pháp luật</div>
+                        <div class="empty-state-text">Nhập từ khóa và nhấn Enter để tìm kiếm</div>
+                    </div>
+                `;
+            }
         }
 
-        function selectDomain(domain) {
+        function selectDomain(domain, btn) {
             selectedDomain = domain;
             document.querySelectorAll('.domain-pill').forEach(pill => {
                 pill.classList.toggle('active', pill.dataset.domain === domain);
             });
+            // Re-search if there's a query
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) performSearch();
+        }
+
+        function getRecentSearches() {
+            try {
+                return JSON.parse(localStorage.getItem('legalai_recent_searches') || '[]');
+            } catch (e) { return []; }
+        }
+
+        function saveRecentSearch(query) {
+            let searches = getRecentSearches();
+            searches = searches.filter(s => s !== query);
+            searches.unshift(query);
+            searches = searches.slice(0, 10);
+            localStorage.setItem('legalai_recent_searches', JSON.stringify(searches));
+        }
+
+        function showRecentSearches(currentValue) {
+            const dropdown = document.getElementById('recentSearchesDropdown');
+            if (!dropdown) return;
+            const searches = getRecentSearches();
+            if (searches.length === 0 || currentValue.trim().length > 0) {
+                dropdown.classList.add('hidden');
+                return;
+            }
+            dropdown.classList.remove('hidden');
+            dropdown.innerHTML = `
+                <div style="padding: 0.5rem 1rem; font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Tìm kiếm gần đây</div>
+                ${searches.map(s => `
+                    <div style="padding: 0.625rem 1rem; cursor: pointer; font-size: 0.875rem; color: var(--text-secondary); transition: background 0.15s; display: flex; align-items: center; gap: 0.5rem;"
+                         onmouseover="this.style.background='var(--bg-tertiary)'" 
+                         onmouseout="this.style.background=''"
+                         onclick="document.getElementById('searchInput').value='${escapeHtml(s)}'; document.getElementById('recentSearchesDropdown').classList.add('hidden'); performSearch();">
+                        <span style="color: var(--text-muted);">🕐</span> ${escapeHtml(s)}
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        // Close recent searches dropdown on click outside
+        document.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('recentSearchesDropdown');
+            const input = document.getElementById('searchInput');
+            if (dropdown && !dropdown.contains(e.target) && e.target !== input) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        function highlightKeywords(text, query) {
+            if (!query || !text) return escapeHtml(text);
+            const escaped = escapeHtml(text);
+            const words = query.split(/\s+/).filter(w => w.length > 1);
+            let result = escaped;
+            words.forEach(word => {
+                const regex = new RegExp(`(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                result = result.replace(regex, '<mark style="background: var(--accent-bg); color: var(--accent); padding: 0.1rem 0.2rem; border-radius: 3px;">$1</mark>');
+            });
+            return result;
         }
 
         async function performSearch() {
             const query = document.getElementById('searchInput').value.trim();
             if (!query) return;
 
-            const container = document.getElementById('searchResults');
-            container.innerHTML = `
+            // Hide recent searches
+            const dropdown = document.getElementById('recentSearchesDropdown');
+            if (dropdown) dropdown.classList.add('hidden');
+
+            saveRecentSearch(query);
+
+            const statsEl = document.getElementById('searchStats');
+            const listEl = document.getElementById('searchResultsList');
+
+            listEl.innerHTML = `
                 <div style="text-align: center; padding: 3rem;">
                     <div class="spinner-large" style="margin: 0 auto 1rem;"></div>
                     <div style="color: var(--text-muted);">Đang tìm kiếm...</div>
                 </div>
             `;
+            statsEl.classList.add('hidden');
 
-            showToast('Tính năng tra cứu đang được phát triển', 'info');
+            try {
+                const token = localStorage.getItem('token');
+                const searchBody = { query: query, limit: 20 };
+                if (selectedDomain) searchBody.domain = selectedDomain;
+
+                const response = await fetch('/v1/legal/search', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(searchBody)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const results = data.results || [];
+                    const total = data.total || results.length;
+                    const searchTime = data.search_time || 0;
+
+                    statsEl.textContent = `${total} kết quả trong ${searchTime.toFixed(2)} giây`;
+                    statsEl.classList.remove('hidden');
+
+                    if (results.length === 0) {
+                        listEl.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📭</div>
+                                <div class="empty-state-title">Không tìm thấy kết quả</div>
+                                <div class="empty-state-text">Thử từ khóa khác hoặc thay đổi bộ lọc</div>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    listEl.innerHTML = results.map((r, idx) => {
+                        const snippet = r.content ? r.content.substring(0, 300) : '';
+                        const fullContent = r.content || '';
+                        const lawTitle = r.law_title || 'Văn bản pháp luật';
+                        const articleNum = r.article_number || '';
+                        const score = r.score ? (r.score * 100).toFixed(0) : '';
+
+                        return `
+                            <div class="result-card" id="searchResult${idx}">
+                                <div class="result-header">
+                                    <div class="result-title">${escapeHtml(lawTitle)}</div>
+                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                        ${articleNum ? `<div class="result-badge">${escapeHtml(articleNum)}</div>` : ''}
+                                        ${score ? `<div style="font-size: 0.75rem; color: var(--text-muted);">${score}%</div>` : ''}
+                                    </div>
+                                </div>
+                                <div class="result-excerpt">${highlightKeywords(snippet, query)}${fullContent.length > 300 ? '...' : ''}</div>
+                                <div class="search-result-full hidden" id="searchResultFull${idx}" style="margin-top: 0.75rem; padding: 1rem; background: var(--code-bg); border-radius: 8px; font-size: 0.875rem; line-height: 1.7; white-space: pre-wrap; max-height: 400px; overflow-y: auto; color: var(--text-secondary);">${escapeHtml(fullContent)}</div>
+                                <div class="result-actions" style="margin-top: 0.75rem;">
+                                    <button class="btn btn-secondary btn-small" onclick="toggleSearchResultFull(${idx})">📖 Xem đầy đủ</button>
+                                    <button class="btn btn-primary btn-small" onclick="askAiAboutResult('${escapeHtml(lawTitle).replace(/'/g, "\\'")}', '${escapeHtml(articleNum).replace(/'/g, "\\'")}')">💬 Hỏi AI về điều này</button>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    const errData = await response.json().catch(() => ({}));
+                    listEl.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <div class="empty-state-title">Lỗi tìm kiếm</div>
+                            <div class="empty-state-text">${escapeHtml(errData.detail || 'Không thể thực hiện tìm kiếm')}</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">⚠️</div>
+                        <div class="empty-state-title">Lỗi kết nối</div>
+                        <div class="empty-state-text">Không thể kết nối. Vui lòng thử lại.</div>
+                    </div>
+                `;
+            }
+        }
+
+        function toggleSearchResultFull(idx) {
+            const fullEl = document.getElementById(`searchResultFull${idx}`);
+            if (fullEl) fullEl.classList.toggle('hidden');
+        }
+
+        function askAiAboutResult(lawTitle, articleNum) {
+            const question = articleNum
+                ? `Giải thích chi tiết ${articleNum} của ${lawTitle}`
+                : `Giải thích chi tiết về ${lawTitle}`;
+            showPage('chat');
+            startNewChat();
+            setTimeout(() => {
+                document.getElementById('chatInput').value = question;
+                autoResize(document.getElementById('chatInput'));
+                document.getElementById('sendBtn').disabled = false;
+            }, 100);
         }
 
         // ===== API =====
