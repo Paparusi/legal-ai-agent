@@ -1351,6 +1351,57 @@
         }
         #batchStatusText { font-size: 0.82rem; color: var(--text-muted); }
 
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .app-layout { flex-direction: column; }
+            .activity-bar { 
+                flex-direction: row; width: 100%; height: 44px; 
+                overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border);
+            }
+            .activity-bar .activity-icon { padding: 8px 12px; }
+            .sidebar { 
+                position: fixed; left: 0; top: 44px; bottom: 0; z-index: 100;
+                transform: translateX(-100%); transition: transform 0.3s ease;
+                width: 280px !important;
+            }
+            .sidebar.mobile-open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.5); }
+            .main-content { width: 100% !important; }
+            .workspace { display: none; }
+            .chat-panel { 
+                width: 100% !important; position: fixed; inset: 44px 0 0 0;
+                z-index: 50; border-left: none;
+            }
+            .chat-panel.collapsed { display: none; }
+            .mobile-tab-bar {
+                display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+                height: 56px; background: var(--bg-surface); border-top: 1px solid var(--border);
+                z-index: 200; padding: 0 8px;
+            }
+            .mobile-tab-item {
+                flex: 1; display: flex; flex-direction: column; align-items: center;
+                justify-content: center; gap: 2px; color: var(--text-muted);
+                font-size: 0.65rem; cursor: pointer; transition: color 0.15s;
+                background: none; border: none;
+            }
+            .mobile-tab-item.active { color: var(--accent); }
+            .mobile-tab-item .tab-icon { font-size: 1.2rem; }
+            .chat-input-area { padding-bottom: 64px; }
+            .message-content { max-width: 90% !important; }
+            .resize-handle { display: none; }
+            .tab-bar { font-size: 0.75rem; }
+            .risk-summary-cards { grid-template-columns: repeat(2, 1fr); }
+            .analytics-summary { grid-template-columns: repeat(2, 1fr); }
+            .shortcuts-grid { grid-template-columns: 1fr; }
+            .cal-day { font-size: 0.7rem; }
+        }
+        @media (max-width: 480px) {
+            .risk-summary-cards { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .analytics-summary { grid-template-columns: 1fr; }
+            .batch-upload-content { padding: 16px; }
+            .onboarding-wizard { padding: 20px; }
+            .command-palette { width: 95vw; }
+        }
+
     </style>
 </head>
 <body>
@@ -2707,6 +2758,8 @@ console.log(await resp.json());</code></pre>
             applyChatWidth();
             // Restore active sidebar panel
             switchSidebarPanel(activeSidebarPanel);
+            // Initialize mobile layout
+            initMobile();
         };
 
         function initHighlightJS() { hljs.configure({ ignoreUnescapedHTML: true }); }
@@ -5633,6 +5686,75 @@ console.log(await resp.json());</code></pre>
                 }, 300);
             }
         };
+    // Mobile detection and tab switching
+    function initMobile() {
+        if (window.innerWidth <= 768) {
+            document.getElementById('mobileTabBar').style.display = 'flex';
+            switchMobileTab('chat');
+        }
+    }
+
+    function switchMobileTab(tab) {
+        document.querySelectorAll('.mobile-tab-item').forEach(function(t) { t.classList.remove('active'); });
+        if (event && event.currentTarget) event.currentTarget.classList.add('active');
+
+        var chatPanel = document.getElementById('chatPanel');
+        var workspace = document.querySelector('.workspace');
+        var sidebar = document.querySelector('.sidebar');
+
+        switch(tab) {
+            case 'chat':
+                if (chatPanel) { chatPanel.style.display = 'flex'; chatPanel.classList.remove('collapsed'); }
+                if (workspace) workspace.style.display = 'none';
+                if (sidebar) sidebar.classList.remove('mobile-open');
+                break;
+            case 'contracts':
+                if (chatPanel) chatPanel.style.display = 'none';
+                if (workspace) workspace.style.display = 'flex';
+                if (typeof showTab === 'function') showTab('contracts');
+                if (sidebar) sidebar.classList.remove('mobile-open');
+                break;
+            case 'search':
+                if (chatPanel) chatPanel.style.display = 'none';
+                if (workspace) workspace.style.display = 'flex';
+                if (typeof showTab === 'function') showTab('search');
+                if (sidebar) sidebar.classList.remove('mobile-open');
+                break;
+            case 'more':
+                if (sidebar) sidebar.classList.toggle('mobile-open');
+                break;
+        }
+    }
+
+    window.addEventListener('resize', function() {
+        var tabBar = document.getElementById('mobileTabBar');
+        if (tabBar) {
+            if (window.innerWidth <= 768) {
+                tabBar.style.display = 'flex';
+            } else {
+                tabBar.style.display = 'none';
+            }
+        }
+    });
     </script>
+
+    <div class="mobile-tab-bar" id="mobileTabBar" style="display:none">
+        <button class="mobile-tab-item active" onclick="switchMobileTab('chat')">
+            <span class="tab-icon">💬</span>
+            <span>Chat</span>
+        </button>
+        <button class="mobile-tab-item" onclick="switchMobileTab('contracts')">
+            <span class="tab-icon">📄</span>
+            <span>Hợp đồng</span>
+        </button>
+        <button class="mobile-tab-item" onclick="switchMobileTab('search')">
+            <span class="tab-icon">🔍</span>
+            <span>Tra cứu</span>
+        </button>
+        <button class="mobile-tab-item" onclick="switchMobileTab('more')">
+            <span class="tab-icon">⋯</span>
+            <span>Thêm</span>
+        </button>
+    </div>
 </body>
 </html>

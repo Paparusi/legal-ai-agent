@@ -143,6 +143,41 @@ TOOLS = [
             },
             "required": ["contract_ids"]
         }
+    },
+    {
+        "name": "summarize_contract",
+        "description": "Tạo tóm tắt ngắn gọn hợp đồng: các bên, giá trị, thời hạn, điều khoản chính. Dùng khi người dùng muốn tóm tắt nhanh.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "contract_id": {"type": "string", "description": "ID hợp đồng"}
+            },
+            "required": ["contract_id"]
+        }
+    },
+    {
+        "name": "check_legal_compliance",
+        "description": "Kiểm tra hợp đồng có tuân thủ các yêu cầu pháp lý cơ bản không (điều khoản bắt buộc, thời hạn, chế tài...). Dùng khi cần kiểm tra compliance.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "contract_id": {"type": "string"},
+                "check_type": {"type": "string", "enum": ["labor", "commercial", "service", "all"], "description": "Loại kiểm tra: labor=lao động, commercial=thương mại, service=dịch vụ, all=tất cả"}
+            },
+            "required": ["contract_id"]
+        }
+    },
+    {
+        "name": "generate_clause",
+        "description": "Tạo/soạn một điều khoản pháp lý cụ thể. Dùng khi người dùng yêu cầu soạn điều khoản bảo mật, phạt vi phạm, chấm dứt HĐ, v.v.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "clause_type": {"type": "string", "description": "Loại điều khoản: bao_mat, phat_vi_pham, cham_dut, boi_thuong, bao_hanh, thanh_toan, tranh_chap, bat_kha_khang"},
+                "context": {"type": "string", "description": "Bối cảnh/yêu cầu cụ thể"}
+            },
+            "required": ["clause_type"]
+        }
     }
 ]
 
@@ -166,6 +201,9 @@ AGENT_SYSTEM_PROMPT = """Bạn là trợ lý pháp lý AI thông minh. Bạn cha
 - Cần rà soát → analyze_contract_risk
 - Cần info công ty → get_company_profile
 - So sánh hợp đồng → compare_contracts
+- Tóm tắt hợp đồng → summarize_contract
+- Kiểm tra tuân thủ pháp lý → check_legal_compliance
+- Soạn điều khoản cụ thể → generate_clause
 - **KHÔNG dùng tool** cho chào hỏi, nói chuyện, câu hỏi đơn giản
 
 ## Khi trả lời pháp lý:
@@ -455,6 +493,102 @@ async def execute_tool(tool_name: str, tool_input: dict, company_id: str) -> dic
         return await _tool_get_company_profile(company_id)
     elif tool_name == "compare_contracts":
         return await _tool_compare_contracts(tool_input, company_id)
+    elif tool_name == "summarize_contract":
+        contract_id = tool_input.get("contract_id")
+        with _get_db() as conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            cur.execute("SELECT name, content, parties, start_date, end_date, contract_type, metadata FROM contracts WHERE id = %s AND company_id = %s AND status != 'deleted'", (contract_id, company_id))
+            contract = cur.fetchone()
+        if not contract:
+            return {"error": "Không tìm thấy hợp đồng"}
+        content = contract.get("content", "")[:5000]
+        return {
+            "name": contract["name"],
+            "type": contract.get("contract_type", "N/A"),
+            "parties": contract.get("parties", []),
+            "start_date": str(contract.get("start_date", "N/A")),
+            "end_date": str(contract.get("end_date", "N/A")),
+            "content_preview": content,
+            "notes": (contract.get("metadata") or {}).get("notes", [])
+        }
+    elif tool_name == "check_legal_compliance":
+        contract_id = tool_input.get("contract_id")
+        check_type = tool_input.get("check_type", "all")
+        with _get_db() as conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            cur.execute("SELECT name, content, contract_type FROM contracts WHERE id = %s AND company_id = %s AND status != 'deleted'", (contract_id, company_id))
+            contract = cur.fetchone()
+        if not contract:
+            return {"error": "Không tìm thấy hợp đồng"}
+        content = contract.get("content", "")[:10000]
+        checks = {
+            "labor": [
+                {"item": "Thông tin người lao động", "keywords": ["họ tên", "ngày sinh", "CMND", "CCCD", "số căn cước"]},
+                {"item": "Loại hợp đồng lao động", "keywords": ["xác định thời hạn", "không xác định thời hạn", "thời vụ"]},
+                {"item": "Công việc phải làm", "keywords": ["công việc", "nhiệm vụ", "chức danh", "vị trí"]},
+                {"item": "Thời giờ làm việc", "keywords": ["giờ làm việc", "thời gian làm việc", "ca làm"]},
+                {"item": "Tiền lương", "keywords": ["lương", "tiền công", "thù lao", "mức lương"]},
+                {"item": "Bảo hiểm xã hội", "keywords": ["bảo hiểm xã hội", "BHXH", "bảo hiểm y tế", "BHYT"]},
+                {"item": "Điều kiện chấm dứt", "keywords": ["chấm dứt", "đơn phương", "thôi việc", "sa thải"]},
+            ],
+            "commercial": [
+                {"item": "Thông tin các bên", "keywords": ["bên A", "bên B", "đại diện", "mã số thuế"]},
+                {"item": "Đối tượng hợp đồng", "keywords": ["đối tượng", "hàng hóa", "dịch vụ", "sản phẩm"]},
+                {"item": "Giá trị hợp đồng", "keywords": ["giá", "giá trị", "thanh toán", "số tiền"]},
+                {"item": "Thời hạn thực hiện", "keywords": ["thời hạn", "ngày giao", "thời gian"]},
+                {"item": "Quyền và nghĩa vụ", "keywords": ["quyền", "nghĩa vụ", "trách nhiệm"]},
+                {"item": "Phạt vi phạm", "keywords": ["phạt", "vi phạm", "bồi thường"]},
+                {"item": "Giải quyết tranh chấp", "keywords": ["tranh chấp", "trọng tài", "tòa án"]},
+            ],
+            "service": [
+                {"item": "Phạm vi dịch vụ", "keywords": ["phạm vi", "nội dung", "dịch vụ"]},
+                {"item": "Tiêu chuẩn chất lượng", "keywords": ["chất lượng", "tiêu chuẩn", "KPI"]},
+                {"item": "Thời hạn và gia hạn", "keywords": ["thời hạn", "gia hạn", "kéo dài"]},
+                {"item": "Bảo mật thông tin", "keywords": ["bảo mật", "thông tin", "confidential"]},
+                {"item": "Điều khoản chấm dứt", "keywords": ["chấm dứt", "hủy bỏ", "kết thúc"]},
+            ]
+        }
+        content_lower = content.lower()
+        check_types = [check_type] if check_type != "all" else ["labor", "commercial", "service"]
+        results = []
+        for ct in check_types:
+            for check in checks.get(ct, []):
+                found = any(kw in content_lower for kw in check["keywords"])
+                results.append({
+                    "category": ct,
+                    "item": check["item"],
+                    "status": "pass" if found else "missing",
+                    "keywords_found": [kw for kw in check["keywords"] if kw in content_lower]
+                })
+        passed = sum(1 for r in results if r["status"] == "pass")
+        total = len(results)
+        return {
+            "contract_name": contract["name"],
+            "check_type": check_type,
+            "score": f"{passed}/{total}",
+            "percentage": round(passed/total*100) if total > 0 else 0,
+            "results": results,
+            "missing_items": [r["item"] for r in results if r["status"] == "missing"]
+        }
+    elif tool_name == "generate_clause":
+        clause_type = tool_input.get("clause_type", "")
+        context = tool_input.get("context", "")
+        clause_templates = {
+            "bao_mat": "ĐIỀU KHOẢN BẢO MẬT THÔNG TIN\n1. Các bên cam kết bảo mật mọi thông tin liên quan đến Hợp đồng này.\n2. Thông tin bảo mật bao gồm nhưng không giới hạn: thông tin kỹ thuật, tài chính, kinh doanh, dữ liệu khách hàng.\n3. Nghĩa vụ bảo mật có hiệu lực trong suốt thời hạn Hợp đồng và [X] năm sau khi chấm dứt.\n4. Bên vi phạm phải bồi thường toàn bộ thiệt hại trực tiếp và gián tiếp.",
+            "phat_vi_pham": "ĐIỀU KHOẢN PHẠT VI PHẠM\n1. Bên vi phạm nghĩa vụ hợp đồng phải chịu phạt vi phạm bằng [X]% giá trị hợp đồng.\n2. Mức phạt tối đa không vượt quá 8% giá trị phần nghĩa vụ bị vi phạm (theo Luật Thương mại 2005).\n3. Ngoài tiền phạt, bên vi phạm còn phải bồi thường thiệt hại thực tế phát sinh.\n4. Bên bị vi phạm có quyền yêu cầu phạt vi phạm mà không cần chứng minh thiệt hại.",
+            "cham_dut": "ĐIỀU KHOẢN CHẤM DỨT HỢP ĐỒNG\n1. Hợp đồng chấm dứt khi: (a) hết thời hạn, (b) hoàn thành nghĩa vụ, (c) các bên thỏa thuận.\n2. Đơn phương chấm dứt: bên muốn chấm dứt phải thông báo bằng văn bản trước [X] ngày.\n3. Bên đơn phương chấm dứt trái pháp luật phải bồi thường thiệt hại.\n4. Các điều khoản về bảo mật, phạt vi phạm vẫn có hiệu lực sau khi chấm dứt.",
+            "boi_thuong": "ĐIỀU KHOẢN BỒI THƯỜNG THIỆT HẠI\n1. Bên gây thiệt hại phải bồi thường đầy đủ, kịp thời.\n2. Thiệt hại được bồi thường bao gồm: thiệt hại trực tiếp, lợi ích bị mất, chi phí hợp lý.\n3. Mức bồi thường tối đa không vượt quá [X]% giá trị hợp đồng.\n4. Bên yêu cầu bồi thường phải chứng minh thiệt hại bằng chứng từ hợp lệ.",
+            "thanh_toan": "ĐIỀU KHOẢN THANH TOÁN\n1. Giá trị hợp đồng: [số tiền] VNĐ (bằng chữ: ...).\n2. Phương thức: chuyển khoản ngân hàng.\n3. Tiến độ: (a) Tạm ứng [X]% khi ký, (b) [X]% khi nghiệm thu, (c) [X]% khi hoàn thành.\n4. Thời hạn thanh toán: trong vòng [X] ngày làm việc kể từ ngày nhận hóa đơn hợp lệ.\n5. Chậm thanh toán chịu lãi suất [X]%/tháng trên số tiền chậm.",
+            "tranh_chap": "ĐIỀU KHOẢN GIẢI QUYẾT TRANH CHẤP\n1. Mọi tranh chấp phát sinh được giải quyết trước hết bằng thương lượng, hòa giải.\n2. Nếu không thương lượng được trong [X] ngày, tranh chấp sẽ được giải quyết tại [Tòa án/Trọng tài].\n3. Luật áp dụng: pháp luật Việt Nam.\n4. Phán quyết của [Tòa án/Trọng tài] là quyết định cuối cùng, ràng buộc các bên.",
+            "bat_kha_khang": "ĐIỀU KHOẢN BẤT KHẢ KHÁNG\n1. Bất khả kháng là sự kiện xảy ra khách quan, không thể lường trước và không thể khắc phục (thiên tai, dịch bệnh, chiến tranh, thay đổi pháp luật...).\n2. Bên gặp bất khả kháng phải thông báo bằng văn bản trong vòng [X] ngày.\n3. Thời hạn thực hiện hợp đồng được gia hạn tương ứng thời gian bất khả kháng.\n4. Nếu bất khả kháng kéo dài quá [X] ngày, các bên có quyền chấm dứt hợp đồng."
+        }
+        template = clause_templates.get(clause_type, f"Không tìm thấy mẫu cho loại '{clause_type}'. Các loại có sẵn: {', '.join(clause_templates.keys())}")
+        return {
+            "clause_type": clause_type,
+            "template": template,
+            "context": context,
+            "note": "Đây là mẫu tham khảo. AI sẽ tùy chỉnh theo bối cảnh cụ thể."
+        }
     else:
         return {"error": f"Unknown tool: {tool_name}"}
 
@@ -888,7 +1022,10 @@ TOOL_STATUS_LABELS = {
     "analyze_contract_risk": "⚖️ Đang phân tích rủi ro hợp đồng...",
     "draft_document": "✍️ Đang chuẩn bị soạn thảo văn bản...",
     "get_company_profile": "🏢 Đang lấy thông tin công ty...",
-    "compare_contracts": "⚖️ Đang so sánh hợp đồng..."
+    "compare_contracts": "⚖️ Đang so sánh hợp đồng...",
+    "summarize_contract": "📋 Đang tóm tắt hợp đồng...",
+    "check_legal_compliance": "✅ Đang kiểm tra tuân thủ...",
+    "generate_clause": "✍️ Đang soạn điều khoản..."
 }
 
 
