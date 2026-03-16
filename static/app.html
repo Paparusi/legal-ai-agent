@@ -3524,16 +3524,6 @@ console.log(data);</code></pre>
                 e.preventDefault();
                 showContextMenu(e.clientX, e.clientY, chatItem);
             }
-
-        // ===== CONTEXT MENU FOR CHAT HISTORY =====
-        let contextMenuTarget = null;
-
-        document.addEventListener('contextmenu', (e) => {
-            const chatItem = e.target.closest('.chat-history-item');
-            if (chatItem) {
-                e.preventDefault();
-                showContextMenu(e.clientX, e.clientY, chatItem);
-            }
         });
 
         function showContextMenu(x, y, chatItem) {
@@ -3753,13 +3743,16 @@ console.log(data);</code></pre>
 
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('Login response:', data);
                     localStorage.setItem('token', data.access_token);
                     currentUser = data.user;
                     showDashboard();
-                    updateUserUI();
-                    loadChatHistory();
+                    try { updateUserUI(); } catch(e) { console.error('updateUserUI error:', e); }
+                    try { loadChatHistory(); } catch(e) { console.error('loadChatHistory error:', e); }
                     showToast('Đăng nhập thành công!', 'success');
                 } else {
+                    const errData = await response.text();
+                    console.error('Login failed:', response.status, errData);
                     showToast('Email hoặc mật khẩu không đúng', 'error');
                 }
             } catch (error) {
