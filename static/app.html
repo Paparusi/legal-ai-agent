@@ -2548,13 +2548,14 @@ console.log(await resp.json());</code></pre>
         function toggleCitations(header) { const list = header.parentElement.querySelector('.citations-list'); list.classList.toggle('hidden'); header.parentElement.classList.toggle('expanded'); }
 
         function showTyping(statusText) {
+            removeTyping(); // Remove any existing typing indicator first
             const container = document.getElementById('chatMessages');
             const typing = document.createElement('div'); typing.className = 'typing-indicator'; typing.id = 'typingIndicator';
             typing.innerHTML = `<div class="message-avatar">⚖️</div><div><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>${statusText ? `<div class="typing-status">${statusText}</div>` : ''}</div>`;
             container.appendChild(typing); container.scrollTop = container.scrollHeight;
         }
 
-        function removeTyping() { const t = document.getElementById('typingIndicator'); if (t) t.remove(); }
+        function removeTyping() { document.querySelectorAll('#typingIndicator, .typing-indicator').forEach(t => t.remove()); }
 
         function handleFileUpload(event) { const file = event.target.files[0]; if (!file) return; attachFileToChat(file); event.target.value = ''; }
 
@@ -3946,11 +3947,21 @@ console.log(await resp.json());</code></pre>
                                 textDiv.innerHTML = rendered;
                                 container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
                             } else if (event.type === 'citations') { citations = event.content; }
+                            else if (event.type === 'done') {
+                                if (event.session_id && !currentSessionId) { currentSessionId = event.session_id; loadChatHistory(); }
+                            }
+                            else if (event.type === 'suggestions') {
+                                // Will handle after stream ends
+                                msg.dataset.suggestions = JSON.stringify(event.items || []);
+                            }
                             else if (event.type === 'session_id' && event.content) { if (!currentSessionId) { currentSessionId = event.content; loadChatHistory(); } }
                         } catch (pe) {}
                     }
                 }
             } finally { currentStreamController = null; }
+            removeTyping();
+            setAgentStatus('ready', 'Sẵn sàng');
+            setStreamingState(false);
             cursor.remove(); textDiv.removeAttribute('id'); toolsDiv.removeAttribute('id');
             var avatar = msg.querySelector('.message-avatar');
             avatar.textContent = '⚖️';
