@@ -1,5 +1,7 @@
 # ⚖️ AI Legal Agent
 
+> **Created by [Hiếu Nguyễn](https://github.com/Paparusi)** — Trader turned Builder 🇻🇳
+
 **Trợ lý pháp lý AI cho doanh nghiệp Việt Nam**
 
 Nền tảng AI giúp tra cứu luật, rà soát hợp đồng, soạn văn bản pháp lý — tất cả trong một giao diện VSCode-style.
@@ -221,4 +223,4 @@ MIT — sử dụng tự do, kể cả thương mại.
 
 ---
 
-Made with ❤️ in Vietnam 🇻🇳
+Made with ❤️ by [Hiếu Nguyễn](https://github.com/Paparusi) 🇻🇳
