@@ -1444,6 +1444,163 @@
                 display: block;
             }
         }
+
+        /* ===== MODALS ===== */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-header h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .modal-close:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: var(--accent);
+            background: var(--accent-bg);
+        }
+
+        .alert-banner {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid var(--warning);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: start;
+            gap: 0.75rem;
+        }
+
+        .alert-banner-icon {
+            font-size: 1.25rem;
+        }
+
+        .alert-banner-content {
+            flex: 1;
+        }
+
+        .alert-banner-title {
+            font-weight: 600;
+            color: var(--warning);
+            margin-bottom: 0.25rem;
+        }
+
+        .alert-banner-text {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .risk-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .risk-low { background: rgba(74, 222, 128, 0.15); color: var(--success); }
+        .risk-medium { background: rgba(251, 191, 36, 0.15); color: var(--warning); }
+        .risk-high { background: rgba(248, 113, 113, 0.15); color: var(--danger); }
+
+        .review-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .review-section-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .review-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .review-list li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .review-list li:before {
+            content: "•";
+            position: absolute;
+            left: 0.5rem;
+            color: var(--accent);
+        }
     </style>
 </head>
 <body>
@@ -1634,9 +1791,10 @@
                     <div class="page-description">Quản lý và theo dõi tất cả hợp đồng của công ty</div>
                 </div>
                 <div class="page-content">
+                    <div id="expiringAlert" class="hidden"></div>
                     <div class="page-actions">
                         <input type="text" class="search-input" placeholder="🔍 Tìm kiếm hợp đồng..." onkeyup="filterContracts(this.value)">
-                        <button class="btn btn-primary" onclick="uploadContract()">📤 Tải lên</button>
+                        <button class="btn btn-primary" onclick="openUploadModal()">📤 Tải lên</button>
                     </div>
                     <div class="filter-pills">
                         <div class="filter-pill active" data-filter="all" onclick="filterByStatus('all')">Tất cả</div>
@@ -1651,8 +1809,10 @@
                                     <th>Tên hợp đồng</th>
                                     <th>Loại</th>
                                     <th>Bên liên quan</th>
-                                    <th>Ngày hết hạn</th>
                                     <th>Trạng thái</th>
+                                    <th>Ngày bắt đầu</th>
+                                    <th>Ngày kết thúc</th>
+                                    <th>Giá trị</th>
                                     <th>Hành động</th>
                                 </tr>
                             </thead>
@@ -1676,11 +1836,14 @@
                             onkeydown="if(event.key==='Enter') performSearch()"
                         >
                         <div class="domain-pills">
-                            <div class="domain-pill active" data-domain="all" onclick="selectDomain('all')">Tất cả</div>
-                            <div class="domain-pill" data-domain="labor" onclick="selectDomain('labor')">Lao động</div>
-                            <div class="domain-pill" data-domain="enterprise" onclick="selectDomain('enterprise')">Doanh nghiệp</div>
-                            <div class="domain-pill" data-domain="civil" onclick="selectDomain('civil')">Dân sự</div>
-                            <div class="domain-pill" data-domain="tax" onclick="selectDomain('tax')">Thuế</div>
+                            <div class="domain-pill active" data-domain="" onclick="selectDomain('')">Tất cả</div>
+                            <div class="domain-pill" data-domain="lao_dong" onclick="selectDomain('lao_dong')">Lao động</div>
+                            <div class="domain-pill" data-domain="thue" onclick="selectDomain('thue')">Thuế</div>
+                            <div class="domain-pill" data-domain="doanh_nghiep" onclick="selectDomain('doanh_nghiep')">Doanh nghiệp</div>
+                            <div class="domain-pill" data-domain="dan_su" onclick="selectDomain('dan_su')">Dân sự</div>
+                            <div class="domain-pill" data-domain="hinh_su" onclick="selectDomain('hinh_su')">Hình sự</div>
+                            <div class="domain-pill" data-domain="dat_dai" onclick="selectDomain('dat_dai')">Đất đai</div>
+                            <div class="domain-pill" data-domain="hanh_chinh" onclick="selectDomain('hanh_chinh')">Hành chính</div>
                         </div>
                     </div>
                 </div>
@@ -1799,6 +1962,93 @@ console.log(data);</code></pre>
                 </div>
             </div>
         </main>
+
+        <!-- ===== MODALS ===== -->
+        <!-- Upload Contract Modal -->
+        <div id="uploadContractModal" class="modal hidden">
+            <div class="modal-content" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3>Tải lên hợp đồng</h3>
+                    <button class="modal-close" onclick="closeModal('uploadContractModal')">✕</button>
+                </div>
+                <form id="uploadContractForm" onsubmit="handleContractUpload(event)">
+                    <div class="form-group">
+                        <label class="form-label">File hợp đồng (PDF, DOCX, hoặc ảnh)</label>
+                        <div id="dropZone" class="drop-zone">
+                            <input type="file" id="contractFile" accept=".pdf,.docx,.doc,.png,.jpg,.jpeg" style="display:none" onchange="handleFileSelected(event)">
+                            <div id="dropZoneContent">
+                                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📎</div>
+                                <div>Kéo thả file vào đây hoặc <span style="color: var(--accent); cursor: pointer;" onclick="document.getElementById('contractFile').click()">chọn file</span></div>
+                            </div>
+                            <div id="filePreview" class="hidden"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tên hợp đồng *</label>
+                        <input type="text" class="form-input" id="contractTitle" required placeholder="VD: Hợp đồng lao động - Nguyễn Văn A">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Loại hợp đồng *</label>
+                        <select class="form-input" id="contractType" required>
+                            <option value="">Chọn loại hợp đồng</option>
+                            <option value="hop_dong_lao_dong">Hợp đồng lao động</option>
+                            <option value="hop_dong_dich_vu">Hợp đồng dịch vụ</option>
+                            <option value="hop_dong_thue">Hợp đồng thuê</option>
+                            <option value="hop_dong_mua_ban">Hợp đồng mua bán</option>
+                            <option value="khac">Khác</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Các bên tham gia (phân cách bằng dấu phẩy)</label>
+                        <input type="text" class="form-input" id="contractParties" placeholder="VD: Công ty ABC, Nguyễn Văn A">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Ngày bắt đầu</label>
+                            <input type="date" class="form-input" id="contractStartDate">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Ngày kết thúc</label>
+                            <input type="date" class="form-input" id="contractEndDate">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Giá trị hợp đồng (VNĐ)</label>
+                        <input type="number" class="form-input" id="contractValue" placeholder="0">
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('uploadContractModal')">Hủy</button>
+                        <button type="submit" class="btn btn-primary">📤 Tải lên</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Contract Detail Modal -->
+        <div id="contractDetailModal" class="modal hidden">
+            <div class="modal-content" style="max-width: 700px;">
+                <div class="modal-header">
+                    <h3 id="contractDetailTitle">Chi tiết hợp đồng</h3>
+                    <button class="modal-close" onclick="closeModal('contractDetailModal')">✕</button>
+                </div>
+                <div id="contractDetailContent" style="padding: 1rem 0;">
+                    <!-- Content will be injected -->
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Review Results Modal -->
+        <div id="reviewResultModal" class="modal hidden">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h3>Kết quả rà soát AI</h3>
+                    <button class="modal-close" onclick="closeModal('reviewResultModal')">✕</button>
+                </div>
+                <div id="reviewResultContent" style="padding: 1rem 0;">
+                    <!-- Results will be injected -->
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1821,18 +2071,15 @@ console.log(data);</code></pre>
             { id: 8, icon: '🏠', title: 'Hợp đồng thuê nhà', description: 'Hợp đồng thuê nhà ở/văn phòng', prompt: 'Soạn hợp đồng thuê nhà với các thông tin sau:\n- Bên cho thuê:\n- Bên thuê:\n- Địa chỉ nhà:\n- Giá thuê:\n- Thời hạn:' }
         ];
 
-        // ===== SAMPLE DATA =====
-        const sampleContracts = [
-            { id: 1, name: 'HĐLĐ - Nguyễn Văn A', type: 'Lao động', parties: 'Công ty ABC', endDate: '2025-06-30', status: 'active' },
-            { id: 2, name: 'HĐ Dịch vụ - Công ty XYZ', type: 'Dịch vụ', parties: 'Công ty XYZ', endDate: '2024-12-31', status: 'pending' },
-            { id: 3, name: 'HĐLĐ - Trần Thị B', type: 'Lao động', parties: 'Công ty ABC', endDate: '2024-01-15', status: 'expired' }
-        ];
+        // ===== GLOBAL CONTRACTS DATA =====
+        let allContracts = [];
+        let expiringContracts = [];
 
         // ===== INIT =====
         window.onload = function() {
             checkAuth();
             renderTemplates();
-            renderContracts();
+            setupDropZone();
         };
 
         // ===== AUTH =====
@@ -2151,6 +2398,13 @@ console.log(data);</code></pre>
                 }
             });
             
+            // Load data for specific pages
+            if (pageName === 'contracts') {
+                loadContracts();
+            } else if (pageName === 'search') {
+                showSearchEmptyState();
+            }
+            
             // Close mobile sidebar
             if (window.innerWidth <= 768) {
                 const sidebar = document.getElementById('sidebar');
@@ -2401,21 +2655,64 @@ console.log(data);</code></pre>
         }
 
         // ===== CONTRACTS =====
-        function renderContracts() {
-            const tbody = document.getElementById('contractsTableBody');
-            tbody.innerHTML = sampleContracts.map(c => `
-                <tr data-status="${c.status}">
-                    <td style="color: var(--text-primary); font-weight: 500;">${c.name}</td>
-                    <td>${c.type}</td>
-                    <td>${c.parties}</td>
-                    <td>${c.endDate}</td>
-                    <td><span class="status-badge status-${c.status}">${getStatusText(c.status)}</span></td>
-                    <td class="table-actions">
-                        <button class="icon-btn" title="Xem">👁️</button>
-                        <button class="icon-btn" title="Rà soát" onclick="reviewContract(${c.id})">🔍</button>
-                    </td>
-                </tr>
-            `).join('');
+        async function loadContracts() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/v1/contracts', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    allContracts = await response.json();
+                    renderContracts();
+                    checkExpiringContracts();
+                } else {
+                    console.error('Failed to load contracts');
+                }
+            } catch (error) {
+                console.error('Load contracts error:', error);
+            }
+        }
+
+        async function checkExpiringContracts() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/v1/contracts/expiring', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    expiringContracts = await response.json();
+                    if (expiringContracts.length > 0) {
+                        showExpiringAlert();
+                    }
+                }
+            } catch (error) {
+                console.error('Check expiring contracts error:', error);
+            }
+        }
+
+        function showExpiringAlert() {
+            const alert = document.getElementById('expiringAlert');
+            alert.className = 'alert-banner';
+            alert.innerHTML = `
+                <div class="alert-banner-icon">⚠️</div>
+                <div class="alert-banner-content">
+                    <div class="alert-banner-title">Cảnh báo hợp đồng sắp hết hạn</div>
+                    <div class="alert-banner-text">Có ${expiringContracts.length} hợp đồng sẽ hết hạn trong 30 ngày tới</div>
+                </div>
+            `;
+        }
+
+        function getContractStatus(contract) {
+            if (!contract.end_date) return 'active';
+            const endDate = new Date(contract.end_date);
+            const now = new Date();
+            const daysUntilExpiry = Math.floor((endDate - now) / (1000 * 60 * 60 * 24));
+            
+            if (daysUntilExpiry < 0) return 'expired';
+            if (daysUntilExpiry <= 30) return 'pending';
+            return 'active';
         }
 
         function getStatusText(status) {
@@ -2425,6 +2722,56 @@ console.log(data);</code></pre>
                 'expired': 'Hết hạn'
             };
             return map[status] || status;
+        }
+
+        function getContractTypeText(type) {
+            const map = {
+                'hop_dong_lao_dong': 'Lao động',
+                'hop_dong_dich_vu': 'Dịch vụ',
+                'hop_dong_thue': 'Thuê',
+                'hop_dong_mua_ban': 'Mua bán',
+                'khac': 'Khác'
+            };
+            return map[type] || type;
+        }
+
+        function formatCurrency(value) {
+            if (!value) return '-';
+            return new Intl.NumberFormat('vi-VN').format(value) + ' ₫';
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            return new Date(dateStr).toLocaleDateString('vi-VN');
+        }
+
+        function renderContracts() {
+            const tbody = document.getElementById('contractsTableBody');
+            
+            if (allContracts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Chưa có hợp đồng nào</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = allContracts.map(c => {
+                const status = getContractStatus(c);
+                return `
+                    <tr data-status="${status}">
+                        <td style="color: var(--text-primary); font-weight: 500;">${escapeHtml(c.title)}</td>
+                        <td>${getContractTypeText(c.contract_type)}</td>
+                        <td>${escapeHtml(c.parties || '-')}</td>
+                        <td><span class="status-badge status-${status}">${getStatusText(status)}</span></td>
+                        <td>${formatDate(c.start_date)}</td>
+                        <td>${formatDate(c.end_date)}</td>
+                        <td>${formatCurrency(c.value)}</td>
+                        <td class="table-actions">
+                            <button class="icon-btn" title="Xem chi tiết" onclick="viewContract(${c.id})">👁️</button>
+                            <button class="icon-btn" title="Rà soát AI" onclick="reviewContract(${c.id})">🔍</button>
+                            <button class="icon-btn" title="Xóa" onclick="deleteContract(${c.id})">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function filterContracts(query) {
@@ -2447,16 +2794,255 @@ console.log(data);</code></pre>
             });
         }
 
-        function reviewContract(id) {
-            const contract = sampleContracts.find(c => c.id === id);
-            if (contract) {
-                startNewChat();
-                setTimeout(() => useSuggestion(`Rà soát hợp đồng: ${contract.name}`), 100);
+        async function viewContract(id) {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/v1/contracts/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const contract = await response.json();
+                    showContractDetail(contract);
+                } else {
+                    alert('Không thể tải chi tiết hợp đồng');
+                }
+            } catch (error) {
+                console.error('View contract error:', error);
+                alert('Có lỗi xảy ra');
             }
         }
 
-        function uploadContract() {
-            alert('Tính năng tải lên hợp đồng sẽ sớm được cập nhật!');
+        function showContractDetail(contract) {
+            document.getElementById('contractDetailTitle').textContent = contract.title;
+            document.getElementById('contractDetailContent').innerHTML = `
+                <div style="display: grid; gap: 1rem;">
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">Loại hợp đồng</div>
+                        <div style="color: var(--text-primary);">${getContractTypeText(contract.contract_type)}</div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">Các bên tham gia</div>
+                        <div style="color: var(--text-primary);">${escapeHtml(contract.parties || '-')}</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">Ngày bắt đầu</div>
+                            <div style="color: var(--text-primary);">${formatDate(contract.start_date)}</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">Ngày kết thúc</div>
+                            <div style="color: var(--text-primary);">${formatDate(contract.end_date)}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">Giá trị</div>
+                        <div style="color: var(--text-primary); font-weight: 600;">${formatCurrency(contract.value)}</div>
+                    </div>
+                    ${contract.file_path ? `
+                        <div>
+                            <a href="${contract.file_path}" target="_blank" class="btn btn-secondary btn-small">📥 Tải xuống file</a>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            openModal('contractDetailModal');
+        }
+
+        async function reviewContract(id) {
+            const contract = allContracts.find(c => c.id === id);
+            if (!contract) return;
+
+            const modal = document.getElementById('reviewResultModal');
+            document.getElementById('reviewResultContent').innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--text-muted);">Đang phân tích hợp đồng...</div>';
+            openModal('reviewResultModal');
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/v1/contracts/${id}/review`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showReviewResults(result);
+                } else {
+                    document.getElementById('reviewResultContent').innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--danger);">Không thể phân tích hợp đồng</div>';
+                }
+            } catch (error) {
+                console.error('Review contract error:', error);
+                document.getElementById('reviewResultContent').innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--danger);">Có lỗi xảy ra</div>';
+            }
+        }
+
+        function showReviewResults(result) {
+            const riskClass = `risk-${result.risk_level || 'low'}`;
+            const riskText = {
+                'low': 'Thấp',
+                'medium': 'Trung bình',
+                'high': 'Cao'
+            }[result.risk_level] || 'Thấp';
+
+            document.getElementById('reviewResultContent').innerHTML = `
+                <div class="review-section">
+                    <div class="review-section-title">Mức độ rủi ro</div>
+                    <span class="risk-badge ${riskClass}">${riskText}</span>
+                </div>
+                <div class="review-section">
+                    <div class="review-section-title">Tóm tắt</div>
+                    <div style="color: var(--text-secondary); line-height: 1.6;">${escapeHtml(result.summary || 'Không có tóm tắt')}</div>
+                </div>
+                ${result.issues && result.issues.length > 0 ? `
+                    <div class="review-section">
+                        <div class="review-section-title">⚠️ Vấn đề phát hiện</div>
+                        <ul class="review-list">
+                            ${result.issues.map(issue => `<li>${escapeHtml(issue)}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+                ${result.recommendations && result.recommendations.length > 0 ? `
+                    <div class="review-section">
+                        <div class="review-section-title">💡 Đề xuất</div>
+                        <ul class="review-list">
+                            ${result.recommendations.map(rec => `<li>${escapeHtml(rec)}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        async function deleteContract(id) {
+            if (!confirm('Bạn có chắc muốn xóa hợp đồng này?')) return;
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/v1/contracts/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    loadContracts();
+                } else {
+                    alert('Không thể xóa hợp đồng');
+                }
+            } catch (error) {
+                console.error('Delete contract error:', error);
+                alert('Có lỗi xảy ra');
+            }
+        }
+
+        // Modal functions
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function openUploadModal() {
+            document.getElementById('uploadContractForm').reset();
+            document.getElementById('filePreview').classList.add('hidden');
+            document.getElementById('dropZoneContent').classList.remove('hidden');
+            openModal('uploadContractModal');
+        }
+
+        // File upload handling
+        function setupDropZone() {
+            const dropZone = document.getElementById('dropZone');
+            if (!dropZone) return;
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.add('drag-over'), false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => dropZone.classList.remove('drag-over'), false);
+            });
+
+            dropZone.addEventListener('drop', handleDrop, false);
+            dropZone.addEventListener('click', () => document.getElementById('contractFile').click());
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                document.getElementById('contractFile').files = files;
+                handleFileSelected({ target: { files: files } });
+            }
+        }
+
+        function handleFileSelected(event) {
+            const file = event.target.files[0];
+            if (file) {
+                document.getElementById('dropZoneContent').classList.add('hidden');
+                document.getElementById('filePreview').classList.remove('hidden');
+                document.getElementById('filePreview').innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 0.75rem; padding: 1rem; background: var(--bg-tertiary); border-radius: 6px;">
+                        <div style="font-size: 1.5rem;">📄</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 500; color: var(--text-primary);">${escapeHtml(file.name)}</div>
+                            <div style="font-size: 0.875rem; color: var(--text-muted);">${(file.size / 1024).toFixed(1)} KB</div>
+                        </div>
+                        <button type="button" class="icon-btn" onclick="clearFile()" title="Xóa">✕</button>
+                    </div>
+                `;
+            }
+        }
+
+        function clearFile() {
+            document.getElementById('contractFile').value = '';
+            document.getElementById('filePreview').classList.add('hidden');
+            document.getElementById('dropZoneContent').classList.remove('hidden');
+        }
+
+        async function handleContractUpload(event) {
+            event.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('contractFile');
+            
+            if (fileInput.files[0]) {
+                formData.append('file', fileInput.files[0]);
+            }
+            
+            formData.append('title', document.getElementById('contractTitle').value);
+            formData.append('contract_type', document.getElementById('contractType').value);
+            formData.append('parties', document.getElementById('contractParties').value);
+            formData.append('start_date', document.getElementById('contractStartDate').value);
+            formData.append('end_date', document.getElementById('contractEndDate').value);
+            formData.append('value', document.getElementById('contractValue').value || '0');
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/v1/contracts', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    closeModal('uploadContractModal');
+                    loadContracts();
+                } else {
+                    alert('Không thể tải lên hợp đồng');
+                }
+            } catch (error) {
+                console.error('Upload contract error:', error);
+                alert('Có lỗi xảy ra');
+            }
         }
 
         // ===== SEARCH =====
@@ -2465,56 +3051,154 @@ console.log(data);</code></pre>
             document.querySelectorAll('.domain-pill').forEach(pill => {
                 pill.classList.toggle('active', pill.dataset.domain === domain);
             });
+            
+            // Auto-search if there's a query
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                performSearch();
+            }
         }
 
         async function performSearch() {
             const query = document.getElementById('searchInput').value.trim();
-            if (!query) return;
+            if (!query) {
+                showSearchEmptyState();
+                return;
+            }
 
             const container = document.getElementById('searchResults');
-            container.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 2rem;">Đang tìm kiếm...</div>';
+            container.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 2rem;">🔍 Đang tìm kiếm...</div>';
+
+            const startTime = Date.now();
 
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`/v1/legal/search?q=${encodeURIComponent(query)}&limit=10`, {
+                let url = `/v1/legal/search?q=${encodeURIComponent(query)}&limit=10`;
+                
+                // Add domain filter if not "all"
+                if (selectedDomain) {
+                    url += `&domains=${selectedDomain}`;
+                }
+
+                const response = await fetch(url, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    displayResults(data.results || []);
+                    const duration = Date.now() - startTime;
+                    displayResults(data, duration);
                 } else {
-                    container.innerHTML = '<div style="text-align:center; color: var(--danger); padding: 2rem;">Có lỗi xảy ra</div>';
+                    container.innerHTML = '<div style="text-align:center; color: var(--danger); padding: 2rem;">❌ Có lỗi xảy ra</div>';
                 }
             } catch (error) {
                 console.error('Search error:', error);
-                container.innerHTML = '<div style="text-align:center; color: var(--danger); padding: 2rem;">Không thể kết nối</div>';
+                container.innerHTML = '<div style="text-align:center; color: var(--danger); padding: 2rem;">❌ Không thể kết nối</div>';
             }
         }
 
-        function displayResults(results) {
+        function showSearchEmptyState() {
             const container = document.getElementById('searchResults');
+            container.innerHTML = `
+                <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔍</div>
+                    <div style="font-size: 1.125rem; font-weight: 500; margin-bottom: 1rem; color: var(--text-primary);">Tìm kiếm văn bản pháp luật</div>
+                    <div style="margin-bottom: 1.5rem;">Thử tìm kiếm một trong những chủ đề sau:</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; max-width: 600px; margin: 0 auto;">
+                        <div class="suggestion-chip" onclick="searchSuggestion('thời gian thử việc')">Thời gian thử việc</div>
+                        <div class="suggestion-chip" onclick="searchSuggestion('thuế TNDN')">Thuế TNDN</div>
+                        <div class="suggestion-chip" onclick="searchSuggestion('thành lập công ty')">Thành lập công ty</div>
+                        <div class="suggestion-chip" onclick="searchSuggestion('hợp đồng lao động')">Hợp đồng lao động</div>
+                        <div class="suggestion-chip" onclick="searchSuggestion('bảo hiểm xã hội')">BHXH</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function searchSuggestion(query) {
+            document.getElementById('searchInput').value = query;
+            performSearch();
+        }
+
+        function displayResults(data, duration) {
+            const container = document.getElementById('searchResults');
+            const results = data.results || [];
+            const count = data.count || results.length;
             
             if (results.length === 0) {
-                container.innerHTML = '<div style="text-align:center; color: var(--text-muted); padding: 2rem;">Không tìm thấy kết quả</div>';
+                container.innerHTML = `
+                    <div style="text-align:center; padding: 3rem 1rem;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                        <div style="font-size: 1.125rem; font-weight: 500; color: var(--text-primary); margin-bottom: 0.5rem;">Không tìm thấy kết quả</div>
+                        <div style="color: var(--text-muted);">Thử sử dụng từ khóa khác hoặc bỏ bộ lọc lĩnh vực</div>
+                    </div>
+                `;
                 return;
             }
 
-            container.innerHTML = results.map((r, i) => `
-                <div class="result-card">
-                    <div class="result-header">
-                        <div class="result-title">${escapeHtml(r.title || 'Văn bản pháp luật')}</div>
-                        <div class="result-badge">${escapeHtml(r.article || 'Điều ' + (i + 1))}</div>
-                    </div>
-                    <div class="result-excerpt">${escapeHtml(r.excerpt || r.content?.substring(0, 200) + '...' || '')}</div>
-                    <div class="result-actions">
-                        <button class="btn btn-secondary btn-small" onclick="askAboutResult(\`${escapeHtml(r.title || 'văn bản này')}\`)">💬 Hỏi AI</button>
-                    </div>
+            const statsHtml = `
+                <div style="padding: 1rem; margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.875rem; background: var(--bg-secondary); border-radius: 8px;">
+                    Tìm thấy <strong style="color: var(--text-primary);">${count}</strong> kết quả trong <strong style="color: var(--text-primary);">${duration}ms</strong>
                 </div>
-            `).join('');
+            `;
+
+            const resultsHtml = results.map((r, i) => {
+                const content = r.content || '';
+                const excerpt = content.substring(0, 200) + (content.length > 200 ? '...' : '');
+                const domains = r.domains || [];
+                const domainLabels = {
+                    'lao_dong': 'Lao động',
+                    'thue': 'Thuế',
+                    'doanh_nghiep': 'Doanh nghiệp',
+                    'dan_su': 'Dân sự',
+                    'hinh_su': 'Hình sự',
+                    'dat_dai': 'Đất đai',
+                    'hanh_chinh': 'Hành chính'
+                };
+
+                return `
+                    <div class="result-card" id="result-${i}">
+                        <div class="result-header">
+                            <div class="result-title">${escapeHtml(r.law_title || r.title || 'Văn bản pháp luật')}</div>
+                            ${r.article ? `<div class="result-badge">${escapeHtml(r.article)}</div>` : ''}
+                        </div>
+                        ${r.law_number ? `<div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">${escapeHtml(r.law_number)}</div>` : ''}
+                        <div class="result-excerpt" id="excerpt-${i}">${escapeHtml(excerpt)}</div>
+                        ${content.length > 200 ? `
+                            <div class="result-full hidden" id="full-${i}" style="color: var(--text-secondary); line-height: 1.6; margin-top: 0.5rem;">${escapeHtml(content)}</div>
+                            <button class="btn btn-secondary btn-small" onclick="toggleResultContent(${i})" style="margin-top: 0.5rem;" id="toggle-${i}">Xem thêm</button>
+                        ` : ''}
+                        ${domains.length > 0 ? `
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap;">
+                                ${domains.map(d => `<span class="status-badge status-active" style="font-size: 0.75rem;">${domainLabels[d] || d}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                        ${r.rank ? `<div style="margin-top: 0.5rem; color: var(--text-muted); font-size: 0.75rem;">Độ liên quan: ${(r.rank * 100).toFixed(1)}%</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = statsHtml + resultsHtml;
+        }
+
+        function toggleResultContent(index) {
+            const excerpt = document.getElementById(`excerpt-${index}`);
+            const full = document.getElementById(`full-${index}`);
+            const btn = document.getElementById(`toggle-${index}`);
+            
+            if (full.classList.contains('hidden')) {
+                excerpt.classList.add('hidden');
+                full.classList.remove('hidden');
+                btn.textContent = 'Thu gọn';
+            } else {
+                excerpt.classList.remove('hidden');
+                full.classList.add('hidden');
+                btn.textContent = 'Xem thêm';
+            }
         }
 
         function askAboutResult(title) {
+            showPage('chat');
             startNewChat();
             setTimeout(() => useSuggestion(`Giải thích về: ${title}`), 100);
         }
