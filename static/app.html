@@ -3562,8 +3562,11 @@ console.log(data);</code></pre>
                     }
                 } else {
                     removeTyping();
-                    showToast('Xin lỗi, có lỗi xảy ra. Vui lòng thử lại.', 'error');
-                    addMessage('ai', 'Xin lỗi, có lỗi xảy ra. Vui lòng thử lại.');
+                    const errData = await response.json().catch(() => ({}));
+                    const errMsg = errData.detail || `Lỗi ${response.status}`;
+                    console.error('API error:', response.status, errData);
+                    showToast(`Lỗi: ${errMsg}`, 'error');
+                    addMessage('ai', `⚠️ ${errMsg}. Vui lòng thử lại.`);
                 }
             } catch (error) {
                 console.error('Chat error:', error);

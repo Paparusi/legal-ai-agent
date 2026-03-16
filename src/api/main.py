@@ -226,7 +226,7 @@ async def call_claude(system_prompt: str, user_message: str, max_tokens: int = 4
         "messages": [{"role": "user", "content": user_message}]
     }
     
-    async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=120) as client:
         try:
             response = await client.post(CLAUDE_API_URL, headers=headers, json=payload)
             response.raise_for_status()
@@ -723,7 +723,7 @@ CÁC NGUỒN LUẬT LIÊN QUAN (dùng làm tham chiếu):
 
 Hãy thực hiện yêu cầu trên. Nếu là câu hỏi thì trả lời. Nếu là yêu cầu soạn thảo thì soạn văn bản hoàn chỉnh."""
 
-    result = await call_claude(system_prompt, user_message)
+    result = await call_claude(system_prompt, user_message, max_tokens=8192)
     
     # Chat history auto-save (if user_id exists from Bearer token)
     session_id = None
