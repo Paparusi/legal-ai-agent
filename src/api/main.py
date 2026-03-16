@@ -20,6 +20,9 @@ import hashlib
 import time
 import re as re_module
 import os
+import uuid
+from io import BytesIO
+from datetime import datetime
 from contextlib import contextmanager
 from collections import defaultdict
 import jwt
@@ -2535,6 +2538,471 @@ async def get_analytics(
             "count": q["count"]
         } for q in top_queries]
     }
+
+
+# ============================================
+# Feature: Onboarding Status
+# ============================================
+
+@app.get("/v1/onboarding/status")
+async def get_onboarding_status(company: dict = Depends(verify_api_key)):
+    """Check what onboarding steps are completed"""
+    company_id = str(company["company_id"])
+
+    steps = {
+        "profile_complete": False,
+        "first_contract": False,
+        "first_document": False,
+        "first_chat": False,
+        "first_search": False,
+        "team_setup": False
+    }
+
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Check company profile
+        try:
+            cur.execute("SELECT name, tax_code FROM companies WHERE id = %s", (company_id,))
+            company_data = cur.fetchone()
+            if company_data and company_data.get("name"):
+                steps["profile_complete"] = True
+        except Exception:
+            pass
+
+        # Check contracts
+        try:
+            cur.execute("SELECT COUNT(*) as cnt FROM contracts WHERE company_id = %s AND status != 'deleted'", (company_id,))
+            if cur.fetchone()["cnt"] > 0:
+                steps["first_contract"] = True
+        except Exception:
+            pass
+
+        # Check documents
+        try:
+            cur.execute("SELECT COUNT(*) as cnt FROM documents WHERE company_id = %s", (company_id,))
+            if cur.fetchone()["cnt"] > 0:
+                steps["first_document"] = True
+        except Exception:
+            pass
+
+        # Check chat usage
+        try:
+            cur.execute("SELECT COUNT(*) as cnt FROM usage_logs WHERE company_id = %s", (company_id,))
+            result = cur.fetchone()
+            if result and result["cnt"] > 0:
+                steps["first_chat"] = True
+                if result["cnt"] >= 3:
+                    steps["first_search"] = True
+        except Exception:
+            pass
+
+    completed = sum(1 for v in steps.values() if v)
+    total = len(steps)
+
+    return {
+        "steps": steps,
+        "completed": completed,
+        "total": total,
+        "progress": round(completed / total * 100),
+        "is_complete": completed == total
+    }
+
+
+# ============================================
+# Feature: Contract Versioning
+# ============================================
+
+@app.post("/v1/contracts/{contract_id}/versions")
+async def upload_contract_version(
+    contract_id: str,
+    file: UploadFile = File(...),
+    company: dict = Depends(verify_api_key)
+):
+    """Upload a new version of a contract"""
+    company_id = str(company["company_id"])
+
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Verify contract exists
+        cur.execute("SELECT * FROM contracts WHERE id = %s AND company_id = %s AND status != 'deleted'", (contract_id, company_id))
+        contract = cur.fetchone()
+        if not contract:
+            raise HTTPException(404, "Hợp đồng không tồn tại")
+
+        # Get current version number
+        current_version = contract.get("metadata", {}).get("version", 1) if contract.get("metadata") else 1
+        new_version = current_version + 1
+
+        # Save new file
+        file_ext = os.path.splitext(file.filename)[1]
+        new_file_id = str(uuid.uuid4())
+        file_path = f"uploads/{new_file_id}{file_ext}"
+
+        os.makedirs("uploads", exist_ok=True)
+        content = await file.read()
+        with open(file_path, "wb") as f:
+            f.write(content)
+
+        # Extract text from new version
+        text_content = ""
+        try:
+            if file_ext.lower() == '.docx':
+                from docx import Document as DocxDocument
+                doc = DocxDocument(BytesIO(content))
+                text_content = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
+            elif file_ext.lower() == '.pdf':
+                import PyPDF2
+                reader = PyPDF2.PdfReader(BytesIO(content))
+                text_content = "\n".join(page.extract_text() or "" for page in reader.pages)
+            elif file_ext.lower() == '.txt':
+                text_content = content.decode('utf-8', errors='ignore')
+        except Exception as e:
+            text_content = f"[Lỗi đọc file: {str(e)}]"
+
+        # Update contract with new version info
+        metadata = contract.get("metadata") or {}
+        version_history = metadata.get("versions", [])
+        version_history.append({
+            "version": current_version,
+            "file_id": contract.get("file_id", ""),
+            "uploaded_at": contract.get("updated_at", "").isoformat() if contract.get("updated_at") else None,
+            "filename": contract.get("original_filename", "")
+        })
+        metadata["version"] = new_version
+        metadata["versions"] = version_history
+
+        cur.execute("""
+            UPDATE contracts
+            SET file_id = %s, content = %s, original_filename = %s,
+                metadata = %s, updated_at = NOW()
+            WHERE id = %s AND company_id = %s
+        """, (new_file_id, text_content[:50000], file.filename,
+              json.dumps(metadata), contract_id, company_id))
+        conn.commit()
+
+    return {
+        "version": new_version,
+        "file_id": new_file_id,
+        "filename": file.filename,
+        "previous_versions": len(version_history)
+    }
+
+
+@app.get("/v1/contracts/{contract_id}/versions")
+async def get_contract_versions(contract_id: str, company: dict = Depends(verify_api_key)):
+    """Get version history of a contract"""
+    company_id = str(company["company_id"])
+
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT metadata, name, original_filename, updated_at FROM contracts WHERE id = %s AND company_id = %s AND status != 'deleted'", (contract_id, company_id))
+        contract = cur.fetchone()
+        if not contract:
+            raise HTTPException(404, "Hợp đồng không tồn tại")
+
+    metadata = contract.get("metadata") or {}
+    versions = metadata.get("versions", [])
+    current_version = metadata.get("version", 1)
+
+    # Add current version
+    versions.append({
+        "version": current_version,
+        "filename": contract.get("original_filename", ""),
+        "uploaded_at": contract.get("updated_at", "").isoformat() if contract.get("updated_at") else None,
+        "is_current": True
+    })
+
+    return {
+        "contract_name": contract["name"],
+        "current_version": current_version,
+        "versions": sorted(versions, key=lambda x: x.get("version", 0), reverse=True)
+    }
+
+
+# ============================================
+# Feature: Contract Notes/Comments
+# ============================================
+
+@app.post("/v1/contracts/{contract_id}/notes")
+async def add_contract_note(
+    contract_id: str,
+    request: dict = Body(...),
+    company: dict = Depends(verify_api_key)
+):
+    """Add a note/comment to a contract"""
+    company_id = str(company["company_id"])
+    user_id = company.get("user_id")
+    note_text = request.get("text", "").strip()
+    note_type = request.get("type", "note")  # note, warning, action, resolved
+
+    if not note_text:
+        raise HTTPException(400, "Ghi chú không được trống")
+
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Verify contract
+        cur.execute("SELECT metadata FROM contracts WHERE id = %s AND company_id = %s AND status != 'deleted'", (contract_id, company_id))
+        contract = cur.fetchone()
+        if not contract:
+            raise HTTPException(404, "Hợp đồng không tồn tại")
+
+        metadata = contract.get("metadata") or {}
+        notes = metadata.get("notes", [])
+
+        note = {
+            "id": str(uuid.uuid4()),
+            "text": note_text,
+            "type": note_type,
+            "user_id": str(user_id) if user_id else None,
+            "created_at": datetime.utcnow().isoformat(),
+            "resolved": False
+        }
+        notes.append(note)
+        metadata["notes"] = notes
+
+        cur.execute("UPDATE contracts SET metadata = %s WHERE id = %s", (json.dumps(metadata), contract_id))
+        conn.commit()
+
+    return {"note": note, "total_notes": len(notes)}
+
+
+@app.get("/v1/contracts/{contract_id}/notes")
+async def get_contract_notes(contract_id: str, company: dict = Depends(verify_api_key)):
+    """Get all notes for a contract"""
+    company_id = str(company["company_id"])
+
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT metadata FROM contracts WHERE id = %s AND company_id = %s AND status != 'deleted'", (contract_id, company_id))
+        contract = cur.fetchone()
+        if not contract:
+            raise HTTPException(404)
+
+    metadata = contract.get("metadata") or {}
+    notes = metadata.get("notes", [])
+
+    return {"notes": sorted(notes, key=lambda x: x.get("created_at", ""), reverse=True)}
+
+
+@app.put("/v1/contracts/{contract_id}/notes/{note_id}")
+async def update_contract_note(
+    contract_id: str,
+    note_id: str,
+    request: dict = Body(...),
+    company: dict = Depends(verify_api_key)
+):
+    """Update or resolve a note"""
+    company_id = str(company["company_id"])
+
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        cur.execute("SELECT metadata FROM contracts WHERE id = %s AND company_id = %s AND status != 'deleted'", (contract_id, company_id))
+        contract = cur.fetchone()
+        if not contract:
+            raise HTTPException(404)
+
+        metadata = contract.get("metadata") or {}
+        notes = metadata.get("notes", [])
+
+        for note in notes:
+            if note.get("id") == note_id:
+                if "text" in request:
+                    note["text"] = request["text"]
+                if "resolved" in request:
+                    note["resolved"] = request["resolved"]
+                if "type" in request:
+                    note["type"] = request["type"]
+                break
+
+        metadata["notes"] = notes
+        cur.execute("UPDATE contracts SET metadata = %s WHERE id = %s", (json.dumps(metadata), contract_id))
+        conn.commit()
+
+    return {"success": True}
+
+
+# ============================================
+# Feature: AI Proactive Insights
+# ============================================
+
+@app.get("/v1/insights")
+async def get_ai_insights(company: dict = Depends(verify_api_key)):
+    """Generate proactive AI insights about the company's legal state"""
+    company_id = str(company["company_id"])
+
+    insights = []
+
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Expiring contracts insight
+        try:
+            cur.execute("""
+                SELECT COUNT(*) as cnt FROM contracts
+                WHERE company_id = %s AND status != 'deleted'
+                AND end_date IS NOT NULL AND end_date <= CURRENT_DATE + INTERVAL '60 days'
+                AND end_date >= CURRENT_DATE
+            """, (company_id,))
+            expiring = cur.fetchone()["cnt"]
+            if expiring > 0:
+                insights.append({
+                    "type": "expiring_contracts",
+                    "severity": "warning",
+                    "icon": "⏰",
+                    "title": f"{expiring} hợp đồng sắp hết hạn trong 60 ngày",
+                    "description": "Nên rà soát và chuẩn bị gia hạn hoặc ký mới.",
+                    "action": {"type": "open_risk_dashboard"}
+                })
+        except Exception:
+            pass
+
+        # Unreviewed contracts
+        try:
+            cur.execute("""
+                SELECT COUNT(*) as cnt FROM contracts
+                WHERE company_id = %s AND status = 'uploaded'
+            """, (company_id,))
+            unreviewed = cur.fetchone()["cnt"]
+            if unreviewed > 0:
+                insights.append({
+                    "type": "unreviewed",
+                    "severity": "info",
+                    "icon": "📋",
+                    "title": f"{unreviewed} hợp đồng chưa được rà soát AI",
+                    "description": "Rà soát bằng AI để phát hiện rủi ro sớm.",
+                    "action": {"type": "open_contracts"}
+                })
+        except Exception:
+            pass
+
+        # Usage trend
+        try:
+            cur.execute("""
+                SELECT COUNT(*) as cnt FROM usage_logs
+                WHERE company_id = %s AND created_at >= NOW() - INTERVAL '7 days'
+            """, (company_id,))
+            recent_usage = cur.fetchone()["cnt"]
+
+            cur.execute("""
+                SELECT COUNT(*) as cnt FROM usage_logs
+                WHERE company_id = %s
+                AND created_at >= NOW() - INTERVAL '14 days'
+                AND created_at < NOW() - INTERVAL '7 days'
+            """, (company_id,))
+            prev_usage = cur.fetchone()["cnt"]
+
+            if prev_usage > 0 and recent_usage > prev_usage * 1.5:
+                insights.append({
+                    "type": "usage_increase",
+                    "severity": "success",
+                    "icon": "📈",
+                    "title": "Sử dụng tăng mạnh tuần này",
+                    "description": f"Tuần này: {recent_usage} câu hỏi (tuần trước: {prev_usage})",
+                    "action": {"type": "open_analytics"}
+                })
+        except Exception:
+            pass
+
+        # Missing company profile
+        try:
+            cur.execute("SELECT name, tax_code, address FROM companies WHERE id = %s", (company_id,))
+            profile = cur.fetchone()
+            if profile and (not profile.get("tax_code") or not profile.get("address")):
+                insights.append({
+                    "type": "incomplete_profile",
+                    "severity": "info",
+                    "icon": "🏢",
+                    "title": "Hồ sơ công ty chưa đầy đủ",
+                    "description": "Cập nhật mã số thuế và địa chỉ để AI tư vấn chính xác hơn.",
+                    "action": {"type": "open_settings"}
+                })
+        except Exception:
+            pass
+
+    return {
+        "insights": insights,
+        "generated_at": datetime.utcnow().isoformat()
+    }
+
+
+# ============================================
+# Feature: Export Chat as Markdown
+# ============================================
+
+@app.get("/v1/chats/{session_id}/export")
+async def export_chat(session_id: str, company: dict = Depends(verify_api_key)):
+    """Export a chat session as markdown"""
+    company_id = str(company["company_id"])
+
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        # Try usage_logs first, fall back to messages table
+        messages = []
+        try:
+            cur.execute("""
+                SELECT question, answer, created_at, citations_count
+                FROM usage_logs
+                WHERE company_id = %s AND session_id = %s
+                ORDER BY created_at ASC
+            """, (company_id, session_id))
+            messages = cur.fetchall()
+        except Exception:
+            conn.rollback()
+
+        # Fallback: try messages table
+        if not messages:
+            try:
+                cur.execute("""
+                    SELECT role, content, created_at
+                    FROM messages
+                    WHERE company_id = %s AND session_id = %s
+                    ORDER BY created_at ASC
+                """, (company_id, session_id))
+                raw_msgs = cur.fetchall()
+                # Pair user/assistant messages
+                i = 0
+                while i < len(raw_msgs):
+                    msg = raw_msgs[i]
+                    if msg["role"] == "user":
+                        answer = ""
+                        citations_count = 0
+                        if i + 1 < len(raw_msgs) and raw_msgs[i + 1]["role"] == "assistant":
+                            answer = raw_msgs[i + 1]["content"]
+                            i += 1
+                        messages.append({
+                            "question": msg["content"],
+                            "answer": answer,
+                            "created_at": msg["created_at"],
+                            "citations_count": citations_count
+                        })
+                    i += 1
+            except Exception:
+                pass
+
+    if not messages:
+        raise HTTPException(404, "Không tìm thấy cuộc hội thoại")
+
+    # Build markdown
+    md = f"# Cuộc hội thoại - AI Legal Agent\n"
+    md += f"**Ngày:** {messages[0]['created_at'].strftime('%d/%m/%Y') if messages[0].get('created_at') and hasattr(messages[0]['created_at'], 'strftime') else 'N/A'}\n"
+    md += f"**Số lượt hỏi:** {len(messages)}\n\n---\n\n"
+
+    for msg in messages:
+        time_str = msg['created_at'].strftime('%H:%M') if msg.get('created_at') and hasattr(msg['created_at'], 'strftime') else ''
+        md += f"## 👤 Người dùng ({time_str})\n{msg.get('question', '')}\n\n"
+        md += f"## ⚖️ AI Legal Agent\n{msg.get('answer', '')}\n\n"
+        if msg.get('citations_count', 0) and msg['citations_count'] > 0:
+            md += f"*({msg['citations_count']} nguồn trích dẫn)*\n\n"
+        md += "---\n\n"
+
+    return StreamingResponse(
+        BytesIO(md.encode('utf-8')),
+        media_type="text/markdown",
+        headers={"Content-Disposition": f'attachment; filename="chat_{session_id[:8]}.md"'}
+    )
 
 
 if __name__ == "__main__":
