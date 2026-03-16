@@ -4764,7 +4764,8 @@ console.log(data);</code></pre>
                 });
 
                 if (response.ok) {
-                    allContracts = await response.json();
+                    const data = await response.json();
+                    allContracts = data.contracts || data || [];
                     renderContracts();
                     checkExpiringContracts();
                 } else {
@@ -4901,22 +4902,22 @@ console.log(data);</code></pre>
             grid.innerHTML = allContracts.map(c => {
                 const status = getContractStatus(c);
                 return `
-                    <div class="contract-card" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; transition: all 0.2s; cursor: pointer;" onclick="viewContract(${c.id})">
+                    <div class="contract-card" style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; transition: all 0.2s; cursor: pointer;" onclick="viewContract('${c.id}')">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
-                            <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">${escapeHtml(c.title)}</div>
+                            <div style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">${escapeHtml(c.name || c.title || 'Chưa đặt tên')}</div>
                             <span class="status-badge status-${status}" style="font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 100px;">${getStatusText(status)}</span>
                         </div>
                         <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
-                            ${getContractTypeText(c.contract_type)} ${c.parties ? `· ${escapeHtml(c.parties)}` : ''}
+                            ${getContractTypeText(c.contract_type)} ${c.parties && c.parties.length ? `· ${escapeHtml(Array.isArray(c.parties) ? c.parties.join(', ') : c.parties)}` : ''}
                         </div>
                         <div style="display: flex; gap: 1rem; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">
                             <span>📅 ${formatDate(c.start_date)} — ${formatDate(c.end_date)}</span>
                             ${c.value ? `<span>💰 ${formatCurrency(c.value)}</span>` : ''}
                         </div>
                         <div style="display: flex; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.75rem;">
-                            <button class="icon-btn" title="Xem chi tiết" onclick="event.stopPropagation(); viewContract(${c.id})">👁️</button>
-                            <button class="icon-btn" title="Rà soát AI" onclick="event.stopPropagation(); reviewContract(${c.id})">🔍</button>
-                            <button class="icon-btn" title="Xóa" onclick="event.stopPropagation(); deleteContract(${c.id})">🗑️</button>
+                            <button class="icon-btn" title="Xem chi tiết" onclick="event.stopPropagation(); viewContract('${c.id}')">👁️</button>
+                            <button class="icon-btn" title="Rà soát AI" onclick="event.stopPropagation(); reviewContract('${c.id}')">🔍</button>
+                            <button class="icon-btn" title="Xóa" onclick="event.stopPropagation(); deleteContract('${c.id}')">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -4927,17 +4928,17 @@ console.log(data);</code></pre>
                 const status = getContractStatus(c);
                 return `
                     <tr data-status="${status}">
-                        <td style="color: var(--text-primary); font-weight: 500;">${escapeHtml(c.title)}</td>
+                        <td style="color: var(--text-primary); font-weight: 500;">${escapeHtml(c.name || c.title || 'Chưa đặt tên')}</td>
                         <td>${getContractTypeText(c.contract_type)}</td>
-                        <td>${escapeHtml(c.parties || '-')}</td>
+                        <td>${escapeHtml(Array.isArray(c.parties) ? c.parties.join(', ') : (c.parties || '-'))}</td>
                         <td><span class="status-badge status-${status}">${getStatusText(status)}</span></td>
                         <td>${formatDate(c.start_date)}</td>
                         <td>${formatDate(c.end_date)}</td>
                         <td>${formatCurrency(c.value)}</td>
                         <td class="table-actions">
-                            <button class="icon-btn" title="Xem chi tiết" onclick="viewContract(${c.id})">👁️</button>
-                            <button class="icon-btn" title="Rà soát AI" onclick="reviewContract(${c.id})">🔍</button>
-                            <button class="icon-btn" title="Xóa" onclick="deleteContract(${c.id})">🗑️</button>
+                            <button class="icon-btn" title="Xem chi tiết" onclick="viewContract('${c.id}')">👁️</button>
+                            <button class="icon-btn" title="Rà soát AI" onclick="reviewContract('${c.id}')">🔍</button>
+                            <button class="icon-btn" title="Xóa" onclick="deleteContract('${c.id}')">🗑️</button>
                         </td>
                     </tr>
                 `;
