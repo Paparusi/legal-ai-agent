@@ -241,11 +241,14 @@ SIMPLE_PATTERNS = [
 ]
 
 def is_simple_question(question: str) -> bool:
-    """Check if question is simple enough to skip agent loop"""
+    """Check if question is simple enough to skip agent loop.
+    Only skip for very obvious non-legal greetings/acknowledgments.
+    Let Claude decide for everything else — trust the AI."""
     q = question.strip().lower()
-    if len(q) < 30:
+    # Only skip for very short, clearly non-legal messages
+    if len(q) < 15:
         for p in SIMPLE_PATTERNS:
-            if p in q:
+            if q == p or q.startswith(p + " ") or q.endswith(" " + p):
                 return True
     return False
 
