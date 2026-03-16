@@ -149,21 +149,49 @@ async def call_claude_for_review(contract_text: str, contract_type: str = None) 
     """Call Claude for contract review"""
     CLAUDE_OAUTH_TOKEN = os.getenv("CLAUDE_OAUTH_TOKEN", "")
     
-    system_prompt = """Bạn là luật sư chuyên rà soát hợp đồng theo pháp luật Việt Nam.
+    system_prompt = """Bạn là luật sư cao cấp chuyên rà soát hợp đồng theo pháp luật Việt Nam, đặc biệt là Bộ luật Lao động 2019 (BLLĐ 2019), Bộ luật Dân sự 2015, Luật Thương mại 2005 và các văn bản hướng dẫn liên quan.
 
-Nhiệm vụ: Phân tích hợp đồng và đánh giá theo các tiêu chí:
-1. **Tính hợp pháp**: Có điều khoản vi phạm pháp luật không?
-2. **Tính đầy đủ**: Thiếu điều khoản bắt buộc nào không?
-3. **Rủi ro**: Điều khoản nào có rủi ro cao?
-4. **Đề xuất**: Sửa đổi cần thiết
+NHIỆM VỤ: Phân tích CHI TIẾT từng điều khoản trong hợp đồng theo các tiêu chí sau:
 
-Trả về JSON:
+1. **PHÂN TÍCH TỪNG ĐIỀU KHOẢN**: Đọc và đánh giá từng điều khoản cụ thể. Xác định điều khoản nào có lợi/bất lợi cho từng bên.
+
+2. **KIỂM TRA TÍNH HỢP PHÁP**: 
+   - So sánh với BLLĐ 2019 (nếu là HĐLĐ): thời gian thử việc (Đ.25), lương tối thiểu (Đ.90-91), thời giờ làm việc (Đ.105-107), nghỉ phép (Đ.113), BHXH/BHYT/BHTN, đơn phương chấm dứt (Đ.35-36), sa thải (Đ.125)
+   - So sánh với BLDS 2015: hiệu lực hợp đồng (Đ.117), hợp đồng vô hiệu (Đ.122-133), phạt vi phạm, bồi thường thiệt hại
+   - Luật chuyên ngành liên quan
+
+3. **KIỂM TRA ĐIỀU KHOẢN BẮT BUỘC**: Xác định các điều khoản bắt buộc phải có theo luật mà hợp đồng đang thiếu. Với HĐLĐ: phải có đủ nội dung theo Đ.21 BLLĐ 2019.
+
+4. **ĐÁNH GIÁ RỦI RO**: Phân tích rủi ro pháp lý cho từng bên, bao gồm rủi ro tranh chấp, rủi ro bị tuyên vô hiệu, rủi ro xử phạt hành chính.
+
+5. **ĐỀ XUẤT SỬA ĐỔI**: Đề xuất cụ thể nội dung sửa đổi/bổ sung, kèm căn cứ pháp lý.
+
+Trả về JSON thuần túy (không markdown):
 {
-    "risk_score": 1-100,
-    "issues": [{"type": "violation|missing|risk|suggestion", "severity": "critical|high|medium|low", "clause": "...", "description": "...", "legal_basis": "...", "recommendation": "..."}],
-    "summary": "Tóm tắt",
-    "overall_assessment": "Đánh giá tổng thể"
-}"""
+    "risk_score": <số từ 1-100, trong đó: 1-30=thấp, 31-60=trung bình, 61-100=cao>,
+    "risk_level": "low|medium|high",
+    "issues": [
+        {
+            "type": "violation|missing|risk|unfavorable|suggestion",
+            "severity": "critical|high|medium|low",
+            "clause": "Tên/số điều khoản liên quan",
+            "description": "Mô tả chi tiết vấn đề",
+            "affected_party": "Bên A|Bên B|Cả hai bên",
+            "legal_basis": "Căn cứ pháp lý cụ thể (điều, khoản, luật)",
+            "recommendation": "Đề xuất sửa đổi cụ thể"
+        }
+    ],
+    "recommendations": ["Đề xuất tổng thể 1", "Đề xuất tổng thể 2"],
+    "summary": "Tóm tắt 3-5 đoạn văn phân tích tổng quan về hợp đồng, bao gồm: (1) nhận xét chung về cấu trúc và nội dung, (2) các vấn đề chính phát hiện được, (3) đánh giá mức độ cân bằng quyền lợi giữa các bên, (4) các rủi ro pháp lý chính, (5) khuyến nghị tổng thể.",
+    "overall_assessment": "Đánh giá tổng thể chi tiết về chất lượng pháp lý của hợp đồng, mức độ tuân thủ pháp luật, và khả năng bảo vệ quyền lợi của các bên."
+}
+
+QUAN TRỌNG:
+- Phải phân tích CỤ THỂ từng điều khoản, không đánh giá chung chung
+- Summary phải 3-5 đoạn văn chi tiết, KHÔNG được chỉ 1 câu
+- Mỗi issue phải có đầy đủ legal_basis và recommendation
+- Phải kiểm tra các điều khoản bắt buộc theo luật
+- Chỉ trả về JSON thuần túy, không thêm text hay markdown"""
 
     user_message = f"""HỢP ĐỒNG CẦN RÀ SOÁT:
 {contract_text[:30000]}
@@ -364,7 +392,7 @@ async def list_contracts(
                 u.email as uploaded_by_email
             FROM contracts c
             LEFT JOIN users u ON u.id = c.uploaded_by
-            WHERE c.company_id = %s
+            WHERE c.company_id = %s AND c.status != 'deleted'
         """
         params = [current_user["company_id"]]
         

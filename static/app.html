@@ -3999,27 +3999,37 @@ console.log(data);</code></pre>
 
         // ===== NAVIGATION =====
         function showPage(pageName) {
-            // Page transition animation
-            const currentPage = document.querySelector('.page.active');
             const nextPage = document.getElementById(pageName + 'Page');
+            if (!nextPage) return;
+            
+            // Clear any lingering transition styles from all pages
+            document.querySelectorAll('.page').forEach(p => {
+                p.style.transition = '';
+                p.style.opacity = '';
+                p.style.transform = '';
+            });
+            
+            const currentPage = document.querySelector('.page.active');
             
             if (currentPage && currentPage !== nextPage) {
-                currentPage.style.opacity = '0';
-                currentPage.style.transform = 'translateY(10px)';
-                setTimeout(() => {
-                    currentPage.classList.remove('active');
-                    currentPage.style.opacity = '';
-                    currentPage.style.transform = '';
-                    
-                    nextPage.classList.add('active');
-                    nextPage.style.opacity = '0';
-                    nextPage.style.transform = 'translateY(10px)';
-                    requestAnimationFrame(() => {
-                        nextPage.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-                        nextPage.style.opacity = '1';
-                        nextPage.style.transform = 'translateY(0)';
-                    });
-                }, 150);
+                // Immediate switch - remove active from current, add to next
+                currentPage.classList.remove('active');
+                nextPage.classList.add('active');
+                
+                // Animate next page in
+                nextPage.style.opacity = '0';
+                nextPage.style.transform = 'translateY(10px)';
+                requestAnimationFrame(() => {
+                    nextPage.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    nextPage.style.opacity = '1';
+                    nextPage.style.transform = 'translateY(0)';
+                    // Clean up transition after animation
+                    setTimeout(() => {
+                        nextPage.style.transition = '';
+                        nextPage.style.opacity = '';
+                        nextPage.style.transform = '';
+                    }, 350);
+                });
             } else if (!currentPage) {
                 nextPage.classList.add('active');
             }
@@ -5076,17 +5086,92 @@ console.log(data);</code></pre>
             }
         }
 
-        function showReviewResults(result, contractDetails) {
-            const riskClass = `risk-${result.risk_level || 'low'}`;
-            const riskText = {
-                'low': 'Thấp',
-                'medium': 'Trung bình',
-                'high': 'Cao'
-            }[result.risk_level] || 'Thấp';
+        function showReviewResults(apiResult, contractDetails) {
+            // Extract review data from API response - handle both nested and flat structures
+            const review = apiResult.review || apiResult;
+            
+            // Determine risk level from risk_score or risk_level
+            let riskLevel = review.risk_level || 'low';
+            if (!review.risk_level && review.risk_score) {
+                if (review.risk_score >= 61) riskLevel = 'high';
+                else if (review.risk_score >= 31) riskLevel = 'medium';
+                else riskLevel = 'low';
+            }
+            const riskClass = `risk-${riskLevel}`;
+            const riskText = { 'low': 'Thấp', 'medium': 'Trung bình', 'high': 'Cao' }[riskLevel] || 'Thấp';
+            const riskScore = review.risk_score || 0;
 
             const contractContent = contractDetails?.content || contractDetails?.extracted_text || 'Không có nội dung hợp đồng';
 
-            window.currentReviewData = { result, contractDetails };
+            // Store normalized data for export
+            window.currentReviewData = { result: { ...review, risk_level: riskLevel }, contractDetails };
+
+            // Severity colors
+            const severityColors = {
+                'critical': '#dc3545',
+                'high': '#fd7e14',
+                'medium': '#ffc107',
+                'low': '#28a745'
+            };
+            const severityLabels = {
+                'critical': '🔴 Nghiêm trọng',
+                'high': '🟠 Cao',
+                'medium': '🟡 Trung bình',
+                'low': '🟢 Thấp'
+            };
+            const typeLabels = {
+                'violation': '⛔ Vi phạm pháp luật',
+                'missing': '📋 Thiếu điều khoản',
+                'risk': '⚠️ Rủi ro',
+                'unfavorable': '⚖️ Bất lợi',
+                'suggestion': '💡 Đề xuất'
+            };
+
+            // Render issues - handle both object and string formats
+            const issues = review.issues || [];
+            let issuesHtml = '';
+            if (issues.length > 0) {
+                issuesHtml = `
+                    <div class="review-section">
+                        <div class="review-section-title">⚠️ Vấn đề phát hiện (${issues.length})</div>
+                        ${issues.map((issue, idx) => {
+                            if (typeof issue === 'string') {
+                                return `<div style="padding: 0.75rem; margin-bottom: 0.5rem; background: var(--code-bg); border-radius: 8px; border-left: 3px solid #ffc107;"><span style="color: var(--text-secondary);">${escapeHtml(issue)}</span></div>`;
+                            }
+                            const sevColor = severityColors[issue.severity] || '#6c757d';
+                            const sevLabel = severityLabels[issue.severity] || issue.severity;
+                            const typeLabel = typeLabels[issue.type] || issue.type;
+                            return `
+                                <div style="padding: 1rem; margin-bottom: 0.75rem; background: var(--code-bg); border-radius: 8px; border-left: 4px solid ${sevColor};">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                        <span style="font-weight: 600; color: var(--text-primary);">${typeLabel}</span>
+                                        <span style="font-size: 0.8rem; padding: 2px 8px; border-radius: 12px; background: ${sevColor}22; color: ${sevColor}; font-weight: 600;">${sevLabel}</span>
+                                    </div>
+                                    ${issue.clause ? `<div style="font-size: 0.85rem; color: var(--primary); margin-bottom: 0.4rem;">📌 ${escapeHtml(issue.clause)}</div>` : ''}
+                                    <div style="color: var(--text-secondary); margin-bottom: 0.4rem; line-height: 1.5;">${escapeHtml(issue.description || '')}</div>
+                                    ${issue.affected_party ? `<div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">👥 Ảnh hưởng: ${escapeHtml(issue.affected_party)}</div>` : ''}
+                                    ${issue.legal_basis ? `<div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.3rem;">📖 Căn cứ: ${escapeHtml(issue.legal_basis)}</div>` : ''}
+                                    ${issue.recommendation ? `<div style="font-size: 0.85rem; color: var(--success); margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px solid var(--border);">💡 ${escapeHtml(issue.recommendation)}</div>` : ''}
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            // Render recommendations
+            const recommendations = review.recommendations || [];
+            let recsHtml = '';
+            if (recommendations.length > 0) {
+                recsHtml = `
+                    <div class="review-section">
+                        <div class="review-section-title">💡 Đề xuất tổng thể</div>
+                        <ul class="review-list">
+                            ${recommendations.map(rec => `<li style="margin-bottom: 0.5rem; line-height: 1.5;">${escapeHtml(typeof rec === 'string' ? rec : rec.description || JSON.stringify(rec))}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
 
             document.getElementById('reviewResultContent').innerHTML = `
                 <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
@@ -5101,36 +5186,31 @@ console.log(data);</code></pre>
                         </div>
                     </div>
 
-                    <div style="padding-left: 1.5rem;">
+                    <div style="padding-left: 1.5rem; max-height: 600px; overflow-y: auto;">
                         <div style="font-weight: 600; font-size: 1rem; margin-bottom: 1rem; color: var(--text-primary);">🔍 Kết quả phân tích</div>
                         
                         <div class="review-section">
                             <div class="review-section-title">Mức độ rủi ro</div>
-                            <span class="risk-badge ${riskClass}">${riskText}</span>
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <span class="risk-badge ${riskClass}">${riskText}</span>
+                                ${riskScore ? `<span style="font-size: 0.9rem; color: var(--text-muted);">Điểm: ${riskScore}/100</span>` : ''}
+                            </div>
                         </div>
                         
                         <div class="review-section">
-                            <div class="review-section-title">Tóm tắt</div>
-                            <div style="color: var(--text-secondary); line-height: 1.6;">${escapeHtml(result.summary || 'Không có tóm tắt')}</div>
+                            <div class="review-section-title">📝 Tóm tắt phân tích</div>
+                            <div style="color: var(--text-secondary); line-height: 1.7; white-space: pre-line;">${escapeHtml(review.summary || 'Không có tóm tắt')}</div>
                         </div>
-                        
-                        ${result.issues && result.issues.length > 0 ? `
+
+                        ${review.overall_assessment ? `
                             <div class="review-section">
-                                <div class="review-section-title">⚠️ Vấn đề phát hiện</div>
-                                <ul class="review-list">
-                                    ${result.issues.map(issue => `<li>${escapeHtml(issue)}</li>`).join('')}
-                                </ul>
+                                <div class="review-section-title">📊 Đánh giá tổng thể</div>
+                                <div style="color: var(--text-secondary); line-height: 1.7; padding: 1rem; background: var(--code-bg); border-radius: 8px; white-space: pre-line;">${escapeHtml(review.overall_assessment)}</div>
                             </div>
                         ` : ''}
                         
-                        ${result.recommendations && result.recommendations.length > 0 ? `
-                            <div class="review-section">
-                                <div class="review-section-title">💡 Đề xuất</div>
-                                <ul class="review-list">
-                                    ${result.recommendations.map(rec => `<li>${escapeHtml(rec)}</li>`).join('')}
-                                </ul>
-                            </div>
-                        ` : ''}
+                        ${issuesHtml}
+                        ${recsHtml}
                     </div>
                 </div>
             `;
@@ -5150,33 +5230,46 @@ console.log(data);</code></pre>
                 'high': 'Cao'
             }[result.risk_level] || 'Thấp';
 
+            const issues = result.issues || [];
+            const recommendations = result.recommendations || [];
+
             const reportText = `
 =================================================
         BÁO CÁO RÀ SOÁT HỢP ĐỒNG
 =================================================
 
-Hợp đồng: ${contractDetails?.title || 'N/A'}
+Hợp đồng: ${contractDetails?.title || contractDetails?.name || 'N/A'}
 Ngày rà soát: ${new Date().toLocaleDateString('vi-VN')}
 
 -------------------------------------------------
-MỨC ĐỘ RỦI RO: ${riskText.toUpperCase()}
+MỨC ĐỘ RỦI RO: ${riskText.toUpperCase()} ${result.risk_score ? `(${result.risk_score}/100)` : ''}
 -------------------------------------------------
 
 TÓM TẮT:
 ${result.summary || 'Không có tóm tắt'}
 
-${result.issues && result.issues.length > 0 ? `
+${result.overall_assessment ? `
 -------------------------------------------------
-VẤN ĐỀ PHÁT HIỆN:
+ĐÁNH GIÁ TỔNG THỂ:
 -------------------------------------------------
-${result.issues.map((issue, i) => `${i + 1}. ${issue}`).join('\n')}
+${result.overall_assessment}
 ` : ''}
 
-${result.recommendations && result.recommendations.length > 0 ? `
+${issues.length > 0 ? `
 -------------------------------------------------
-ĐỀ XUẤT:
+VẤN ĐỀ PHÁT HIỆN (${issues.length}):
 -------------------------------------------------
-${result.recommendations.map((rec, i) => `${i + 1}. ${rec}`).join('\n')}
+${issues.map((issue, i) => {
+    if (typeof issue === 'string') return `${i + 1}. ${issue}`;
+    return `${i + 1}. [${(issue.severity || '').toUpperCase()}] ${issue.clause || ''}\n   ${issue.description || ''}\n   Căn cứ: ${issue.legal_basis || 'N/A'}\n   Đề xuất: ${issue.recommendation || 'N/A'}`;
+}).join('\n\n')}
+` : ''}
+
+${recommendations.length > 0 ? `
+-------------------------------------------------
+ĐỀ XUẤT TỔNG THỂ:
+-------------------------------------------------
+${recommendations.map((rec, i) => `${i + 1}. ${typeof rec === 'string' ? rec : rec.description || JSON.stringify(rec)}`).join('\n')}
 ` : ''}
 
 =================================================
@@ -5188,7 +5281,7 @@ Báo cáo được tạo bởi Legal AI Agent
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `bao-cao-ra-soat-${contractDetails?.title?.replace(/[^a-zA-Z0-9]/g, '-') || 'hop-dong'}-${Date.now()}.txt`;
+            a.download = `bao-cao-ra-soat-${(contractDetails?.title || contractDetails?.name || 'hop-dong').replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}.txt`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
