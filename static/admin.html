@@ -7,7 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <style>
         * {
             margin: 0;
@@ -18,22 +17,24 @@
         :root {
             --primary: #6366f1;
             --primary-hover: #4f46e5;
-            --bg: #ffffff;
+            --bg: #0a0e1a;
             --sidebar: #0f172a;
             --sidebar-text: #94a3b8;
             --sidebar-active: #6366f1;
-            --card-border: #e2e8f0;
-            --text-primary: #0f172a;
-            --text-secondary: #64748b;
+            --card-bg: #1e293b;
+            --card-border: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
             --success: #22c55e;
             --warning: #f59e0b;
             --danger: #ef4444;
-            --bg-gray: #f8fafc;
+            --info: #3b82f6;
+            --bg-gray: #0f1729;
         }
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-gray);
+            background: var(--bg);
             color: var(--text-primary);
         }
 
@@ -55,6 +56,7 @@
             position: fixed;
             height: 100vh;
             overflow-y: auto;
+            border-right: 1px solid var(--card-border);
         }
 
         .sidebar-header {
@@ -178,10 +180,16 @@
         }
 
         .stat-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 12px;
             padding: 1.5rem;
             border: 1px solid var(--card-border);
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
         }
 
         .stat-header {
@@ -207,10 +215,10 @@
             font-size: 1.5rem;
         }
 
-        .stat-icon.primary { background: rgba(99,102,241,0.1); color: var(--primary); }
-        .stat-icon.success { background: rgba(34,197,94,0.1); color: var(--success); }
-        .stat-icon.warning { background: rgba(245,158,11,0.1); color: var(--warning); }
-        .stat-icon.danger { background: rgba(239,68,68,0.1); color: var(--danger); }
+        .stat-icon.primary { background: rgba(99,102,241,0.2); }
+        .stat-icon.success { background: rgba(34,197,94,0.2); }
+        .stat-icon.warning { background: rgba(245,158,11,0.2); }
+        .stat-icon.danger { background: rgba(239,68,68,0.2); }
 
         .stat-value {
             font-size: 2rem;
@@ -224,9 +232,100 @@
             color: var(--success);
         }
 
+        /* Simple Line Chart (Pure CSS) */
+        .simple-chart {
+            width: 100%;
+            height: 200px;
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            padding: 1rem 0;
+            position: relative;
+        }
+
+        .chart-bar {
+            flex: 1;
+            background: linear-gradient(180deg, var(--primary) 0%, rgba(99,102,241,0.3) 100%);
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            transition: all 0.3s;
+            min-height: 4px;
+        }
+
+        .chart-bar:hover {
+            background: var(--primary);
+            opacity: 0.8;
+        }
+
+        .chart-bar::after {
+            content: attr(data-value);
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .chart-bar:hover::after {
+            opacity: 1;
+        }
+
+        /* Bar Chart Container */
+        .bar-chart-container {
+            width: 100%;
+            padding: 1rem 0;
+        }
+
+        .bar-chart-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .bar-chart-label {
+            width: 150px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bar-chart-bar-wrapper {
+            flex: 1;
+            height: 32px;
+            background: var(--bg-gray);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-chart-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--info));
+            border-radius: 6px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 0.5rem;
+        }
+
+        .bar-chart-value {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
         /* Table */
         .card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 12px;
             border: 1px solid var(--card-border);
             overflow: hidden;
@@ -274,10 +373,11 @@
 
         td {
             font-size: 0.875rem;
+            color: var(--text-primary);
         }
 
         tr:hover {
-            background: var(--bg-gray);
+            background: rgba(99,102,241,0.05);
         }
 
         /* Badges */
@@ -289,12 +389,27 @@
             font-weight: 600;
         }
 
-        .badge.trial { background: #e0e7ff; color: #4f46e5; }
-        .badge.free { background: #f3f4f6; color: #6b7280; }
-        .badge.pro { background: #dbeafe; color: #2563eb; }
-        .badge.enterprise { background: #fef3c7; color: #d97706; }
-        .badge.active { background: #d1fae5; color: #059669; }
-        .badge.inactive { background: #fee2e2; color: #dc2626; }
+        .badge.trial { background: #312e81; color: #c7d2fe; }
+        .badge.free { background: #374151; color: #d1d5db; }
+        .badge.pro { background: #1e3a8a; color: #93c5fd; }
+        .badge.enterprise { background: #78350f; color: #fde68a; }
+        .badge.starter { background: #1e3a8a; color: #93c5fd; }
+        .badge.active { background: #14532d; color: #86efac; }
+        .badge.inactive { background: #7f1d1d; color: #fca5a5; }
+        .badge.viewer { background: #374151; color: #d1d5db; }
+        .badge.member { background: #1e3a8a; color: #93c5fd; }
+        .badge.admin { background: #7c2d12; color: #fdba74; }
+        .badge.owner { background: #581c87; color: #e9d5ff; }
+        .badge.superadmin { background: #7f1d1d; color: #fca5a5; }
+
+        /* Status badges for HTTP codes */
+        .badge.success { background: #14532d; color: #86efac; }
+        .badge.warning { background: #78350f; color: #fde68a; }
+        .badge.danger { background: #7f1d1d; color: #fca5a5; }
+
+        /* Announcement type badges */
+        .badge.info { background: #1e3a8a; color: #93c5fd; }
+        .badge.urgent { background: #7f1d1d; color: #fca5a5; }
 
         /* Buttons */
         .btn {
@@ -319,10 +434,20 @@
         .btn-secondary {
             background: var(--bg-gray);
             color: var(--text-primary);
+            border: 1px solid var(--card-border);
         }
 
         .btn-secondary:hover {
-            background: #e2e8f0;
+            background: var(--card-border);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
         }
 
         .btn-sm {
@@ -350,6 +475,8 @@
             border: 1px solid var(--card-border);
             border-radius: 8px;
             font-size: 0.875rem;
+            background: var(--card-bg);
+            color: var(--text-primary);
         }
 
         .search-icon {
@@ -365,14 +492,16 @@
             border: 1px solid var(--card-border);
             border-radius: 8px;
             font-size: 0.875rem;
-            background: white;
+            background: var(--card-bg);
+            color: var(--text-primary);
         }
 
-        /* Chart */
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin-top: 1rem;
+        input, select, textarea {
+            outline: none;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
         }
 
         /* Modal */
@@ -382,7 +511,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.7);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -390,7 +519,8 @@
         }
 
         .modal {
-            background: white;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
             border-radius: 12px;
             width: 90%;
             max-width: 600px;
@@ -432,6 +562,7 @@
             font-size: 0.875rem;
             font-weight: 500;
             margin-bottom: 0.5rem;
+            color: var(--text-secondary);
         }
 
         .form-control {
@@ -440,6 +571,8 @@
             border: 1px solid var(--card-border);
             border-radius: 8px;
             font-size: 0.875rem;
+            background: var(--bg-gray);
+            color: var(--text-primary);
         }
 
         textarea.form-control {
@@ -484,21 +617,91 @@
         }
 
         .alert-success {
-            background: #d1fae5;
-            color: #059669;
-            border: 1px solid #6ee7b7;
+            background: rgba(34,197,94,0.2);
+            color: #86efac;
+            border: 1px solid rgba(34,197,94,0.3);
         }
 
         .alert-error {
-            background: #fee2e2;
-            color: #dc2626;
-            border: 1px solid #fca5a5;
+            background: rgba(239,68,68,0.2);
+            color: #fca5a5;
+            border: 1px solid rgba(239,68,68,0.3);
         }
 
         .alert-info {
-            background: #dbeafe;
-            color: #2563eb;
-            border: 1px solid #93c5fd;
+            background: rgba(59,130,246,0.2);
+            color: #93c5fd;
+            border: 1px solid rgba(59,130,246,0.3);
+        }
+
+        .alert-warning {
+            background: rgba(245,158,11,0.2);
+            color: #fde68a;
+            border: 1px solid rgba(245,158,11,0.3);
+        }
+
+        /* Announcement item */
+        .announcement-item {
+            background: var(--bg-gray);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .announcement-content {
+            flex: 1;
+        }
+
+        .announcement-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .announcement-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .announcement-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .announcement-text {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        /* Auto-refresh indicator */
+        .auto-refresh {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            padding: 0.25rem 0.75rem;
+            background: var(--bg-gray);
+            border-radius: 6px;
+        }
+
+        .refresh-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
     </style>
 </head>
@@ -586,7 +789,7 @@
                     <div class="stat-card">
                         <div class="stat-header">
                             <div>
-                                <div class="stat-title">Requests Today</div>
+                                <div class="stat-title">Queries Today</div>
                                 <div class="stat-value" id="stat-requests-today">-</div>
                             </div>
                             <div class="stat-icon warning">📊</div>
@@ -596,23 +799,41 @@
                     <div class="stat-card">
                         <div class="stat-header">
                             <div>
-                                <div class="stat-title">Requests This Month</div>
+                                <div class="stat-title">Queries This Month</div>
                                 <div class="stat-value" id="stat-requests-month">-</div>
                             </div>
                             <div class="stat-icon danger">🚀</div>
                         </div>
                     </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-title">Active Sessions</div>
+                                <div class="stat-value" id="stat-active-sessions">-</div>
+                            </div>
+                            <div class="stat-icon success">🔥</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-title">Revenue Estimate</div>
+                                <div class="stat-value" id="stat-revenue">-</div>
+                            </div>
+                            <div class="stat-icon warning">💰</div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Charts -->
+                <!-- 7-Day Query Chart -->
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">Activity (Last 24h)</h3>
+                        <h3 class="card-title">Queries per Day (Last 7 Days)</h3>
                     </div>
                     <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="activity-chart"></canvas>
-                        </div>
+                        <div id="queries-chart" class="simple-chart"></div>
                     </div>
                 </div>
 
@@ -652,6 +873,7 @@
                         <option value="">All Plans</option>
                         <option value="trial">Trial</option>
                         <option value="free">Free</option>
+                        <option value="starter">Starter</option>
                         <option value="pro">Pro</option>
                         <option value="enterprise">Enterprise</option>
                     </select>
@@ -665,8 +887,8 @@
                                     <tr>
                                         <th>Company</th>
                                         <th>Plan</th>
+                                        <th>Quota</th>
                                         <th>Users</th>
-                                        <th>Usage</th>
                                         <th>Created</th>
                                         <th>Actions</th>
                                     </tr>
@@ -692,10 +914,10 @@
                     </div>
                     <select id="user-role-filter" onchange="filterUsers()">
                         <option value="">All Roles</option>
-                        <option value="owner">Owner</option>
-                        <option value="admin">Admin</option>
-                        <option value="member">Member</option>
                         <option value="viewer">Viewer</option>
+                        <option value="member">Member</option>
+                        <option value="admin">Admin</option>
+                        <option value="owner">Owner</option>
                         <option value="superadmin">Superadmin</option>
                     </select>
                 </div>
@@ -706,8 +928,8 @@
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Email</th>
                                         <th>Name</th>
+                                        <th>Email</th>
                                         <th>Company</th>
                                         <th>Role</th>
                                         <th>Last Login</th>
@@ -736,32 +958,36 @@
                         <option value="30d">Last 30 Days</option>
                         <option value="90d">Last 90 Days</option>
                     </select>
-                    <select id="usage-groupby" onchange="loadUsage()">
-                        <option value="day">By Day</option>
-                        <option value="endpoint">By Endpoint</option>
-                        <option value="company">By Company</option>
-                    </select>
                 </div>
 
+                <!-- Top 5 Companies by Usage -->
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">Usage Chart</h3>
+                        <h3 class="card-title">Top 5 Companies by Usage</h3>
                     </div>
                     <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="usage-chart"></canvas>
-                        </div>
+                        <div id="top-companies-chart" class="bar-chart-container"></div>
                     </div>
                 </div>
 
+                <!-- Popular Questions -->
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">Usage Data</h3>
+                        <h3 class="card-title">Usage by Company</h3>
                     </div>
                     <div class="card-body">
                         <div class="table-wrapper">
                             <table>
-                                <thead id="usage-table-head"></thead>
+                                <thead>
+                                    <tr>
+                                        <th>Company</th>
+                                        <th>Plan</th>
+                                        <th>Requests</th>
+                                        <th>Input Tokens</th>
+                                        <th>Output Tokens</th>
+                                        <th>Total Tokens</th>
+                                    </tr>
+                                </thead>
                                 <tbody id="usage-table"></tbody>
                             </table>
                         </div>
@@ -783,14 +1009,15 @@
                     </div>
                     <select id="log-status-filter" onchange="filterLogs()">
                         <option value="">All Status</option>
-                        <option value="200">200 OK</option>
-                        <option value="400">400 Bad Request</option>
-                        <option value="401">401 Unauthorized</option>
-                        <option value="403">403 Forbidden</option>
-                        <option value="404">404 Not Found</option>
-                        <option value="500">500 Server Error</option>
+                        <option value="2xx">2xx Success</option>
+                        <option value="4xx">4xx Client Error</option>
+                        <option value="5xx">5xx Server Error</option>
                     </select>
                     <button class="btn btn-primary btn-sm" onclick="loadLogs()">🔄 Refresh</button>
+                    <div class="auto-refresh">
+                        <div class="refresh-dot"></div>
+                        <span>Auto-refresh: 30s</span>
+                    </div>
                 </div>
 
                 <div class="card">
@@ -799,13 +1026,13 @@
                             <table>
                                 <thead>
                                     <tr>
-                                        <th>Time</th>
-                                        <th>Company</th>
+                                        <th>Timestamp</th>
                                         <th>Endpoint</th>
                                         <th>Method</th>
                                         <th>Status</th>
                                         <th>Response Time</th>
-                                        <th>Tokens</th>
+                                        <th>Company</th>
+                                        <th>User</th>
                                     </tr>
                                 </thead>
                                 <tbody id="logs-table"></tbody>
@@ -823,7 +1050,7 @@
                 </div>
 
                 <button class="btn btn-primary" onclick="showAnnouncementModal()" style="margin-bottom: 1.5rem;">
-                    📢 Send New Announcement
+                    📢 Create New Announcement
                 </button>
 
                 <div class="card">
@@ -857,11 +1084,41 @@
         </div>
     </div>
 
+    <!-- User Role Modal -->
+    <div id="user-modal" class="modal-overlay hidden">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Change User Role</h3>
+                <button class="modal-close" onclick="closeUserModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">User Email</label>
+                    <input type="text" class="form-control" id="user-email-display" disabled>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select class="form-control" id="user-role-select">
+                        <option value="viewer">Viewer</option>
+                        <option value="member">Member</option>
+                        <option value="admin">Admin</option>
+                        <option value="owner">Owner</option>
+                        <option value="superadmin">Superadmin</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeUserModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveUserRole()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Announcement Modal -->
     <div id="announcement-modal" class="modal-overlay hidden">
         <div class="modal">
             <div class="modal-header">
-                <h3 class="modal-title">Send Announcement</h3>
+                <h3 class="modal-title">Create Announcement</h3>
                 <button class="modal-close" onclick="closeAnnouncementModal()">×</button>
             </div>
             <div class="modal-body">
@@ -870,8 +1127,16 @@
                     <input type="text" class="form-control" id="announcement-title" placeholder="Announcement title">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Message</label>
+                    <label class="form-label">Content</label>
                     <textarea class="form-control" id="announcement-content" placeholder="Your message..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Type</label>
+                    <select class="form-control" id="announcement-type">
+                        <option value="info">Info (Blue)</option>
+                        <option value="warning">Warning (Yellow)</option>
+                        <option value="urgent">Urgent (Red)</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Target</label>
@@ -879,6 +1144,7 @@
                         <option value="all">All Companies</option>
                         <option value="plan:trial">Trial Plan Only</option>
                         <option value="plan:free">Free Plan Only</option>
+                        <option value="plan:starter">Starter Plan Only</option>
                         <option value="plan:pro">Pro Plan Only</option>
                         <option value="plan:enterprise">Enterprise Plan Only</option>
                     </select>
@@ -886,7 +1152,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeAnnouncementModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="sendAnnouncement()">Send Announcement</button>
+                <button class="btn btn-primary" onclick="createAnnouncement()">Create Announcement</button>
             </div>
         </div>
     </div>
@@ -894,6 +1160,7 @@
     <script>
         const API_URL = window.location.origin;
         let authToken = localStorage.getItem('token');
+        let logsRefreshInterval = null;
 
         // Check auth
         if (!authToken) {
@@ -929,6 +1196,12 @@
 
         // Navigation
         function showPage(pageId) {
+            // Stop auto-refresh when leaving logs page
+            if (logsRefreshInterval) {
+                clearInterval(logsRefreshInterval);
+                logsRefreshInterval = null;
+            }
+
             // Hide all pages
             document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
             
@@ -961,6 +1234,8 @@
                     break;
                 case 'logs':
                     loadLogs();
+                    // Start auto-refresh every 30s
+                    logsRefreshInterval = setInterval(loadLogs, 30000);
                     break;
                 case 'announcements':
                     loadAnnouncements();
@@ -968,66 +1243,61 @@
             }
         }
 
-        // Dashboard
-        let activityChart = null;
-
+        // ============================================
+        // DASHBOARD
+        // ============================================
         async function loadDashboard() {
             try {
                 const data = await apiCall('/v1/admin/dashboard');
                 
-                document.getElementById('stat-companies').textContent = data.total_companies;
-                document.getElementById('stat-users').textContent = data.total_users;
-                document.getElementById('stat-requests-today').textContent = data.requests_today;
-                document.getElementById('stat-requests-month').textContent = data.requests_month;
+                document.getElementById('stat-companies').textContent = data.total_companies || 0;
+                document.getElementById('stat-users').textContent = data.total_users || 0;
+                document.getElementById('stat-requests-today').textContent = data.requests_today || 0;
+                document.getElementById('stat-requests-month').textContent = data.requests_month || 0;
+                document.getElementById('stat-active-sessions').textContent = data.active_sessions || 0;
+                document.getElementById('stat-revenue').textContent = data.revenue_estimate ? `$${data.revenue_estimate}` : '$0';
 
                 // Plan breakdown
                 const plansTable = document.getElementById('plans-table');
-                const total = data.plans_breakdown.reduce((sum, p) => sum + p.count, 0);
-                plansTable.innerHTML = data.plans_breakdown.map(plan => `
+                const total = data.plans_breakdown ? data.plans_breakdown.reduce((sum, p) => sum + p.count, 0) : 0;
+                plansTable.innerHTML = data.plans_breakdown ? data.plans_breakdown.map(plan => `
                     <tr>
                         <td><span class="badge ${plan.plan}">${plan.plan}</span></td>
                         <td>${plan.count}</td>
-                        <td>${((plan.count / total) * 100).toFixed(1)}%</td>
+                        <td>${total > 0 ? ((plan.count / total) * 100).toFixed(1) : 0}%</td>
                     </tr>
-                `).join('');
+                `).join('') : '<tr><td colspan="3">No data</td></tr>';
 
-                // Activity chart
-                const ctx = document.getElementById('activity-chart');
-                if (activityChart) activityChart.destroy();
-                
-                const hours = data.activity_24h.reverse().map(a => new Date(a.hour).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'}));
-                const requests = data.activity_24h.map(a => a.requests);
-
-                activityChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: hours,
-                        datasets: [{
-                            label: 'Requests',
-                            data: requests,
-                            borderColor: '#6366f1',
-                            backgroundColor: 'rgba(99,102,241,0.1)',
-                            tension: 0.4,
-                            fill: true
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        },
-                        scales: {
-                            y: { beginAtZero: true }
-                        }
-                    }
-                });
+                // Load 7-day usage for chart
+                const usageData = await apiCall('/v1/admin/usage?period=7d&group_by=day');
+                renderQueriesChart(usageData.data);
             } catch (error) {
                 console.error('Failed to load dashboard:', error);
             }
         }
 
-        // Companies
+        function renderQueriesChart(data) {
+            const chartEl = document.getElementById('queries-chart');
+            if (!data || data.length === 0) {
+                chartEl.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No data available</div>';
+                return;
+            }
+
+            // Get max value for scaling
+            const maxValue = Math.max(...data.map(d => d.requests));
+            
+            chartEl.innerHTML = data.reverse().map(d => {
+                const height = maxValue > 0 ? (d.requests / maxValue) * 100 : 0;
+                const date = new Date(d.period);
+                const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                
+                return `<div class="chart-bar" style="height: ${height}%" data-value="${d.requests} (${label})"></div>`;
+            }).join('');
+        }
+
+        // ============================================
+        // COMPANIES
+        // ============================================
         let companiesData = [];
 
         async function loadCompanies() {
@@ -1046,8 +1316,8 @@
                 <tr>
                     <td><strong>${c.name}</strong><br><small style="color: var(--text-secondary)">${c.slug}</small></td>
                     <td><span class="badge ${c.plan}">${c.plan}</span></td>
-                    <td>${c.user_count} users</td>
-                    <td>${c.used_quota} / ${c.monthly_quota}</td>
+                    <td>${c.used_quota || 0} / ${c.monthly_quota || 0}</td>
+                    <td>${c.user_count || 0} users</td>
                     <td>${new Date(c.created_at).toLocaleDateString('vi-VN')}</td>
                     <td>
                         <button class="btn btn-secondary btn-sm" onclick="viewCompany('${c.id}')">View</button>
@@ -1088,6 +1358,7 @@
                         <select class="form-control" id="company-plan">
                             <option value="trial" ${company.plan === 'trial' ? 'selected' : ''}>Trial</option>
                             <option value="free" ${company.plan === 'free' ? 'selected' : ''}>Free</option>
+                            <option value="starter" ${company.plan === 'starter' ? 'selected' : ''}>Starter</option>
                             <option value="pro" ${company.plan === 'pro' ? 'selected' : ''}>Pro</option>
                             <option value="enterprise" ${company.plan === 'enterprise' ? 'selected' : ''}>Enterprise</option>
                         </select>
@@ -1097,14 +1368,14 @@
                         <input type="number" class="form-control" id="company-quota" value="${company.monthly_quota}">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Members (${company.members.length})</label>
-                        <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--card-border); border-radius: 8px; padding: 0.5rem;">
-                            ${company.members.map(m => `
+                        <label class="form-label">Members (${company.members ? company.members.length : 0})</label>
+                        <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--card-border); border-radius: 8px; padding: 0.5rem; background: var(--bg-gray);">
+                            ${company.members && company.members.length > 0 ? company.members.map(m => `
                                 <div style="padding: 0.5rem; border-bottom: 1px solid var(--card-border);">
-                                    <strong>${m.email}</strong> - ${m.role}
+                                    <strong>${m.email}</strong> - <span class="badge ${m.role}">${m.role}</span>
                                     ${m.is_active ? '<span class="badge active">Active</span>' : '<span class="badge inactive">Inactive</span>'}
                                 </div>
-                            `).join('')}
+                            `).join('') : '<div style="text-align: center; padding: 1rem; color: var(--text-secondary);">No members</div>'}
                         </div>
                     </div>
                 `;
@@ -1138,7 +1409,9 @@
             }
         }
 
-        // Users
+        // ============================================
+        // USERS
+        // ============================================
         let usersData = [];
 
         async function loadUsers() {
@@ -1155,14 +1428,15 @@
             const table = document.getElementById('users-table');
             table.innerHTML = users.map(u => `
                 <tr>
-                    <td>${u.email}</td>
                     <td>${u.full_name || '-'}</td>
-                    <td>${u.company_name || '-'} <span class="badge ${u.company_plan}">${u.company_plan}</span></td>
-                    <td><span class="badge">${u.role}</span></td>
+                    <td>${u.email}</td>
+                    <td>${u.company_name || '-'}</td>
+                    <td><span class="badge ${u.role}">${u.role}</span></td>
                     <td>${u.last_login_at ? new Date(u.last_login_at).toLocaleString('vi-VN') : 'Never'}</td>
-                    <td>${u.is_active ? '<span class="badge active">Active</span>' : '<span class="badge inactive">Inactive</span>'}</td>
+                    <td>${u.is_active ? '<span class="badge active">Active</span>' : '<span class="badge inactive">Banned</span>'}</td>
                     <td>
-                        <button class="btn btn-secondary btn-sm" onclick="toggleUserStatus('${u.id}', ${u.is_active})">
+                        <button class="btn btn-secondary btn-sm" onclick="changeUserRole('${u.id}', '${u.email}', '${u.role}')">Change Role</button>
+                        <button class="btn ${u.is_active ? 'btn-danger' : 'btn-primary'} btn-sm" onclick="toggleUserStatus('${u.id}', ${u.is_active})">
                             ${u.is_active ? 'Ban' : 'Unban'}
                         </button>
                     </td>
@@ -1185,6 +1459,35 @@
             renderUsers(filtered);
         }
 
+        function changeUserRole(userId, email, currentRole) {
+            document.getElementById('user-modal').classList.remove('hidden');
+            document.getElementById('user-email-display').value = email;
+            document.getElementById('user-role-select').value = currentRole;
+            document.getElementById('user-modal').dataset.userId = userId;
+        }
+
+        function closeUserModal() {
+            document.getElementById('user-modal').classList.add('hidden');
+        }
+
+        async function saveUserRole() {
+            const userId = document.getElementById('user-modal').dataset.userId;
+            const role = document.getElementById('user-role-select').value;
+
+            try {
+                await apiCall(`/v1/admin/users/${userId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ role })
+                });
+                
+                alert('User role updated successfully!');
+                closeUserModal();
+                loadUsers();
+            } catch (error) {
+                alert(`Failed to update user: ${error.message}`);
+            }
+        }
+
         async function toggleUserStatus(userId, isActive) {
             if (!confirm(`Are you sure you want to ${isActive ? 'ban' : 'unban'} this user?`)) return;
 
@@ -1200,85 +1503,64 @@
             }
         }
 
-        // Usage Analytics
-        let usageChart = null;
-
+        // ============================================
+        // USAGE ANALYTICS
+        // ============================================
         async function loadUsage() {
             const period = document.getElementById('usage-period').value;
-            const groupBy = document.getElementById('usage-groupby').value;
 
             try {
-                const data = await apiCall(`/v1/admin/usage?period=${period}&group_by=${groupBy}`);
+                const data = await apiCall(`/v1/admin/usage?period=${period}&group_by=company`);
                 
-                // Render table
-                const thead = document.getElementById('usage-table-head');
+                // Render top 5 companies chart
+                const topCompanies = data.data.slice(0, 5);
+                renderTopCompaniesChart(topCompanies);
+
+                // Render full table
                 const tbody = document.getElementById('usage-table');
-
-                if (groupBy === 'day' || groupBy === 'hour') {
-                    thead.innerHTML = '<tr><th>Period</th><th>Requests</th><th>Input Tokens</th><th>Output Tokens</th><th>Total Tokens</th></tr>';
-                    tbody.innerHTML = data.data.map(d => `
-                        <tr>
-                            <td>${d.period}</td>
-                            <td>${d.requests}</td>
-                            <td>${d.input_tokens || 0}</td>
-                            <td>${d.output_tokens || 0}</td>
-                            <td>${(d.input_tokens || 0) + (d.output_tokens || 0)}</td>
-                        </tr>
-                    `).join('');
-                } else if (groupBy === 'endpoint') {
-                    thead.innerHTML = '<tr><th>Endpoint</th><th>Requests</th><th>Avg Input</th><th>Total Tokens</th></tr>';
-                    tbody.innerHTML = data.data.map(d => `
-                        <tr>
-                            <td><code>${d.endpoint}</code></td>
-                            <td>${d.requests}</td>
-                            <td>${Math.round(d.avg_input_tokens || 0)}</td>
-                            <td>${(d.input_tokens || 0) + (d.output_tokens || 0)}</td>
-                        </tr>
-                    `).join('');
-                } else {
-                    thead.innerHTML = '<tr><th>Company</th><th>Plan</th><th>Requests</th><th>Total Tokens</th></tr>';
-                    tbody.innerHTML = data.data.map(d => `
-                        <tr>
-                            <td>${d.company_name || 'Unknown'}</td>
-                            <td><span class="badge ${d.plan}">${d.plan || '-'}</span></td>
-                            <td>${d.requests}</td>
-                            <td>${(d.input_tokens || 0) + (d.output_tokens || 0)}</td>
-                        </tr>
-                    `).join('');
-                }
-
-                // Render chart
-                const ctx = document.getElementById('usage-chart');
-                if (usageChart) usageChart.destroy();
-
-                const labels = data.data.map(d => d.period || d.endpoint || d.company_name);
-                const values = data.data.map(d => d.requests);
-
-                usageChart = new Chart(ctx, {
-                    type: groupBy === 'day' || groupBy === 'hour' ? 'line' : 'bar',
-                    data: {
-                        labels,
-                        datasets: [{
-                            label: 'Requests',
-                            data: values,
-                            borderColor: '#6366f1',
-                            backgroundColor: 'rgba(99,102,241,0.5)',
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        }
-                    }
-                });
+                tbody.innerHTML = data.data.map(d => `
+                    <tr>
+                        <td>${d.company_name || 'Unknown'}</td>
+                        <td><span class="badge ${d.plan || 'free'}">${d.plan || '-'}</span></td>
+                        <td>${d.requests || 0}</td>
+                        <td>${(d.input_tokens || 0).toLocaleString()}</td>
+                        <td>${(d.output_tokens || 0).toLocaleString()}</td>
+                        <td>${((d.input_tokens || 0) + (d.output_tokens || 0)).toLocaleString()}</td>
+                    </tr>
+                `).join('');
             } catch (error) {
                 console.error('Failed to load usage:', error);
             }
         }
 
-        // API Logs
+        function renderTopCompaniesChart(companies) {
+            const chartEl = document.getElementById('top-companies-chart');
+            if (!companies || companies.length === 0) {
+                chartEl.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-secondary);">No data available</div>';
+                return;
+            }
+
+            const maxValue = Math.max(...companies.map(c => c.requests));
+            
+            chartEl.innerHTML = companies.map(c => {
+                const width = maxValue > 0 ? (c.requests / maxValue) * 100 : 0;
+                
+                return `
+                    <div class="bar-chart-item">
+                        <div class="bar-chart-label" title="${c.company_name || 'Unknown'}">${c.company_name || 'Unknown'}</div>
+                        <div class="bar-chart-bar-wrapper">
+                            <div class="bar-chart-bar" style="width: ${width}%">
+                                <span class="bar-chart-value">${c.requests}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================
+        // API LOGS
+        // ============================================
         let logsData = [];
 
         async function loadLogs() {
@@ -1294,17 +1576,19 @@
         function renderLogs(logs) {
             const table = document.getElementById('logs-table');
             table.innerHTML = logs.map(log => {
-                const statusClass = log.status_code >= 200 && log.status_code < 300 ? 'success' : 
-                                    log.status_code >= 400 ? 'danger' : 'warning';
+                let statusClass = 'success';
+                if (log.status_code >= 400 && log.status_code < 500) statusClass = 'warning';
+                if (log.status_code >= 500) statusClass = 'danger';
+
                 return `
                     <tr>
                         <td>${new Date(log.created_at).toLocaleString('vi-VN')}</td>
+                        <td><code style="font-size: 0.75rem;">${log.endpoint || '-'}</code></td>
+                        <td>${log.method || '-'}</td>
+                        <td><span class="badge ${statusClass}">${log.status_code || '-'}</span></td>
+                        <td>${log.response_time_ms || 0}ms</td>
                         <td>${log.company_name || '-'}</td>
-                        <td><code style="font-size: 0.75rem;">${log.endpoint}</code></td>
-                        <td>${log.method}</td>
-                        <td><span class="badge ${statusClass}">${log.status_code}</span></td>
-                        <td>${log.response_time_ms}ms</td>
-                        <td>${(log.input_tokens || 0) + (log.output_tokens || 0)}</td>
+                        <td>${log.user_email || '-'}</td>
                     </tr>
                 `;
             }).join('');
@@ -1312,31 +1596,52 @@
 
         function filterLogs() {
             const endpoint = document.getElementById('log-endpoint-filter').value.toLowerCase();
-            const status = document.getElementById('log-status-filter').value;
+            const statusFilter = document.getElementById('log-status-filter').value;
             
             const filtered = logsData.filter(log => {
-                const matchEndpoint = !endpoint || log.endpoint.toLowerCase().includes(endpoint);
-                const matchStatus = !status || log.status_code == status;
+                const matchEndpoint = !endpoint || (log.endpoint && log.endpoint.toLowerCase().includes(endpoint));
+                
+                let matchStatus = true;
+                if (statusFilter === '2xx') matchStatus = log.status_code >= 200 && log.status_code < 300;
+                if (statusFilter === '4xx') matchStatus = log.status_code >= 400 && log.status_code < 500;
+                if (statusFilter === '5xx') matchStatus = log.status_code >= 500;
+                
                 return matchEndpoint && matchStatus;
             });
             
             renderLogs(filtered);
         }
 
-        // Announcements
+        // ============================================
+        // ANNOUNCEMENTS
+        // ============================================
+        let announcementsData = [];
+
         async function loadAnnouncements() {
             try {
                 const data = await apiCall('/v1/admin/announcements');
+                announcementsData = data.announcements;
+                
                 const list = document.getElementById('announcements-list');
                 
-                if (data.announcements.length === 0) {
+                if (announcementsData.length === 0) {
                     list.innerHTML = '<div class="alert alert-info">No announcements yet.</div>';
                 } else {
-                    list.innerHTML = data.announcements.map(a => `
-                        <div class="alert alert-info" style="margin-bottom: 1rem;">
-                            <strong>${a.title}</strong> - ${new Date(a.created_at).toLocaleString('vi-VN')}
-                            <br><small>Target: ${a.target} | By: ${a.author_name}</small>
-                            <p style="margin-top: 0.5rem;">${a.content}</p>
+                    list.innerHTML = announcementsData.map(a => `
+                        <div class="announcement-item">
+                            <div class="announcement-content">
+                                <div class="announcement-header">
+                                    <span class="announcement-title">${a.title}</span>
+                                    <span class="badge ${a.type || 'info'}">${a.type || 'info'}</span>
+                                </div>
+                                <div class="announcement-meta">
+                                    ${new Date(a.created_at).toLocaleString('vi-VN')} | 
+                                    Target: ${a.target} | 
+                                    By: ${a.author_name || 'Admin'}
+                                </div>
+                                <div class="announcement-text">${a.content}</div>
+                            </div>
+                            <button class="btn btn-danger btn-sm" onclick="deleteAnnouncement('${a.id}')">Delete</button>
                         </div>
                     `).join('');
                 }
@@ -1351,11 +1656,14 @@
 
         function closeAnnouncementModal() {
             document.getElementById('announcement-modal').classList.add('hidden');
+            document.getElementById('announcement-title').value = '';
+            document.getElementById('announcement-content').value = '';
         }
 
-        async function sendAnnouncement() {
+        async function createAnnouncement() {
             const title = document.getElementById('announcement-title').value;
             const content = document.getElementById('announcement-content').value;
+            const type = document.getElementById('announcement-type').value;
             const target = document.getElementById('announcement-target').value;
 
             if (!title || !content) {
@@ -1366,18 +1674,28 @@
             try {
                 await apiCall('/v1/admin/announce', {
                     method: 'POST',
-                    body: JSON.stringify({ title, content, target })
+                    body: JSON.stringify({ title, content, target, type })
                 });
                 
-                alert('Announcement sent successfully!');
+                alert('Announcement created successfully!');
                 closeAnnouncementModal();
                 loadAnnouncements();
-                
-                // Clear form
-                document.getElementById('announcement-title').value = '';
-                document.getElementById('announcement-content').value = '';
             } catch (error) {
-                alert(`Failed to send announcement: ${error.message}`);
+                alert(`Failed to create announcement: ${error.message}`);
+            }
+        }
+
+        async function deleteAnnouncement(id) {
+            if (!confirm('Are you sure you want to delete this announcement?')) return;
+
+            try {
+                await apiCall(`/v1/admin/announcements/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                loadAnnouncements();
+            } catch (error) {
+                alert(`Failed to delete announcement: ${error.message}`);
             }
         }
 

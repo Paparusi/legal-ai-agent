@@ -44,6 +44,7 @@ class Announcement(BaseModel):
     title: str
     content: str
     target: str = "all"
+    type: str = "info"  # info, warning, urgent
 
 # ============================================
 # Dashboard
@@ -110,11 +111,24 @@ async def get_dashboard(admin: Dict = Depends(require_superadmin)):
         """)
         activity = [dict(r) for r in cur.fetchall()]
         
+        # Active sessions (estimate based on recent activity)
+        cur.execute("""
+            SELECT COUNT(DISTINCT COALESCE(user_id, ip_address)) as count
+            FROM platform_logs
+            WHERE created_at >= NOW() - INTERVAL '30 minutes'
+        """)
+        active_sessions = cur.fetchone()["count"] if cur.fetchone() else 0
+        
+        # Revenue estimate (placeholder calculation)
+        revenue_estimate = total_companies * 29  # Simple estimate
+        
         return {
             "total_companies": total_companies,
             "total_users": total_users,
             "requests_today": requests_today,
             "requests_month": requests_month,
+            "active_sessions": active_sessions,
+            "revenue_estimate": revenue_estimate,
             "plans_breakdown": plans,
             "tokens_month": {
                 "input": tokens["total_input"] or 0,
@@ -510,13 +524,16 @@ async def send_announcement(
     with get_db() as conn:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
+        # Check if announcements table has type column, if not use metadata
         cur.execute("""
-            INSERT INTO announcements (title, content, author_id, target)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO announcements (title, content, author_id, target, metadata)
+            VALUES (%s, %s, %s, %s, %s::jsonb)
             RETURNING *
-        """, (announcement.title, announcement.content, admin["id"], announcement.target))
+        """, (announcement.title, announcement.content, admin["id"], announcement.target, 
+              json.dumps({"type": announcement.type})))
         
         result = dict(cur.fetchone())
+        result["type"] = announcement.type
         conn.commit()
         
         # TODO: Send email/notification to targeted companies
@@ -544,4 +561,35 @@ async def list_announcements(
             LIMIT %s
         """, (limit,))
         
-        return {"announcements": [dict(r) for r in cur.fetchall()]}
+        announcements = []
+        for row in cur.fetchall():
+            ann = dict(row)
+            # Extract type from metadata if exists
+            if ann.get("metadata") and isinstance(ann["metadata"], dict):
+                ann["type"] = ann["metadata"].get("type", "info")
+            else:
+                ann["type"] = "info"
+            announcements.append(ann)
+        
+        return {"announcements": announcements}
+
+@router.delete("/announcements/{announcement_id}")
+async def delete_announcement(
+    announcement_id: str,
+    admin: Dict = Depends(require_superadmin)
+):
+    """Delete an announcement"""
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cur.execute("""
+            DELETE FROM announcements WHERE id = %s RETURNING id
+        """, (announcement_id,))
+        
+        deleted = cur.fetchone()
+        
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Announcement not found")
+        
+        conn.commit()
+        return {"status": "deleted", "id": announcement_id}
