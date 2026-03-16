@@ -11,7 +11,6 @@ import json
 from datetime import datetime
 
 from ..middleware.auth import get_db, get_current_user
-from ..main import call_claude
 
 router = APIRouter(prefix="/v1/templates", tags=["Templates"])
 
@@ -302,6 +301,7 @@ YÊU CẦU:
 Hãy tạo văn bản hoàn chỉnh, đúng format pháp lý Việt Nam."""
 
     # Call Claude
+    from ..main import call_claude
     result = await call_claude(system_prompt, user_message, max_tokens=4096)
     
     # Save to generated_documents
