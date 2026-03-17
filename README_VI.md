@@ -1,12 +1,12 @@
 # ⚖️ AI Legal Agent
 
-🇻🇳 [Tiếng Việt](README_VI.md) | 🇺🇸 English
+🇻🇳 Tiếng Việt | 🇺🇸 [English](README.md)
 
 > **Created by [Lê Minh Hiếu](https://github.com/Paparusi)** — Trader turned Builder 🇻🇳
 
-**AI-powered legal assistant for Vietnamese businesses**
+**Trợ lý pháp lý AI cho doanh nghiệp Việt Nam**
 
-An AI platform for legal research, contract review, and legal document drafting — all in a VSCode-style interface.
+Nền tảng AI giúp tra cứu luật, rà soát hợp đồng, soạn văn bản pháp lý — tất cả trong một giao diện VSCode-style.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green)
@@ -27,37 +27,37 @@ An AI platform for legal research, contract review, and legal document drafting 
 
 <p align="center">
   <img src="docs/screenshots/ai-review.jpg" width="400" alt="AI Contract Review">
-  <br><em>AI Contract Review — Risk analysis, highlights, recommendations</em>
+  <br><em>AI Contract Review — Phân tích rủi ro, điểm tích cực, khuyến nghị</em>
 </p>
 
 <p align="center">
   <img src="docs/screenshots/upload.jpg" width="400" alt="Contract Upload">
-  <br><em>Contract Upload — Drag & drop, AI auto-analysis</em>
+  <br><em>Upload hợp đồng — Drag & drop, AI tự động phân tích</em>
 </p>
 
 ## ✨ Features
 
 ### 🤖 AI Agent (11 Tools)
-- **Legal search** — Search across 40,000+ Vietnamese legal documents
-- **Contract review** — Risk analysis, missing clauses, amendment suggestions
-- **Compliance check** — Verify labor/commercial/service contracts against Vietnamese law
-- **Clause drafting** — Generate confidentiality, penalty, termination, force majeure clauses...
-- **Contract summary** — Quick summary of parties, value, duration
-- **Contract comparison** — Side-by-side diff of 2 contracts
-- **Company memory** — Remembers company context across chat sessions
+- **Tra cứu luật** — Tìm kiếm trong 40,000+ văn bản pháp luật Việt Nam
+- **Rà soát hợp đồng** — Phân tích rủi ro, điều khoản thiếu, đề xuất sửa đổi
+- **Kiểm tra compliance** — Check HĐ lao động/thương mại/dịch vụ theo luật VN
+- **Soạn điều khoản** — Tạo bảo mật, phạt vi phạm, chấm dứt, bất khả kháng...
+- **Tóm tắt HĐ** — Quick summary các bên, giá trị, thời hạn
+- **So sánh HĐ** — Diff 2 hợp đồng side-by-side
+- **Company memory** — Nhớ context công ty qua các phiên chat
 
 ### 📊 Dashboard & Analytics
-- Risk Dashboard — Overview of risks across all contracts
-- Contract Calendar — Monthly contract schedule
-- Usage Analytics — Usage stats, top queries
-- Audit Log — Activity journal
+- Risk Dashboard — Tổng quan rủi ro tất cả HĐ
+- Contract Calendar — Lịch HĐ theo tháng
+- Usage Analytics — Thống kê sử dụng, top queries
+- Audit Log — Nhật ký hoạt động
 
 ### 🎯 Enterprise Features
-- Batch upload (10 files at a time)
+- Batch upload (10 files/lần)
 - Report export (.docx)
 - Contract versioning & notes
-- Smart suggestions (AI-powered contract improvements)
-- Bulk analysis (analyze 20 contracts simultaneously)
+- Smart suggestions (AI gợi ý cải thiện HĐ)
+- Bulk analysis (phân tích 20 HĐ cùng lúc)
 - Universal search (contracts + docs + laws + chats)
 - Template auto-fill
 - Onboarding wizard
@@ -112,17 +112,6 @@ uvicorn src.api.main:app --host 0.0.0.0 --port 8080
 
 Open http://localhost:8080/static/app.html
 
-### 🐳 Docker (Recommended)
-
-```bash
-cp .env.example .env
-# Edit .env with your credentials
-
-docker compose up -d
-```
-
-This starts PostgreSQL (with pgvector) and the FastAPI app. Open http://localhost:8080/static/app.html
-
 ## 📁 Project Structure
 
 ```
@@ -151,8 +140,6 @@ This starts PostgreSQL (with pgvector) and the FastAPI app. Open http://localhos
 │   ├── load_law_data.py         # Import law documents
 │   ├── index_chunks.py          # Chunk & index for search
 │   └── run_migration.py         # DB migrations
-├── docker-compose.yml           # One-command deploy
-├── Dockerfile                   # Container build
 ├── .env.example                 # Environment template
 ├── requirements.txt
 └── Procfile                     # Railway/Heroku deploy
@@ -163,77 +150,78 @@ This starts PostgreSQL (with pgvector) and the FastAPI app. Open http://localhos
 ### Auth
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/v1/auth/register` | Register |
-| POST | `/v1/auth/login` | Login |
-| POST | `/v1/auth/api-key` | Generate API key |
+| POST | `/v1/auth/register` | Đăng ký |
+| POST | `/v1/auth/login` | Đăng nhập |
+| POST | `/v1/auth/api-key` | Tạo API key |
 
 ### AI Chat
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/v1/legal/ask` | Ask AI agent |
-| POST | `/v1/legal/ask-stream` | Ask AI (SSE streaming) |
+| POST | `/v1/legal/ask` | Hỏi AI agent |
+| POST | `/v1/legal/ask-stream` | Hỏi AI (SSE streaming) |
 
 ### Contracts
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/v1/contracts` | List contracts |
-| POST | `/v1/contracts/upload` | Upload contract |
-| POST | `/v1/contracts/batch-upload` | Batch upload contracts |
-| POST | `/v1/contracts/{id}/review` | AI contract review |
+| GET | `/v1/contracts` | Danh sách HĐ |
+| POST | `/v1/contracts/upload` | Upload HĐ |
+| POST | `/v1/contracts/batch-upload` | Upload nhiều HĐ |
+| POST | `/v1/contracts/{id}/review` | AI review HĐ |
 | POST | `/v1/contracts/{id}/report` | Export Word report |
-| POST | `/v1/contracts/{id}/diff` | Compare 2 contracts |
-| GET | `/v1/contracts/{id}/suggestions` | AI suggestions |
-| POST | `/v1/contracts/bulk-analyze` | Bulk analysis |
-| GET | `/v1/contracts/calendar` | Contract calendar |
-| GET | `/v1/contracts/risk-overview` | Risk overview |
+| POST | `/v1/contracts/{id}/diff` | So sánh 2 HĐ |
+| GET | `/v1/contracts/{id}/suggestions` | AI gợi ý |
+| POST | `/v1/contracts/bulk-analyze` | Phân tích hàng loạt |
+| GET | `/v1/contracts/calendar` | Lịch HĐ |
+| GET | `/v1/contracts/risk-overview` | Tổng quan rủi ro |
 
 ### Search
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/v1/legal/search` | Search laws |
-| GET | `/v1/search/all` | Search everything |
+| GET | `/v1/legal/search` | Tìm kiếm luật |
+| GET | `/v1/search/all` | Tìm kiếm tất cả |
 
 ### Analytics
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/v1/analytics` | Usage statistics |
-| GET | `/v1/audit-log` | Activity log |
+| GET | `/v1/analytics` | Thống kê sử dụng |
+| GET | `/v1/audit-log` | Nhật ký hoạt động |
 | GET | `/v1/insights` | AI insights |
 
 ## 🛠️ Tech Stack
 
 - **Backend:** FastAPI + Python
 - **AI:** Claude Sonnet (tool_use agent)
-- **Database:** PostgreSQL (Supabase) with pgvector
+- **Database:** PostgreSQL (Supabase)
 - **Search:** Full-text search + synonym expansion + TF-IDF ranking
 - **Frontend:** Vanilla JS SPA (single HTML file)
-- **Deploy:** Railway / Docker / any container host
+- **Deploy:** Railway / any Docker host
 
 ## 📝 Vietnamese Law Database
 
 The search engine indexes Vietnamese legal documents including:
-- Labor Code 2019 (Bộ luật Lao động)
-- Civil Code 2015 (Bộ luật Dân sự)
-- Enterprise Law 2020 (Luật Doanh nghiệp)
-- Commercial Law 2005 (Luật Thương mại)
-- Corporate Income Tax, Personal Income Tax, VAT Laws
+- Bộ luật Lao động 2019 (BLLĐ)
+- Bộ luật Dân sự 2015 (BLDS)
+- Luật Doanh nghiệp 2020
+- Luật Thương mại 2005
+- Luật Thuế TNDN, TNCN, GTGT
 - And 40,000+ more...
 
 ## 🤝 Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. Areas that need help:
+PRs welcome! Areas that need help:
 - [ ] More Vietnamese legal document sources
 - [ ] Better NLP for Vietnamese text
 - [ ] Test coverage
+- [ ] Docker setup
 - [ ] Multi-language support
 
 ## 📄 License
 
-MIT — free to use, including commercially.
+MIT — sử dụng tự do, kể cả thương mại.
 
 ## ⚠️ Disclaimer
 
-This is an assistive tool and **does not replace** professional legal advice. Always consult a qualified lawyer for important legal decisions.
+Đây là công cụ hỗ trợ, **không thay thế** tư vấn pháp lý chuyên nghiệp. Luôn tham khảo ý kiến luật sư cho các quyết định pháp lý quan trọng.
 
 ---
 
