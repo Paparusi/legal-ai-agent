@@ -166,7 +166,7 @@ async def login(data: LoginRequest):
         cur.execute("""
             SELECT u.id, u.company_id, u.email, u.full_name, u.role, 
                    u.password_hash, u.is_active, u.avatar_url,
-                   c.name as company_name, c.plan
+                   c.name as company_name, c.plan, c.monthly_quota, c.used_quota
             FROM users u
             LEFT JOIN companies c ON c.id = u.company_id
             WHERE u.email = %s
@@ -218,6 +218,8 @@ async def login(data: LoginRequest):
                 "company_id": str(user["company_id"]),
                 "company_name": user["company_name"],
                 "plan": user["plan"],
+                "monthly_quota": user["monthly_quota"],
+                "used_quota": user["used_quota"],
                 "avatar_url": user["avatar_url"]
             },
             "access_token": access_token,
