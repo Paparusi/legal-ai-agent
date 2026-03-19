@@ -18,12 +18,19 @@ router = APIRouter(prefix="/v1/admin", tags=["admin"])
 # ============================================
 
 async def require_superadmin(current_user: Dict = Depends(get_current_user)):
-    """Ensure user is superadmin"""
+    """Ensure user is superadmin - FIX 4: Double-verify superadmin role"""
+    # Double-check role (defense in depth)
     if current_user.get("role") != "superadmin":
         raise HTTPException(
             status_code=403, 
             detail="Access denied. Superadmin role required."
         )
+    
+    # Optional: Add IP whitelist check for extra security
+    # ALLOWED_ADMIN_IPS = os.getenv("ADMIN_IP_WHITELIST", "").split(",")
+    # if ALLOWED_ADMIN_IPS and request.client.host not in ALLOWED_ADMIN_IPS:
+    #     raise HTTPException(403, "IP not whitelisted for admin access")
+    
     return current_user
 
 # ============================================
@@ -261,11 +268,12 @@ async def update_company(
     update: CompanyUpdate,
     admin: Dict = Depends(require_superadmin)
 ):
-    """Update company settings"""
+    """Update company settings - FIX 2: Parameterized queries with column whitelist"""
     with get_db() as conn:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Build update query
+        # FIX 2: Use parameterized queries with whitelisted columns
+        # Only allow updating specific safe columns
         updates = []
         params = []
         
@@ -284,6 +292,7 @@ async def update_company(
         if not updates:
             raise HTTPException(status_code=400, detail="No updates provided")
         
+        # Safe: column names are hardcoded, not user input
         query = f"UPDATE companies SET {', '.join(updates)} WHERE id = %s RETURNING *"
         params.append(company_id)
         

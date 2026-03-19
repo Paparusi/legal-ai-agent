@@ -50,7 +50,10 @@ CACHE_TTL = 3600
 # Load environment variables from .env file
 load_dotenv()
 
-JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "your-super-secret-jwt-key-change-in-production")
+# FIX 1: Import and use validated JWT secret
+from .security_utils import validate_jwt_secret, sanitize_log, rate_limiter as global_rate_limiter
+
+JWT_SECRET = validate_jwt_secret()
 
 # Import new routes
 from .routes import auth, company, keys, usage, chats, documents, admin, contracts, templates
@@ -71,21 +74,57 @@ app = FastAPI(
 #     exclude_paths=["/health", "/docs", "/openapi.json", "/redoc", "/static", "/"]
 # )
 
+# FIX 11: CORS - Restrict origins
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8080").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
 )
 
+# FIX 13: Security headers middleware
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Add security headers to all responses"""
+    response = await call_next(request)
+    
+    # HSTS - Force HTTPS (only if running on HTTPS)
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    # Prevent MIME sniffing
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    
+    # Prevent clickjacking
+    response.headers["X-Frame-Options"] = "DENY"
+    
+    # XSS Protection (legacy but harmless)
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    
+    # CSP (Content Security Policy) - Basic policy
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "font-src 'self' data:; "
+        "connect-src 'self' https://api.anthropic.com"
+    )
+    
+    return response
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
+    """Log slow requests - FIX 7: Sanitize logs"""
     start = time.time()
     response = await call_next(request)
     duration = time.time() - start
     if duration > 5:  # Log slow requests
-        print(f"SLOW REQUEST: {request.method} {request.url.path} took {duration:.2f}s")
+        # FIX 7: Sanitize URL and headers before logging
+        sanitized_path = sanitize_log(str(request.url.path))
+        print(f"SLOW REQUEST: {request.method} {sanitized_path} took {duration:.2f}s")
     return response
 
 # Include new routers
@@ -2701,8 +2740,9 @@ async def upload_contract_version(
                 doc = DocxDocument(BytesIO(content))
                 text_content = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
             elif file_ext.lower() == '.pdf':
-                import PyPDF2
-                reader = PyPDF2.PdfReader(BytesIO(content))
+                # FIX 15: Use pypdf instead of PyPDF2
+                from pypdf import PdfReader
+                reader = PdfReader(BytesIO(content))
                 text_content = "\n".join(page.extract_text() or "" for page in reader.pages)
             elif file_ext.lower() == '.txt':
                 text_content = content.decode('utf-8', errors='ignore')
@@ -3213,8 +3253,9 @@ async def batch_upload_contracts(
                     doc = DocxDocument(BytesIO(content))
                     text_content = "\n".join(p.text for p in doc.paragraphs if p.text.strip())
                 elif file_ext == '.pdf':
-                    import PyPDF2
-                    reader = PyPDF2.PdfReader(BytesIO(content))
+                    # FIX 15: Use pypdf instead of PyPDF2
+                    from pypdf import PdfReader
+                    reader = PdfReader(BytesIO(content))
                     text_content = "\n".join(page.extract_text() or "" for page in reader.pages)
                 elif file_ext == '.txt':
                     text_content = content.decode('utf-8', errors='ignore')

@@ -13,11 +13,18 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from contextlib import contextmanager
 
-# JWT Configuration
-JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "your-super-secret-jwt-key-change-in-production")
+# Import security utilities
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from security_utils import (
+    validate_jwt_secret, sanitize_log, rate_limiter, validate_password,
+    ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, create_jwt_with_jti
+)
+
+# JWT Configuration - FIX 1: Validate JWT secret
+JWT_SECRET = validate_jwt_secret()
 JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
-REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 # Database config
 DB_CONFIG = {
@@ -41,18 +48,12 @@ def get_db():
 security = HTTPBearer(auto_error=False)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create JWT access token"""
-    to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire, "type": "access"})
-    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    """Create JWT access token - FIX 14: Reduced lifetime (15 min) + JTI"""
+    return create_jwt_with_jti(data, "access")
 
 def create_refresh_token(data: dict) -> str:
-    """Create JWT refresh token"""
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode.update({"exp": expire, "type": "refresh"})
-    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    """Create JWT refresh token - FIX 14: Reduced lifetime (7 days) + JTI"""
+    return create_jwt_with_jti(data, "refresh")
 
 def verify_token(token: str, token_type: str = "access") -> Dict:
     """Verify JWT token and return payload"""

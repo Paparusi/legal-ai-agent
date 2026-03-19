@@ -17,6 +17,12 @@ from ..middleware.auth import (
     verify_token, get_current_user, get_current_active_user
 )
 
+# FIX 8, FIX 9: Import security utilities
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from security_utils import rate_limiter, validate_password
+
 router = APIRouter(prefix="/v1/auth", tags=["Authentication"])
 
 # ============================================
@@ -72,9 +78,20 @@ def generate_api_key() -> tuple[str, str, str]:
 @router.post("/register")
 async def register(data: RegisterRequest):
     """
-    Register new user and create company
+    Register new user and create company - FIX 8: Rate limited, FIX 9: Password validation
     Returns: user, company, api_key, access_token
     """
+    # FIX 8: Rate limiting (3 registration attempts per 10 minutes per IP)
+    # For now, use email as key (in production, use IP + email combination)
+    if not rate_limiter.check(f"register:{data.email}", max_req=3, window_sec=600):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many registration attempts. Please try again in 10 minutes."
+        )
+    
+    # FIX 9: Validate password strength
+    validate_password(data.password)
+    
     with get_db() as conn:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
@@ -153,11 +170,21 @@ async def register(data: RegisterRequest):
 @router.post("/login")
 async def login(data: LoginRequest):
     """
-    Login with email and password
+    Login with email and password - FIX 8: Rate limited (5 attempts per minute)
     Returns: user, access_token, refresh_token
     """
     import logging
-    logging.info(f"LOGIN ATTEMPT: email={data.email}")
+    
+    # FIX 8: Rate limiting (5 login attempts per minute per email)
+    if not rate_limiter.check(f"login:{data.email}", max_req=5, window_sec=60):
+        raise HTTPException(
+            status_code=429,
+            detail="Too many login attempts. Please try again in 1 minute."
+        )
+    
+    # FIX 7: Sanitize email in logs
+    from ..security_utils import sanitize_log
+    logging.info(f"LOGIN ATTEMPT: email={sanitize_log(data.email)}")
     
     with get_db() as conn:
         cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -330,7 +357,11 @@ async def change_password(
     data: ChangePasswordRequest,
     current_user: dict = Depends(get_current_active_user)
 ):
-    """Change user password"""
+    """Change user password - FIX 9: Password validation"""
+    
+    # FIX 9: Validate new password strength
+    validate_password(data.new_password)
+    
     with get_db() as conn:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         

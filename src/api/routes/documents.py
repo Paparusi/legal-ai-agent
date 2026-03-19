@@ -4,7 +4,7 @@ Document management endpoints
 - OCR/Text extraction (PDF, DOCX)
 - AI document analysis and comparison
 """
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Query
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Query, Request
 from pydantic import BaseModel
 from typing import Optional, List
 from psycopg2.extras import RealDictCursor
@@ -13,17 +13,25 @@ import uuid
 import json
 from pathlib import Path
 from datetime import datetime
-import PyPDF2
+# FIX 15: Use pypdf instead of PyPDF2
+import pypdf as PyPDF2
 import docx
 
 from ..middleware.auth import get_db, get_current_user, require_role
 
+# FIX 3, FIX 5: Import security utilities
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from security_utils import (
+    sanitize_filename, validate_file_path, check_content_length, 
+    MAX_FILE_SIZE, ALLOWED_EXTENSIONS
+)
+
 router = APIRouter(prefix="/v1/documents", tags=["Documents"])
 
 # Configuration
-UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "/home/admin_1/projects/legal-ai-agent/uploads"))
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "/tmp/legal-ai-agent-uploads"))
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 # ============================================
 # Models
@@ -38,31 +46,35 @@ class UpdateDocumentRequest(BaseModel):
 # Helper Functions
 # ============================================
 
-def save_upload_file(upload_file: UploadFile, company_id: str) -> tuple[str, int]:
-    """Save uploaded file and return (file_path, file_size)"""
+def save_upload_file(upload_file: UploadFile, company_id: str, unique_name: str = None) -> tuple[str, int]:
+    """Save uploaded file and return (file_path, file_size) - FIX 3, FIX 5: Security hardened"""
     # Create company directory
     company_dir = UPLOAD_DIR / company_id
     company_dir.mkdir(exist_ok=True, parents=True)
     
-    # Generate unique filename
-    file_ext = Path(upload_file.filename).suffix
-    unique_name = f"{uuid.uuid4()}{file_ext}"
+    # FIX 3: Use pre-sanitized unique filename
+    if not unique_name:
+        unique_name, _ = sanitize_filename(upload_file.filename or "document.pdf")
+    
     file_path = company_dir / unique_name
     
-    # Save file
+    # FIX 3: Validate that file_path is within company_dir (prevent path traversal)
+    validated_path = validate_file_path(file_path, company_dir)
+    
+    # FIX 5: Also check size during read as backup
     file_size = 0
-    with open(file_path, "wb") as f:
+    with open(validated_path, "wb") as f:
         while chunk := upload_file.file.read(8192):
             file_size += len(chunk)
             if file_size > MAX_FILE_SIZE:
-                file_path.unlink()  # Delete partial file
+                validated_path.unlink()  # Delete partial file
                 raise HTTPException(
                     status_code=413,
                     detail=f"File too large. Maximum size: {MAX_FILE_SIZE / 1024 / 1024}MB"
                 )
             f.write(chunk)
     
-    return str(file_path.relative_to(UPLOAD_DIR)), file_size
+    return str(validated_path.relative_to(UPLOAD_DIR)), file_size
 
 def extract_text_from_pdf(file_path: Path) -> tuple[str, int]:
     """Extract text from PDF and return (text, page_count)"""
@@ -103,11 +115,19 @@ def extract_text_from_docx(file_path: Path) -> str:
 
 @router.post("")
 async def upload_document(
+    request: Request,  # FIX 5: Need request to check Content-Length
     file: UploadFile = File(...),
     doc_type: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """Upload a document with automatic text extraction"""
+    """Upload a document with automatic text extraction - FIX 3, FIX 5: Security hardened"""
+    
+    # FIX 5: Check Content-Length FIRST before reading file
+    check_content_length(request, MAX_FILE_SIZE)
+    
+    # FIX 3: Sanitize filename to prevent path traversal
+    unique_name, file_ext = sanitize_filename(file.filename or "document.pdf")
+    
     # Validate file type
     allowed_types = [
         "application/pdf",
@@ -126,8 +146,8 @@ async def upload_document(
         )
     
     try:
-        # Save file
-        file_path, file_size = save_upload_file(file, str(current_user["company_id"]))
+        # FIX 3: Pass sanitized unique_name to save_upload_file
+        file_path, file_size = save_upload_file(file, str(current_user["company_id"]), unique_name)
         full_path = UPLOAD_DIR / file_path
         
         # Extract text based on file type
@@ -277,24 +297,26 @@ async def get_document(
     document_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get document details"""
+    """Get document details - FIX 6: Verify company ownership"""
     with get_db() as conn:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
+        # FIX 6: ALWAYS verify company_id ownership
         cur.execute("""
             SELECT 
                 d.id, d.name, d.file_path, d.file_size, d.mime_type, d.doc_type,
                 d.status, d.extracted_text, d.page_count, d.analysis, d.risk_score,
-                d.issues_count, d.created_at, d.analyzed_at,
+                d.issues_count, d.created_at, d.analyzed_at, d.company_id,
                 u.full_name as uploaded_by_name, u.email as uploaded_by_email
             FROM documents d
             LEFT JOIN users u ON u.id = d.uploaded_by
-            WHERE d.id = %s AND d.company_id = %s
-        """, (document_id, current_user["company_id"]))
+            WHERE d.id = %s
+        """, (document_id,))
         
         document = cur.fetchone()
         
-        if not document:
+        # FIX 6: Check ownership BEFORE returning data
+        if not document or str(document["company_id"]) != str(current_user["company_id"]):
             raise HTTPException(status_code=404, detail="Document not found")
     
     return {

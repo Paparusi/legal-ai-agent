@@ -2,7 +2,7 @@
 Contract Management - Multi-tenant CRUD + AI Review
 Upload, manage, and review contracts with Claude AI
 """
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Query
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, Query, Request
 from typing import Optional, List, Dict
 from pydantic import BaseModel
 from datetime import datetime, date, timedelta
@@ -14,13 +14,20 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from ..middleware.auth import get_current_user, get_db
 import httpx
+import sys
+
+# FIX 3, FIX 5: Import security utilities
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from security_utils import (
+    sanitize_filename, validate_file_path, check_content_length,
+    MAX_FILE_SIZE, ALLOWED_EXTENSIONS, sanitize_log
+)
 
 router = APIRouter(prefix="/v1/contracts", tags=["contracts"])
 
 # File upload config
-UPLOAD_DIR = Path("/home/admin_1/projects/legal-ai-agent/uploads/contracts")
+UPLOAD_DIR = Path("/tmp/legal-ai-agent-uploads/contracts")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt", ".jpg", ".jpeg", ".png"}
 
 
 def extract_file_text(file_path: str, file_ext: str, content: bytes = None) -> Optional[str]:
@@ -30,7 +37,8 @@ def extract_file_text(file_path: str, file_ext: str, content: bytes = None) -> O
             return content.decode('utf-8', errors='ignore') if content else ""
         
         elif file_ext == ".pdf":
-            from PyPDF2 import PdfReader
+            # FIX 15: Use pypdf instead of PyPDF2
+            from pypdf import PdfReader
             reader = PdfReader(file_path)
             text_parts = []
             for page in reader.pages:
