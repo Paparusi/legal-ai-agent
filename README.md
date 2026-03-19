@@ -41,7 +41,7 @@ An AI platform for legal research, contract review, and legal document drafting 
 
 ## ✨ Features
 
-### 🤖 AI Agent (11 Tools)
+### 🤖 AI Agent (24 Tools)
 - **Legal search** — Search across 40,000+ Vietnamese legal documents
 - **Contract review** — Risk analysis, missing clauses, amendment suggestions
 - **Compliance check** — Verify labor/commercial/service contracts against Vietnamese law
@@ -49,6 +49,70 @@ An AI platform for legal research, contract review, and legal document drafting 
 - **Contract summary** — Quick summary of parties, value, duration
 - **Contract comparison** — Side-by-side diff of 2 contracts
 - **Company memory** — Remembers company context across chat sessions
+- **📂 Full document control** — Read, write, edit, delete, organize documents autonomously
+
+### 🦾 Agentic AI — Full Document Control
+
+**The AI is now "Cursor for lawyers" — full autonomous document manipulation capabilities.**
+
+Legal AI can autonomously manage your documents and contracts:
+
+#### What it can do:
+- 📂 **Browse and search** — List all documents, search by folder/keyword/type
+- 📖 **Read any document** — View full content, extract specific sections
+- ✏️ **Edit specific clauses** — Find & replace text, track all changes
+- 📝 **Generate new documents** — Draft contracts, memos, reports from scratch using AI
+- 🔍 **Compare documents** — Side-by-side diff with similarity score
+- 📋 **Review contracts for risks** — Batch review multiple files at once
+- 🗂️ **Organize with folders** — Create folders, move files, tag documents
+- 📊 **Batch operations** — Review 10+ contracts simultaneously
+- 📜 **Track edit history** — Full audit trail of who changed what and when
+- 🗑️ **Soft delete** — Delete documents with 30-day recovery window
+
+#### Example Commands:
+```
+"Liệt kê tất cả hợp đồng"
+"Đọc hợp đồng thuê mặt bằng số 123"
+"Sửa điều khoản phạt trong HĐ này cho đúng luật"
+"Soạn NDA giữa công ty A và B, thời hạn 2 năm"
+"So sánh bản cũ và bản mới của HĐ lao động"
+"Review tất cả 5 hợp đồng trong thư mục Dự án X"
+"Tạo thư mục 'Khách hàng ABC' và di chuyển 3 hợp đồng vào đó"
+"Xem lịch sử chỉnh sửa của tài liệu này"
+```
+
+#### Multi-Step Autonomous Workflows:
+The AI can chain multiple tools together to complete complex tasks:
+
+```
+User: "Sửa điều khoản phạt trong HĐ ABC cho đúng luật"
+AI: 
+  1. read_document → Gets current content
+  2. search_law → Finds relevant penalty law (8% max per Commercial Law)
+  3. edit_document → Replaces old penalty clause with compliant version
+  4. document_history → Shows what changed
+```
+
+```
+User: "Soạn NDA giữa công ty A và B, lưu vào thư mục Khách hàng A"
+AI:
+  1. generate_document → Creates NDA from requirements
+  2. create_folder → Creates "Khách hàng A" folder (if doesn't exist)
+  3. write_document → Saves NDA to folder
+```
+
+#### New Agentic Tools (11):
+1. `list_documents` — List all documents/contracts with search & filter
+2. `read_document` — Read full content or specific sections
+3. `write_document` — Create new documents with metadata & tags
+4. `edit_document` — Find & replace text, track changes
+5. `compare_documents` — Diff two documents (summary/detailed/clause-by-clause)
+6. `create_folder` — Create organizational folders for cases/projects
+7. `move_document` — Move documents between folders
+8. `delete_document` — Soft delete (recoverable for 30 days)
+9. `generate_document` — AI drafts legal documents from requirements
+10. `batch_review` — Review multiple documents for risks simultaneously
+11. `document_history` — View full edit history and audit trail
 
 ## 📋 Contract Review AI
 

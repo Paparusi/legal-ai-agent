@@ -203,6 +203,147 @@ TOOLS = [
             },
             "required": ["url"]
         }
+    },
+    {
+        "name": "list_documents",
+        "description": "Liệt kê tất cả tài liệu và hợp đồng trong hệ thống của công ty. Dùng để tìm kiếm file, xem danh sách tài liệu, hoặc kiểm tra file nào đã có.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "folder": {"type": "string", "description": "Thư mục cần liệt kê (mặc định: tất cả)"},
+                "search": {"type": "string", "description": "Từ khóa tìm kiếm trong tên file"},
+                "type": {"type": "string", "enum": ["all", "contract", "document", "template"], "description": "Loại file cần lọc"}
+            }
+        }
+    },
+    {
+        "name": "read_document",
+        "description": "Đọc nội dung đầy đủ của một tài liệu hoặc hợp đồng. Dùng khi cần xem chi tiết nội dung, phân tích, hoặc trích xuất thông tin từ file.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "document_id": {"type": "string", "description": "ID của tài liệu cần đọc"},
+                "section": {"type": "string", "description": "Phần cụ thể cần đọc (ví dụ: 'Điều 5', 'Phụ lục')"}
+            },
+            "required": ["document_id"]
+        }
+    },
+    {
+        "name": "write_document",
+        "description": "Tạo tài liệu mới hoặc ghi đè nội dung. Dùng để soạn hợp đồng, tạo văn bản pháp lý, tạo báo cáo, hoặc lưu kết quả phân tích.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string", "description": "Tên tài liệu"},
+                "content": {"type": "string", "description": "Nội dung đầy đủ của tài liệu"},
+                "type": {"type": "string", "enum": ["contract", "document", "template", "report", "memo"], "description": "Loại tài liệu"},
+                "folder": {"type": "string", "description": "Thư mục lưu (tùy chọn)"},
+                "tags": {"type": "array", "items": {"type": "string"}, "description": "Tags phân loại"}
+            },
+            "required": ["title", "content"]
+        }
+    },
+    {
+        "name": "edit_document",
+        "description": "Chỉnh sửa một phần cụ thể của tài liệu hiện có. Dùng để sửa điều khoản, cập nhật nội dung, hoặc thay thế phần bị lỗi. Giống chức năng Find & Replace nhưng thông minh hơn.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "document_id": {"type": "string", "description": "ID tài liệu cần sửa"},
+                "old_text": {"type": "string", "description": "Đoạn text cần thay thế (tìm chính xác)"},
+                "new_text": {"type": "string", "description": "Nội dung mới thay thế"},
+                "description": {"type": "string", "description": "Mô tả ngắn về thay đổi (để ghi log)"}
+            },
+            "required": ["document_id", "old_text", "new_text"]
+        }
+    },
+    {
+        "name": "compare_documents",
+        "description": "So sánh hai tài liệu và hiển thị khác biệt. Dùng để xem thay đổi giữa bản cũ-mới, so sánh hai hợp đồng, hoặc kiểm tra chỉnh sửa.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "document_id_1": {"type": "string", "description": "ID tài liệu thứ nhất"},
+                "document_id_2": {"type": "string", "description": "ID tài liệu thứ hai"},
+                "mode": {"type": "string", "enum": ["summary", "detailed", "clause_by_clause"], "description": "Mức độ chi tiết so sánh"}
+            },
+            "required": ["document_id_1", "document_id_2"]
+        }
+    },
+    {
+        "name": "create_folder",
+        "description": "Tạo thư mục/vụ việc mới để tổ chức tài liệu. Dùng để phân loại theo dự án, khách hàng, hoặc vụ việc pháp lý.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string", "description": "Tên thư mục/vụ việc"},
+                "description": {"type": "string", "description": "Mô tả"},
+                "parent_folder": {"type": "string", "description": "Thư mục cha (nếu có)"}
+            },
+            "required": ["name"]
+        }
+    },
+    {
+        "name": "move_document",
+        "description": "Di chuyển tài liệu vào thư mục khác.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "document_id": {"type": "string", "description": "ID tài liệu"},
+                "target_folder": {"type": "string", "description": "Thư mục đích"}
+            },
+            "required": ["document_id", "target_folder"]
+        }
+    },
+    {
+        "name": "delete_document",
+        "description": "Xóa tài liệu (chuyển vào thùng rác, có thể khôi phục trong 30 ngày). Chỉ dùng khi người dùng yêu cầu rõ ràng.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "document_id": {"type": "string", "description": "ID tài liệu cần xóa"},
+                "reason": {"type": "string", "description": "Lý do xóa"}
+            },
+            "required": ["document_id"]
+        }
+    },
+    {
+        "name": "generate_document",
+        "description": "Tạo văn bản pháp lý mới từ yêu cầu. AI sẽ soạn hợp đồng, đơn từ, công văn, biên bản, hoặc bất kỳ văn bản pháp lý nào dựa trên mô tả và thông tin được cung cấp.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "type": {"type": "string", "description": "Loại văn bản (hop_dong_lao_dong, hop_dong_thue, don_khieu_nai, cong_van, bien_ban, nda, ...)"},
+                "requirements": {"type": "string", "description": "Yêu cầu chi tiết về nội dung"},
+                "parties": {"type": "array", "items": {"type": "string"}, "description": "Các bên liên quan"},
+                "key_terms": {"type": "object", "description": "Các điều khoản chính (giá trị HĐ, thời hạn, ...)"},
+                "save": {"type": "boolean", "description": "Tự động lưu vào hệ thống", "default": True}
+            },
+            "required": ["type", "requirements"]
+        }
+    },
+    {
+        "name": "batch_review",
+        "description": "Review nhiều hợp đồng/tài liệu cùng lúc. Trả về tóm tắt rủi ro cho từng file và tổng quan.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "document_ids": {"type": "array", "items": {"type": "string"}, "description": "Danh sách ID tài liệu cần review"},
+                "focus": {"type": "string", "description": "Tập trung vào khía cạnh nào (penalty, compliance, risk, all)"}
+            },
+            "required": ["document_ids"]
+        }
+    },
+    {
+        "name": "document_history",
+        "description": "Xem lịch sử chỉnh sửa của tài liệu. Ai sửa gì, khi nào.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "document_id": {"type": "string", "description": "ID tài liệu"}
+            },
+            "required": ["document_id"]
+        }
     }
 ]
 
@@ -210,27 +351,50 @@ TOOLS = [
 # System Prompt
 # ============================================
 
-AGENT_SYSTEM_PROMPT = """Bạn là trợ lý pháp lý AI thông minh. Bạn chat tự nhiên như một người bạn am hiểu luật, KHÔNG phải robot.
+AGENT_SYSTEM_PROMPT = """Bạn là trợ lý pháp lý AI thông minh với quyền truy cập đầy đủ vào hệ thống quản lý tài liệu. 
+Bạn có thể đọc, tạo, chỉnh sửa, xóa, so sánh tài liệu và hợp đồng.
+Khi người dùng yêu cầu, hãy TỰ ĐỘNG thực hiện các bước cần thiết.
+Ví dụ: "Sửa điều khoản phạt trong HĐ" → bạn sẽ tự đọc HĐ → tìm điều khoản → sửa → lưu.
+Luôn báo cáo những gì bạn đã làm sau khi hoàn thành.
 
 ## Cách chat:
 - **Chat bình thường** — Nếu người dùng chào, hỏi thăm, nói chuyện phiếm → trả lời tự nhiên, thân thiện. KHÔNG dùng tool, KHÔNG format báo cáo.
 - **Chat pháp lý** — Khi người dùng hỏi về luật, hợp đồng, văn bản → lúc đó mới dùng tools và trả lời chuyên sâu.
+- **Thao tác tài liệu** — Khi được yêu cầu sửa/tạo/xóa tài liệu → TỰ ĐỘNG thực hiện chuỗi hành động (đọc → sửa → lưu)
 - **Đọc không khí** — Câu ngắn, casual → trả lời ngắn. Câu nghiêm túc, chi tiết → trả lời đầy đủ.
 - **Giọng điệu** — Thân thiện, dễ hiểu, như đang nói chuyện. Tránh quá formal hay dùng quá nhiều emoji/header.
 
 ## Khi nào dùng tools:
 - Hỏi về luật cụ thể → search_law
 - Hỏi về hợp đồng → list_contracts / read_contract  
-- Cần soạn văn bản → draft_document
-- Cần tìm tài liệu → search_company_docs
-- Cần rà soát → analyze_contract_risk
+- Cần soạn văn bản → draft_document hoặc generate_document
+- Cần tìm tài liệu → search_company_docs hoặc list_documents
+- Cần rà soát → analyze_contract_risk hoặc review_contract_ai
 - Cần info công ty → get_company_profile
-- So sánh hợp đồng → compare_contracts
+- So sánh hợp đồng → compare_contracts hoặc compare_documents
 - Tóm tắt hợp đồng → summarize_contract
 - Kiểm tra tuân thủ pháp lý → check_legal_compliance
 - Soạn điều khoản cụ thể → generate_clause
 - Crawl URL văn bản pháp luật → crawl_legal_document (cần CrawlKit API key)
+- **Quản lý tài liệu:**
+  - Xem danh sách → list_documents
+  - Đọc tài liệu → read_document
+  - Tạo tài liệu mới → write_document
+  - Sửa tài liệu → edit_document
+  - So sánh 2 tài liệu → compare_documents
+  - Tạo thư mục → create_folder
+  - Di chuyển file → move_document
+  - Xóa file → delete_document (cẩn thận!)
+  - Soạn văn bản → generate_document
+  - Review nhiều file → batch_review
+  - Xem lịch sử sửa → document_history
 - **KHÔNG dùng tool** cho chào hỏi, nói chuyện, câu hỏi đơn giản
+
+## Multi-step workflows:
+Khi người dùng yêu cầu task phức tạp, bạn có thể gọi nhiều tools liên tiếp:
+- "Sửa điều khoản phạt trong HĐ ABC" → read_document → edit_document → document_history
+- "Soạn NDA giữa A và B" → generate_document → write_document
+- "So sánh 3 hợp đồng và chọn cái tốt nhất" → read_contract (x3) → compare_documents → khuyến nghị
 
 ## Khi trả lời pháp lý:
 - Trích dẫn cụ thể: "Theo Điều X, Khoản Y của Luật Z"
@@ -647,6 +811,605 @@ async def execute_tool(tool_name: str, tool_input: dict, company_id: str) -> dic
                 return {"error": f"❌ Crawl thất bại: {crawl_result['error']}"}
         except Exception as e:
             return {"error": f"❌ Lỗi crawl: {str(e)}"}
+    
+    # ============================================
+    # NEW AGENTIC TOOLS — Full Document Control
+    # ============================================
+    
+    elif tool_name == "list_documents":
+        folder = tool_input.get("folder")
+        search = tool_input.get("search")
+        doc_type = tool_input.get("type", "all")
+        
+        with _get_db() as conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Build query
+            query = "SELECT id, name, doc_type, file_size, created_at FROM documents WHERE company_id = %s AND deleted_at IS NULL"
+            params = [company_id]
+            
+            if folder:
+                query += " AND folder_id = (SELECT id FROM folders WHERE name = %s AND company_id = %s LIMIT 1)"
+                params.extend([folder, company_id])
+            
+            if search:
+                query += " AND name ILIKE %s"
+                params.append(f"%{search}%")
+            
+            if doc_type != "all" and doc_type == "document":
+                pass  # documents table
+            
+            query += " ORDER BY created_at DESC LIMIT 50"
+            
+            cur.execute(query, tuple(params))
+            docs = [dict(r) for r in cur.fetchall()]
+            
+            # Also get contracts if type is "all" or "contract"
+            contracts = []
+            if doc_type in ["all", "contract"]:
+                query_c = "SELECT id, name, contract_type as doc_type, NULL as file_size, created_at FROM contracts WHERE company_id = %s AND status != 'deleted' AND deleted_at IS NULL"
+                params_c = [company_id]
+                
+                if folder:
+                    query_c += " AND folder_id = (SELECT id FROM folders WHERE name = %s AND company_id = %s LIMIT 1)"
+                    params_c.extend([folder, company_id])
+                
+                if search:
+                    query_c += " AND name ILIKE %s"
+                    params_c.append(f"%{search}%")
+                
+                query_c += " ORDER BY created_at DESC LIMIT 50"
+                
+                cur.execute(query_c, tuple(params_c))
+                contracts = [dict(r) for r in cur.fetchall()]
+            
+            all_items = docs + contracts
+            all_items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+            
+            return {
+                "items": all_items[:50],
+                "total": len(all_items),
+                "folder": folder,
+                "search": search
+            }
+    
+    elif tool_name == "read_document":
+        document_id = tool_input.get("document_id", "")
+        section = tool_input.get("section")
+        
+        with _get_db() as conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Try documents table first
+            cur.execute("""
+                SELECT id, name, extracted_text, doc_type, file_size, created_at
+                FROM documents
+                WHERE id::text = %s AND company_id = %s AND deleted_at IS NULL
+            """, (document_id, company_id))
+            doc = cur.fetchone()
+            
+            # If not found, try contracts table
+            if not doc:
+                cur.execute("""
+                    SELECT id, name, content as extracted_text, contract_type as doc_type, NULL as file_size, created_at
+                    FROM contracts
+                    WHERE id::text = %s AND company_id = %s AND status != 'deleted' AND deleted_at IS NULL
+                """, (document_id, company_id))
+                doc = cur.fetchone()
+            
+            if not doc:
+                return {"error": f"Không tìm thấy tài liệu với ID: {document_id}"}
+            
+            content = doc.get("extracted_text", "") or ""
+            
+            # If section specified, try to extract it
+            if section and section.lower() in content.lower():
+                # Simple extraction: find section and get next 1000 chars
+                import re
+                pattern = re.escape(section)
+                match = re.search(pattern, content, re.IGNORECASE)
+                if match:
+                    start = match.start()
+                    end = min(start + 2000, len(content))
+                    content = content[start:end]
+            
+            return {
+                "id": str(doc["id"]),
+                "name": doc["name"],
+                "type": doc.get("doc_type", "N/A"),
+                "content": content,
+                "content_length": len(content),
+                "created_at": str(doc.get("created_at", ""))
+            }
+    
+    elif tool_name == "write_document":
+        title = tool_input.get("title", "")
+        content = tool_input.get("content", "")
+        doc_type = tool_input.get("type", "document")
+        folder = tool_input.get("folder")
+        tags = tool_input.get("tags", [])
+        
+        if not title or not content:
+            return {"error": "Thiếu thông tin: cần có title và content"}
+        
+        with _get_db() as conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Get folder_id if folder specified
+            folder_id = None
+            if folder:
+                cur.execute("SELECT id FROM folders WHERE name = %s AND company_id = %s", (folder, company_id))
+                folder_row = cur.fetchone()
+                if folder_row:
+                    folder_id = folder_row["id"]
+            
+            # Insert document
+            cur.execute("""
+                INSERT INTO documents (company_id, name, extracted_text, doc_type, status, folder_id, tags, file_path, file_size, mime_type)
+                VALUES (%s, %s, %s, 'other', 'analyzed', %s, %s, 'ai-generated', %s, 'text/plain')
+                RETURNING id, name, created_at
+            """, (company_id, title, content, folder_id, tags, len(content.encode('utf-8'))))
+            
+            new_doc = dict(cur.fetchone())
+            conn.commit()
+            
+            # Log edit
+            cur.execute("""
+                INSERT INTO document_edits (document_id, company_id, edit_type, new_content, description)
+                VALUES (%s, %s, 'create', %s, %s)
+            """, (new_doc["id"], company_id, content[:1000], f"AI created document: {title}"))
+            conn.commit()
+            
+            return {
+                "success": True,
+                "document_id": str(new_doc["id"]),
+                "title": new_doc["name"],
+                "message": f"✅ Đã tạo tài liệu: {title}",
+                "created_at": str(new_doc.get("created_at", ""))
+            }
+    
+    elif tool_name == "edit_document":
+        document_id = tool_input.get("document_id", "")
+        old_text = tool_input.get("old_text", "")
+        new_text = tool_input.get("new_text", "")
+        description = tool_input.get("description", "AI edit")
+        
+        if not document_id or not old_text:
+            return {"error": "Thiếu thông tin: cần document_id và old_text"}
+        
+        with _get_db() as conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Get current document
+            cur.execute("""
+                SELECT id, name, extracted_text FROM documents
+                WHERE id::text = %s AND company_id = %s AND deleted_at IS NULL
+            """, (document_id, company_id))
+            doc = cur.fetchone()
+            
+            if not doc:
+                # Try contracts table
+                cur.execute("""
+                    SELECT id, name, content as extracted_text FROM contracts
+                    WHERE id::text = %s AND company_id = %s AND status != 'deleted' AND deleted_at IS NULL
+                """, (document_id, company_id))
+                doc = cur.fetchone()
+                table_name = "contracts"
+                content_col = "content"
+            else:
+                table_name = "documents"
+                content_col = "extracted_text"
+            
+            if not doc:
+                return {"error": f"Không tìm thấy tài liệu: {document_id}"}
+            
+            old_content = doc.get("extracted_text", "") or ""
+            
+            # Replace old_text with new_text
+            if old_text not in old_content:
+                return {"error": f"Không tìm thấy đoạn text cần thay thế: '{old_text[:50]}...'"}
+            
+            new_content = old_content.replace(old_text, new_text, 1)
+            
+            # Update document
+            cur.execute(f"""
+                UPDATE {table_name}
+                SET {content_col} = %s, updated_at = NOW()
+                WHERE id = %s
+            """, (new_content, doc["id"]))
+            conn.commit()
+            
+            # Log edit
+            cur.execute("""
+                INSERT INTO document_edits (document_id, company_id, edit_type, old_content, new_content, description)
+                VALUES (%s, %s, 'edit', %s, %s, %s)
+            """, (doc["id"], company_id, old_text[:1000], new_text[:1000], description))
+            conn.commit()
+            
+            return {
+                "success": True,
+                "document_id": str(doc["id"]),
+                "document_name": doc["name"],
+                "message": f"✅ Đã sửa tài liệu: {doc['name']}",
+                "old_text_preview": old_text[:100],
+                "new_text_preview": new_text[:100]
+            }
+    
+    elif tool_name == "compare_documents":
+        doc1_id = tool_input.get("document_id_1", "")
+        doc2_id = tool_input.get("document_id_2", "")
+        mode = tool_input.get("mode", "summary")
+        
+        with _get_db() as conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Get both documents
+            docs = []
+            for doc_id in [doc1_id, doc2_id]:
+                cur.execute("""
+                    SELECT id, name, extracted_text FROM documents
+                    WHERE id::text = %s AND company_id = %s AND deleted_at IS NULL
+                    UNION ALL
+                    SELECT id, name, content as extracted_text FROM contracts
+                    WHERE id::text = %s AND company_id = %s AND status != 'deleted' AND deleted_at IS NULL
+                """, (doc_id, company_id, doc_id, company_id))
+                doc = cur.fetchone()
+                if doc:
+                    docs.append(dict(doc))
+            
+            if len(docs) != 2:
+                return {"error": "Không tìm thấy một hoặc cả hai tài liệu"}
+            
+            # Simple diff using difflib
+            import difflib
+            text1 = docs[0].get("extracted_text", "") or ""
+            text2 = docs[1].get("extracted_text", "") or ""
+            
+            # Calculate similarity
+            ratio = difflib.SequenceMatcher(None, text1, text2).ratio()
+            
+            # Get differences
+            if mode == "detailed":
+                diff = list(difflib.unified_diff(
+                    text1.split('\n'), 
+                    text2.split('\n'),
+                    lineterm='',
+                    n=1
+                ))
+                diff_text = '\n'.join(diff[:100])  # Limit to 100 lines
+            else:
+                diff_text = f"Tương đồng: {ratio*100:.1f}%"
+            
+            # Count changes
+            added = text2.count('\n') - text1.count('\n')
+            
+            return {
+                "document_1": {"id": str(docs[0]["id"]), "name": docs[0]["name"]},
+                "document_2": {"id": str(docs[1]["id"]), "name": docs[1]["name"]},
+                "similarity": round(ratio * 100, 1),
+                "differences": diff_text,
+                "lines_changed": abs(added),
+                "mode": mode
+            }
+    
+    elif tool_name == "create_folder":
+        name = tool_input.get("name", "")
+        description = tool_input.get("description", "")
+        parent_folder = tool_input.get("parent_folder")
+        
+        if not name:
+            return {"error": "Thiếu tên thư mục"}
+        
+        with _get_db() as conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Get parent folder ID if specified
+            parent_id = None
+            if parent_folder:
+                cur.execute("SELECT id FROM folders WHERE name = %s AND company_id = %s", (parent_folder, company_id))
+                parent_row = cur.fetchone()
+                if parent_row:
+                    parent_id = parent_row["id"]
+            
+            # Create folder
+            cur.execute("""
+                INSERT INTO folders (company_id, name, description, parent_id)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id, name, created_at
+            """, (company_id, name, description, parent_id))
+            
+            folder = dict(cur.fetchone())
+            conn.commit()
+            
+            return {
+                "success": True,
+                "folder_id": str(folder["id"]),
+                "name": folder["name"],
+                "message": f"✅ Đã tạo thư mục: {name}"
+            }
+    
+    elif tool_name == "move_document":
+        document_id = tool_input.get("document_id", "")
+        target_folder = tool_input.get("target_folder", "")
+        
+        if not document_id or not target_folder:
+            return {"error": "Thiếu thông tin: cần document_id và target_folder"}
+        
+        with _get_db() as conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Get folder ID
+            cur.execute("SELECT id FROM folders WHERE name = %s AND company_id = %s", (target_folder, company_id))
+            folder_row = cur.fetchone()
+            if not folder_row:
+                return {"error": f"Không tìm thấy thư mục: {target_folder}"}
+            
+            folder_id = folder_row["id"]
+            
+            # Update document
+            cur.execute("""
+                UPDATE documents SET folder_id = %s
+                WHERE id::text = %s AND company_id = %s AND deleted_at IS NULL
+                RETURNING id, name
+            """, (folder_id, document_id, company_id))
+            doc = cur.fetchone()
+            
+            if not doc:
+                # Try contracts
+                cur.execute("""
+                    UPDATE contracts SET folder_id = %s
+                    WHERE id::text = %s AND company_id = %s AND status != 'deleted' AND deleted_at IS NULL
+                    RETURNING id, name
+                """, (folder_id, document_id, company_id))
+                doc = cur.fetchone()
+            
+            if not doc:
+                return {"error": f"Không tìm thấy tài liệu: {document_id}"}
+            
+            conn.commit()
+            
+            # Log edit
+            cur.execute("""
+                INSERT INTO document_edits (document_id, company_id, edit_type, description)
+                VALUES (%s, %s, 'move', %s)
+            """, (doc["id"], company_id, f"Moved to folder: {target_folder}"))
+            conn.commit()
+            
+            return {
+                "success": True,
+                "document_id": str(doc["id"]),
+                "document_name": doc["name"],
+                "target_folder": target_folder,
+                "message": f"✅ Đã di chuyển '{doc['name']}' vào thư mục '{target_folder}'"
+            }
+    
+    elif tool_name == "delete_document":
+        document_id = tool_input.get("document_id", "")
+        reason = tool_input.get("reason", "AI deletion")
+        
+        if not document_id:
+            return {"error": "Thiếu document_id"}
+        
+        with _get_db() as conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Soft delete document
+            cur.execute("""
+                UPDATE documents SET deleted_at = NOW()
+                WHERE id::text = %s AND company_id = %s AND deleted_at IS NULL
+                RETURNING id, name
+            """, (document_id, company_id))
+            doc = cur.fetchone()
+            
+            if not doc:
+                # Try contracts
+                cur.execute("""
+                    UPDATE contracts SET deleted_at = NOW(), status = 'deleted'
+                    WHERE id::text = %s AND company_id = %s AND deleted_at IS NULL
+                    RETURNING id, name
+                """, (document_id, company_id))
+                doc = cur.fetchone()
+            
+            if not doc:
+                return {"error": f"Không tìm thấy tài liệu: {document_id}"}
+            
+            conn.commit()
+            
+            # Log edit
+            cur.execute("""
+                INSERT INTO document_edits (document_id, company_id, edit_type, description)
+                VALUES (%s, %s, 'delete', %s)
+            """, (doc["id"], company_id, reason))
+            conn.commit()
+            
+            return {
+                "success": True,
+                "document_id": str(doc["id"]),
+                "document_name": doc["name"],
+                "message": f"✅ Đã xóa tài liệu: {doc['name']} (có thể khôi phục trong 30 ngày)"
+            }
+    
+    elif tool_name == "generate_document":
+        doc_type = tool_input.get("type", "")
+        requirements = tool_input.get("requirements", "")
+        parties = tool_input.get("parties", [])
+        key_terms = tool_input.get("key_terms", {})
+        save = tool_input.get("save", True)
+        
+        if not doc_type or not requirements:
+            return {"error": "Thiếu thông tin: cần type và requirements"}
+        
+        # Call Claude to generate the document
+        try:
+            oauth_token = os.getenv("CLAUDE_OAUTH_TOKEN", "")
+            api_key = os.getenv("ANTHROPIC_API_KEY", "")
+            
+            headers = {
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json"
+            }
+            
+            if oauth_token:
+                headers["Authorization"] = f"Bearer {oauth_token}"
+                headers["anthropic-beta"] = "oauth-2025-04-20"
+            elif api_key:
+                headers["x-api-key"] = api_key
+            
+            system_prompt = """Bạn là chuyên gia soạn thảo văn bản pháp lý Việt Nam. Soạn thảo văn bản đầy đủ, chuyên nghiệp, tuân thủ pháp luật."""
+            
+            user_message = f"""Soạn thảo văn bản pháp lý:
+
+Loại: {doc_type}
+Yêu cầu: {requirements}
+Các bên: {', '.join(parties) if parties else 'N/A'}
+Điều khoản chính: {json.dumps(key_terms, ensure_ascii=False)}
+
+Trả về văn bản hoàn chỉnh, đúng format, đầy đủ các điều khoản bắt buộc theo luật."""
+            
+            payload = {
+                "model": "claude-sonnet-4-20250514",
+                "max_tokens": 8192,
+                "system": system_prompt,
+                "messages": [{"role": "user", "content": user_message}]
+            }
+            
+            async with httpx.AsyncClient(timeout=120) as client:
+                response = await client.post(CLAUDE_API_URL, headers=headers, json=payload)
+                response.raise_for_status()
+                data = response.json()
+                
+                generated_content = data["content"][0]["text"]
+                
+                # Save if requested
+                if save:
+                    with _get_db() as conn:
+                        cur = conn.cursor(cursor_factory=RealDictCursor)
+                        cur.execute("""
+                            INSERT INTO documents (company_id, name, extracted_text, doc_type, status, file_path, file_size, mime_type)
+                            VALUES (%s, %s, %s, 'other', 'analyzed', 'ai-generated', %s, 'text/plain')
+                            RETURNING id
+                        """, (company_id, f"{doc_type}_{parties[0] if parties else 'generated'}", generated_content, len(generated_content.encode('utf-8'))))
+                        
+                        doc_id = cur.fetchone()["id"]
+                        conn.commit()
+                else:
+                    doc_id = None
+                
+                return {
+                    "success": True,
+                    "document_type": doc_type,
+                    "content": generated_content,
+                    "document_id": str(doc_id) if doc_id else None,
+                    "saved": save,
+                    "message": "✅ Đã soạn thảo văn bản thành công"
+                }
+        
+        except Exception as e:
+            return {"error": f"Lỗi soạn thảo: {str(e)}"}
+    
+    elif tool_name == "batch_review":
+        document_ids = tool_input.get("document_ids", [])
+        focus = tool_input.get("focus", "all")
+        
+        if not document_ids or len(document_ids) == 0:
+            return {"error": "Thiếu danh sách tài liệu"}
+        
+        reviews = []
+        
+        with _get_db() as conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            for doc_id in document_ids[:10]:  # Limit to 10 docs
+                # Get document
+                cur.execute("""
+                    SELECT id, name, extracted_text FROM documents
+                    WHERE id::text = %s AND company_id = %s AND deleted_at IS NULL
+                    UNION ALL
+                    SELECT id, name, content as extracted_text FROM contracts
+                    WHERE id::text = %s AND company_id = %s AND status != 'deleted' AND deleted_at IS NULL
+                """, (doc_id, company_id, doc_id, company_id))
+                doc = cur.fetchone()
+                
+                if not doc:
+                    reviews.append({"document_id": doc_id, "error": "Not found"})
+                    continue
+                
+                # Quick risk assessment
+                content = (doc.get("extracted_text", "") or "").lower()
+                
+                risks = []
+                risk_score = 0
+                
+                # Check for common issues
+                if "phạt" not in content and "vi phạm" not in content:
+                    risks.append("Thiếu điều khoản phạt vi phạm")
+                    risk_score += 20
+                
+                if "bảo mật" not in content:
+                    risks.append("Thiếu điều khoản bảo mật")
+                    risk_score += 15
+                
+                if "tranh chấp" not in content:
+                    risks.append("Thiếu điều khoản giải quyết tranh chấp")
+                    risk_score += 20
+                
+                if "chấm dứt" not in content:
+                    risks.append("Thiếu điều khoản chấm dứt")
+                    risk_score += 15
+                
+                reviews.append({
+                    "document_id": str(doc["id"]),
+                    "document_name": doc["name"],
+                    "risk_score": min(risk_score, 100),
+                    "risk_level": "low" if risk_score < 20 else "medium" if risk_score < 50 else "high",
+                    "risks": risks
+                })
+        
+        return {
+            "total_reviewed": len(reviews),
+            "focus": focus,
+            "reviews": reviews,
+            "summary": {
+                "high_risk": sum(1 for r in reviews if r.get("risk_level") == "high"),
+                "medium_risk": sum(1 for r in reviews if r.get("risk_level") == "medium"),
+                "low_risk": sum(1 for r in reviews if r.get("risk_level") == "low")
+            }
+        }
+    
+    elif tool_name == "document_history":
+        document_id = tool_input.get("document_id", "")
+        
+        if not document_id:
+            return {"error": "Thiếu document_id"}
+        
+        with _get_db() as conn:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Get edit history
+            cur.execute("""
+                SELECT id, edit_type, description, created_at, 
+                       LEFT(old_content, 200) as old_preview,
+                       LEFT(new_content, 200) as new_preview
+                FROM document_edits
+                WHERE document_id::text = %s AND company_id = %s
+                ORDER BY created_at DESC
+                LIMIT 50
+            """, (document_id, company_id))
+            
+            edits = [dict(r) for r in cur.fetchall()]
+            
+            return {
+                "document_id": document_id,
+                "total_edits": len(edits),
+                "history": [{
+                    "edit_type": e["edit_type"],
+                    "description": e.get("description", ""),
+                    "old_preview": e.get("old_preview", ""),
+                    "new_preview": e.get("new_preview", ""),
+                    "created_at": str(e.get("created_at", ""))
+                } for e in edits]
+            }
+    
     else:
         return {"error": f"Unknown tool: {tool_name}"}
 
