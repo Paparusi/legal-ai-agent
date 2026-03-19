@@ -8,10 +8,28 @@
 
 An AI platform for legal research, contract review, and legal document drafting — all in a VSCode-style interface.
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green)
-![Claude](https://img.shields.io/badge/AI-Claude%20Sonnet-purple)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+![Stars](https://img.shields.io/github/stars/Paparusi/legal-ai-agent?style=flat-square)
+![Forks](https://img.shields.io/github/forks/Paparusi/legal-ai-agent?style=flat-square)
+![License](https://img.shields.io/github/license/Paparusi/legal-ai-agent?style=flat-square)
+![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green?style=flat-square)
+![Claude](https://img.shields.io/badge/AI-Claude%20Sonnet-purple?style=flat-square)
+
+---
+
+## 🚀 Used in Production
+
+This project powers **[FundGo Law AI](https://ai.fundgolaw.vn)** 🇻🇳 — a real-world Vietnamese legal AI platform serving businesses across Vietnam.
+
+**Production Stats:**
+- 📚 **40,000+** Vietnamese legal documents indexed
+- 🔍 **97,000+** searchable chunks
+- ⚖️ **11 AI-powered tools** for legal research & contract review
+- 🏢 Serving **real clients** with contract analysis, compliance checks, and legal drafting
+
+Trusted, tested, and battle-proven in real legal workflows.
+
+---
 
 ## 📸 Screenshots
 
@@ -280,6 +298,39 @@ MIT — free to use, including commercially.
 ## ⚠️ Disclaimer
 
 This is an assistive tool and **does not replace** professional legal advice. Always consult a qualified lawyer for important legal decisions.
+
+---
+
+## 💖 Sponsors
+
+Love this project? **[Become a sponsor!](https://github.com/sponsors/Paparusi)** 🙏
+
+Your support helps maintain and expand this **open-source Vietnamese legal AI** platform. By sponsoring, you're supporting:
+
+- 🇻🇳 **Vietnamese open-source** development
+- ⚖️ **Democratized legal tech** for small businesses
+- 📚 **Free legal AI tools** for everyone
+- 🚀 **New features** and improvements
+
+### 💰 Sponsor Tiers
+
+| Tier | Monthly | Benefits |
+|------|---------|----------|
+| ☕ **Coffee** | $5 | Your name in sponsors list |
+| 🥉 **Bronze** | $25 | Logo in README + priority issue response (24h) |
+| 🥈 **Silver** | $100 | Direct support channel + feature request priority |
+| 🥇 **Gold** | $500 | Prominent logo + custom features + quarterly calls |
+| 🏢 **Enterprise** | Custom | SLA, white-label, custom development, private hosting |
+
+**[👉 View all tiers & sponsor now](https://github.com/sponsors/Paparusi)**
+
+_For Enterprise inquiries: [GitHub Issues](https://github.com/Paparusi/legal-ai-agent/issues) or [@gau_trader on Telegram](https://t.me/gau_trader)_
+
+### 🌟 Current Sponsors
+
+_No sponsors yet — **be the first!** Your logo could be here. 🚀_
+
+See [.github/SPONSORS.md](.github/SPONSORS.md) for full details.
 
 ---
 
