@@ -4,6 +4,9 @@ ALTER TYPE user_role ADD VALUE IF NOT EXISTS 'superadmin';
 -- Step 2: Update constraint
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 
+-- Step 2.5: Ensure companies table has metadata column
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
+
 -- Step 3: Contracts table
 CREATE TABLE IF NOT EXISTS contracts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
