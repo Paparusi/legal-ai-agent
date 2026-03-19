@@ -113,11 +113,12 @@ async def get_dashboard(admin: Dict = Depends(require_superadmin)):
         
         # Active sessions (estimate based on recent activity)
         cur.execute("""
-            SELECT COUNT(DISTINCT COALESCE(user_id, ip_address)) as count
+            SELECT COUNT(DISTINCT COALESCE(user_id::text, ip_address)) as count
             FROM platform_logs
             WHERE created_at >= NOW() - INTERVAL '30 minutes'
         """)
-        active_sessions = cur.fetchone()["count"] if cur.fetchone() else 0
+        active_sessions_row = cur.fetchone()
+        active_sessions = active_sessions_row["count"] if active_sessions_row else 0
         
         # Revenue estimate (placeholder calculation)
         revenue_estimate = total_companies * 29  # Simple estimate
