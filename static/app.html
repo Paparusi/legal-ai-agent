@@ -2907,12 +2907,22 @@ console.log(await resp.json());</code></pre>
             if (currentUser) {
                 const name = currentUser.full_name || currentUser.name || 'User';
                 const company = currentUser.company?.name || currentUser.company_name || 'Trial';
+                const plan = currentUser.plan || 'Trial';
+                const used = currentUser.used_quota || 0;
+                const total = currentUser.monthly_quota || 20;
+                
                 document.getElementById('userAvatar').textContent = name[0].toUpperCase();
                 document.getElementById('userName').textContent = name;
-                document.getElementById('userCompany').textContent = `${company} · Trial`;
+                document.getElementById('userCompany').textContent = `${company} · ${plan.charAt(0).toUpperCase() + plan.slice(1)}`;
                 document.getElementById('settingsName').value = name;
                 document.getElementById('settingsEmail').value = currentUser.email || '';
                 document.getElementById('settingsCompany').value = company;
+                
+                // Cập nhật quota hiển thị
+                const quotaEl = document.getElementById('settingsQuota');
+                if (quotaEl) {
+                    quotaEl.textContent = `${used}/${total}`;
+                }
             }
         }
 
