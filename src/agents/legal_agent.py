@@ -20,18 +20,20 @@ _multi_query_search = None
 _search_laws = None
 _detect_domain = None
 _fetch_company_context = None
+_llm_provider_manager = None
 
 CLAUDE_API_URL = "https://api.anthropic.com/v1/messages"
 
 
-def init_agent(get_db_fn, multi_query_search_fn, search_laws_fn, detect_domain_fn, fetch_company_context_fn):
+def init_agent(get_db_fn, multi_query_search_fn, search_laws_fn, detect_domain_fn, fetch_company_context_fn, llm_provider_manager_fn=None):
     """Initialize agent with shared functions from main.py"""
-    global _get_db, _multi_query_search, _search_laws, _detect_domain, _fetch_company_context
+    global _get_db, _multi_query_search, _search_laws, _detect_domain, _fetch_company_context, _llm_provider_manager
     _get_db = get_db_fn
     _multi_query_search = multi_query_search_fn
     _search_laws = search_laws_fn
     _detect_domain = detect_domain_fn
     _fetch_company_context = fetch_company_context_fn
+    _llm_provider_manager = llm_provider_manager_fn
     # Initialize company memory with same DB function
     init_memory(get_db_fn)
 
@@ -435,8 +437,19 @@ def _get_claude_headers():
     return headers
 
 
-async def _call_claude_with_tools(messages: list, tools: list, system: str = AGENT_SYSTEM_PROMPT, max_tokens: int = 8192, model: str = "claude-sonnet-4-20250514") -> dict:
-    """Call Claude API with tool definitions, return raw response dict"""
+async def _call_claude_with_tools(messages: list, tools: list, system: str = AGENT_SYSTEM_PROMPT, max_tokens: int = 8192, model: str = "claude-sonnet-4-20250514", company_id: str = None) -> dict:
+    """Call LLM API (Claude or other provider) with tool definitions, return raw response dict"""
+    # If provider manager is available and company_id is set, use it
+    if _llm_provider_manager and company_id:
+        try:
+            provider = _llm_provider_manager.get_company_provider(company_id)
+            result = await provider.chat(messages=messages, system=system, max_tokens=max_tokens, tools=tools)
+            return result
+        except Exception as e:
+            # Fallback to default Anthropic if provider fails
+            print(f"Provider error, falling back to default: {e}")
+    
+    # Fallback: Use default Anthropic with headers
     headers = _get_claude_headers()
 
     payload = {
@@ -1881,7 +1894,7 @@ async def run_agent(
     max_iterations = 5
 
     for i in range(max_iterations):
-        response = await _call_claude_with_tools(messages, TOOLS, system=system_prompt)
+        response = await _call_claude_with_tools(messages, TOOLS, system=system_prompt, company_id=company_id)
 
         usage = response.get("usage", {})
         total_input_tokens += usage.get("input_tokens", 0)
@@ -1993,7 +2006,7 @@ async def run_agent_stream(
     for iteration in range(max_iterations):
         # For non-final iterations, use non-streaming to get tool calls
         # For final iteration (text response), use streaming
-        response = await _call_claude_with_tools(messages, TOOLS)
+        response = await _call_claude_with_tools(messages, TOOLS, company_id=company_id)
         content_blocks = response.get("content", [])
         stop_reason = response.get("stop_reason", "")
 
@@ -2131,7 +2144,7 @@ async def run_agent_stream_final_text(
     full_response_parts = []
 
     for iteration in range(max_iterations):
-        response = await _call_claude_with_tools(messages, TOOLS, system=system_prompt)
+        response = await _call_claude_with_tools(messages, TOOLS, system=system_prompt, company_id=company_id)
         content_blocks = response.get("content", [])
 
         tool_uses = [b for b in content_blocks if b.get("type") == "tool_use"]

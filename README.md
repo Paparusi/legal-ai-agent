@@ -450,10 +450,69 @@ docker compose up -d
 | GET | `/v1/audit-log` | Activity log |
 | GET | `/v1/insights` | AI insights |
 
+## 🤖 Multi-LLM Provider Support
+
+**Bring Your Own LLM** — Connect your preferred AI provider with **API Key** or **OAuth**:
+
+### Supported Providers
+
+| Provider | Models | Auth Methods | Context |
+|----------|--------|--------------|---------|
+| 🔵 **Anthropic Claude** | Sonnet 4, Opus 4, Haiku 3.5 | API Key | 200K tokens |
+| 🟢 **OpenAI GPT** | GPT-4o, GPT-4o Mini, O1 | API Key, OAuth | 128-200K tokens |
+| 🔴 **Google Gemini** | Gemini 2.5 Pro/Flash, 2.0 Flash | API Key, OAuth | 1M tokens |
+| ⚫ **Custom/Local** | Ollama, vLLM, LM Studio | API Key | Variable |
+
+### Configuration
+
+1. **Via Dashboard:** Settings → AI Provider → Choose provider → Enter API key
+2. **Via API:** `POST /v1/llm/configure` with your API key
+3. **OAuth (OpenAI/Gemini):** Click "Connect with [Provider]" → Authorize → Done
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/v1/llm/providers` | List all providers + models |
+| POST | `/v1/llm/configure` | Set API key (manual) |
+| POST | `/v1/llm/test` | Test current connection |
+| GET | `/v1/llm/status` | Current provider status |
+| GET | `/v1/llm/models` | List models |
+| POST | `/v1/llm/model` | Set model |
+| GET | `/v1/llm/oauth/{provider}/authorize` | Start OAuth flow |
+| GET | `/v1/llm/oauth/callback` | OAuth callback |
+| POST | `/v1/llm/oauth/{provider}/refresh` | Refresh OAuth token |
+
+### Features
+
+- ✅ **Unified Interface:** Agent works with any LLM — no code changes
+- 🔒 **Encrypted Storage:** API keys encrypted with Fernet (AES-256)
+- 🔄 **OAuth Support:** Automated token management for OpenAI & Google
+- 🛠️ **Tool Normalization:** Function calling formats normalized across providers
+- 💾 **Company-Level Config:** Each company can use different LLM
+- 🔁 **Fallback:** Defaults to `ANTHROPIC_API_KEY` env var if not configured
+
+### Environment Variables
+
+```bash
+# Encryption key for API keys (generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+LLM_ENCRYPTION_KEY=your-32-byte-key
+
+# OAuth credentials (optional, for OAuth flow)
+OPENAI_CLIENT_ID=your-openai-client-id
+OPENAI_CLIENT_SECRET=your-openai-client-secret
+GEMINI_CLIENT_ID=your-google-client-id
+GEMINI_CLIENT_SECRET=your-google-client-secret
+OAUTH_REDIRECT_URI=http://localhost:8080/v1/llm/oauth/callback
+
+# Default fallback (if no provider configured)
+ANTHROPIC_API_KEY=your-anthropic-key
+```
+
 ## 🛠️ Tech Stack
 
 - **Backend:** FastAPI + Python
-- **AI:** Claude Sonnet (tool_use agent)
+- **AI:** Multi-LLM (Claude, GPT, Gemini, Custom) via unified provider interface
 - **Database:** PostgreSQL (Supabase) with pgvector
 - **Search:** Full-text search + synonym expansion + TF-IDF ranking
 - **Frontend:** Vanilla JS SPA (single HTML file)

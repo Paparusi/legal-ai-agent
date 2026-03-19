@@ -56,11 +56,14 @@ from .security_utils import validate_jwt_secret, sanitize_log, rate_limiter as g
 JWT_SECRET = validate_jwt_secret()
 
 # Import new routes
-from .routes import auth, company, keys, usage, chats, documents, admin, contracts, templates, crawler
+from .routes import auth, company, keys, usage, chats, documents, admin, contracts, templates, crawler, llm_oauth
 # from .middleware.logging import PlatformLoggingMiddleware  # disabled for deploy
 
 # Import agent (initialized after DB functions are defined)
 from ..agents import legal_agent
+
+# Import LLM Provider Manager
+from ..services.llm_provider import LLMProviderManager
 
 app = FastAPI(
     title="Legal AI Agent API",
@@ -138,6 +141,7 @@ app.include_router(admin.router)
 app.include_router(contracts.router)
 app.include_router(templates.router)
 app.include_router(crawler.router)
+app.include_router(llm_oauth.router)
 
 # Startup event - seed templates
 @app.on_event("startup")
@@ -896,12 +900,17 @@ def cached_search(query: str, domains=None, limit=10):
 # ============================================
 # Initialize Agent with shared functions
 # ============================================
+
+# Initialize LLM Provider Manager
+llm_manager = LLMProviderManager(get_db)
+
 legal_agent.init_agent(
     get_db_fn=get_db,
     multi_query_search_fn=multi_query_search,
     search_laws_fn=search_laws,
     detect_domain_fn=detect_domain,
-    fetch_company_context_fn=fetch_company_context
+    fetch_company_context_fn=fetch_company_context,
+    llm_provider_manager_fn=llm_manager
 )
 
 # ============================================

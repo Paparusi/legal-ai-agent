@@ -14,3 +14,7 @@ pypdf>=4.0.0
 python-docx>=0.8.11
 # CrawlKit for web crawling
 crawlkit>=0.1.0
+# Multi-LLM Provider support
+anthropic>=0.25.0
+openai>=1.0.0
+cryptography>=42.0.0
