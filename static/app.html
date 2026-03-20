@@ -4602,7 +4602,7 @@ console.log(await resp.json());</code></pre>
             input.type = currentType === 'password' ? 'text' : 'password';
         }
         
-        function saveLLMSettings(event) {
+        async function saveLLMSettings(event) {
             event.preventDefault();
             const provider = document.getElementById('llmProvider').value;
             const apiKey = document.getElementById('llmApiKey').value.trim();
@@ -4613,16 +4613,31 @@ console.log(await resp.json());</code></pre>
                 return;
             }
             
-            const config = { provider, apiKey, model, updatedAt: new Date().toISOString() };
-            localStorage.setItem('llmConfig', JSON.stringify(config));
+            // Save to server (not just localStorage)
+            const token = localStorage.getItem('token');
+            const statusEl = document.getElementById('llmConnectionStatus');
+            statusEl.innerHTML = '<div class="spinner" style="width: 12px; height: 12px; border-width: 2px;"></div> <span style="color: var(--text-muted); font-size: 0.75rem;">Đang lưu...</span>';
             
-            // Update connection status
-            document.getElementById('llmConnectionStatus').innerHTML = '<span style="color: var(--success);">✅ Đã lưu</span>';
-            setTimeout(() => {
-                document.getElementById('llmConnectionStatus').innerHTML = '';
-            }, 2000);
-            
-            showToast('Đã lưu cấu hình AI Provider', 'success');
+            try {
+                const res = await fetch('/v1/llm/configure', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ provider, api_key: apiKey, model })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    localStorage.setItem('llmConfig', JSON.stringify({ provider, model, updatedAt: new Date().toISOString() }));
+                    statusEl.innerHTML = '<span style="color: var(--success);">✅ Đã lưu & kết nối thành công</span>';
+                    showToast('Đã lưu cấu hình AI Provider', 'success');
+                } else {
+                    statusEl.innerHTML = '<span style="color: var(--danger);">❌ Lỗi</span>';
+                    showToast(data.detail || 'Không thể lưu cấu hình', 'error');
+                }
+            } catch (e) {
+                statusEl.innerHTML = '<span style="color: var(--danger);">❌ Lỗi kết nối</span>';
+                showToast('Lỗi: ' + e.message, 'error');
+            }
+            setTimeout(() => { statusEl.innerHTML = ''; }, 5000);
         }
         
         async function testLLMConnection() {
