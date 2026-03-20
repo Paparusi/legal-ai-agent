@@ -9,6 +9,7 @@ import os
 from typing import Optional, List, AsyncGenerator
 from psycopg2.extras import RealDictCursor
 from .company_memory import get_company_memory, update_company_memory, init_memory
+from .context_builder import build_user_context, init_context
 
 # ============================================
 # Shared DB & Claude config (imported from main)
@@ -34,8 +35,9 @@ def init_agent(get_db_fn, multi_query_search_fn, search_laws_fn, detect_domain_f
     _detect_domain = detect_domain_fn
     _fetch_company_context = fetch_company_context_fn
     _llm_provider_manager = llm_provider_manager_fn
-    # Initialize company memory with same DB function
+    # Initialize company memory and context builder with same DB function
     init_memory(get_db_fn)
+    init_context(get_db_fn)
 
 
 # ============================================
@@ -2027,9 +2029,12 @@ async def run_agent(
     Agent loop with fast path for simple questions.
     Includes company memory injection.
     """
-    # Build system prompt with company memory
+    # Build system prompt with user context + company memory
     system_prompt = AGENT_SYSTEM_PROMPT
     try:
+        user_context = await build_user_context(company_id, user_id)
+        if user_context:
+            system_prompt = system_prompt + "\n\n" + user_context
         memory_context = await get_company_memory(company_id)
         if memory_context:
             system_prompt = system_prompt + "\n\n" + memory_context
@@ -2243,14 +2248,19 @@ async def run_agent_stream_final_text(
     Fast path for simple questions and follow-ups.
     Includes: company memory, contextual suggestions, inline actions.
     """
-    # Build system prompt with company memory
+    # Build system prompt with company memory + user context
     system_prompt = AGENT_SYSTEM_PROMPT
     try:
+        # Inject rich user/company context (like OpenClaw)
+        user_context = await build_user_context(company_id, user_id)
+        if user_context:
+            system_prompt = system_prompt + "\n\n" + user_context
+        # Add company memory notes
         memory_context = await get_company_memory(company_id)
         if memory_context:
             system_prompt = system_prompt + "\n\n" + memory_context
     except Exception as e:
-        print(f"Error loading company memory: {e}")
+        print(f"Error loading context: {e}")
 
     # Fast path — simple questions skip tools entirely
     if is_simple_question(question):
