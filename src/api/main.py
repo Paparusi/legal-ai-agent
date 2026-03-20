@@ -172,6 +172,20 @@ async def landing_page():
         return FileResponse(str(html_file))
     return {"name": "Legal AI Agent API", "version": "1.0.0"}
 
+@app.get("/app", include_in_schema=False)
+async def app_page():
+    """Main App - always serve fresh"""
+    html_file = static_dir / "app.html"
+    if html_file.exists():
+        from starlette.responses import Response
+        content = html_file.read_text()
+        return Response(content=content, media_type="text/html", headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        })
+    return {"error": "app.html not found"}
+
 @app.get("/platform-admin", include_in_schema=False)
 async def platform_admin_page():
     """Platform Super Admin Panel (superadmin only)"""
