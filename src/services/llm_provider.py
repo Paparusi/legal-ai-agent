@@ -61,7 +61,22 @@ class AnthropicProvider(LLMProvider):
     
     def __init__(self, api_key: str, model: str = "claude-sonnet-4-20250514"):
         from anthropic import Anthropic
-        self.client = Anthropic(api_key=api_key)
+        self.is_oauth = api_key.startswith("sk-ant-oat")
+        if self.is_oauth:
+            # OAuth workspace token — mimic Claude Code CLI headers
+            self.client = Anthropic(
+                api_key=None,
+                auth_token=api_key,
+                default_headers={
+                    "anthropic-beta": "claude-code-20250219,oauth-2025-04-20,interleaved-thinking-2025-05-14",
+                    "user-agent": "claude-cli/2.1.62",
+                    "x-app": "cli",
+                    "anthropic-dangerous-direct-browser-access": "true",
+                }
+            )
+        else:
+            # Standard API key
+            self.client = Anthropic(api_key=api_key)
         self.model = model
     
     async def chat(self, messages, system="", max_tokens=4096, tools=None):
@@ -70,7 +85,14 @@ class AnthropicProvider(LLMProvider):
             "max_tokens": max_tokens,
             "messages": messages,
         }
-        if system:
+        if self.is_oauth:
+            # OAuth requires Claude Code identity
+            oauth_system = "You are Claude Code, Anthropic's official CLI for Claude."
+            if system:
+                kwargs["system"] = f"{oauth_system}\n\n{system}"
+            else:
+                kwargs["system"] = oauth_system
+        elif system:
             kwargs["system"] = system
         if tools:
             kwargs["tools"] = tools
@@ -100,11 +122,14 @@ class AnthropicProvider(LLMProvider):
     
     def test_connection(self):
         try:
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=10,
-                messages=[{"role": "user", "content": "Hi"}]
-            )
+            kwargs = {
+                "model": self.model,
+                "max_tokens": 10,
+                "messages": [{"role": "user", "content": "Hi"}]
+            }
+            if self.is_oauth:
+                kwargs["system"] = "You are Claude Code, Anthropic's official CLI for Claude."
+            response = self.client.messages.create(**kwargs)
             return {"success": True, "model": response.model, "provider": "anthropic"}
         except Exception as e:
             return {"success": False, "error": str(e), "provider": "anthropic"}
