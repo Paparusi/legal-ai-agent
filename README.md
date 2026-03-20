@@ -509,6 +509,56 @@ OAUTH_REDIRECT_URI=http://localhost:8080/v1/llm/oauth/callback
 ANTHROPIC_API_KEY=your-anthropic-key
 ```
 
+## 💰 Pricing
+
+| Tier | USD | VND | Queries/day | Contracts | Key Features |
+|------|-----|-----|-------------|-----------|--------------|
+| **Free** | $0 | 0₫ | 10 | 1 | Basic search, 2 templates |
+| **Starter** | $29/mo | 725K₫ | 100 | 20 | AI review, all templates |
+| **Professional** | $99/mo | 2.5M₫ | 500 | Unlimited | API, custom LLM, analytics |
+| **Enterprise** | $499/mo | 12.5M₫ | Unlimited | Unlimited | SLA 99.9%, dedicated support |
+
+**Discounts:** Annual -20% · Startups -30% · NGOs -50%
+
+```bash
+GET /v1/pricing  # Get pricing tiers
+```
+
+## 📄 Contract Templates
+
+8 ready-to-use Vietnamese contract templates:
+
+| Template | Law Reference |
+|----------|--------------|
+| Hợp đồng lao động | BLLĐ 2019 |
+| Hợp đồng thuê mặt bằng | BLDS 2015 |
+| Hợp đồng mua bán | Luật TM 2005 |
+| Hợp đồng dịch vụ | BLDS 2015 |
+| Hợp tác kinh doanh (BCC) | Luật ĐT 2020 |
+| NDA / Bảo mật | Luật SHTT 2005 |
+| Hợp đồng vay | BLDS 2015 |
+| Hợp đồng đại lý | Luật TM 2005 |
+
+All templates include `{{fillable_fields}}`, legal notes, and specific law article references.
+
+```bash
+GET /v1/templates              # List all templates
+GET /v1/templates/{id}         # Get template content
+POST /v1/templates/generate    # AI-fill template
+```
+
+## 🌐 Multi-Language (i18n)
+
+Support Vietnamese and English:
+
+```bash
+# Vietnamese (default)
+curl -H "Accept-Language: vi" /v1/pricing
+
+# English
+curl -H "Accept-Language: en" /v1/pricing
+```
+
 ## 🛠️ Tech Stack
 
 - **Backend:** FastAPI + Python
