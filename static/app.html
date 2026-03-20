@@ -3497,8 +3497,21 @@ console.log(await resp.json());</code></pre>
                             const event = JSON.parse(jsonStr);
                             if (event.type === 'tool_status') { updateToolStatus(toolsDiv, event.tool, event.status, event); container.scrollTop = container.scrollHeight; }
                             else if (event.type === 'token' || event.type === 'delta') { fullText += (event.content || event.text || ''); textDiv.innerHTML = renderMarkdown(fullText); container.scrollTop = container.scrollHeight; }
-                            else if (event.type === 'citations') { citations = event.content; }
+                            else if (event.type === 'citations') { citations = event.citations || event.content; }
                             else if (event.type === 'session_id' && event.content) { if (!currentSessionId) { currentSessionId = event.content; loadChatHistory(); } }
+                            else if (event.type === 'error') { 
+                                fullText += `\n\n⚠️ **Lỗi:** ${event.message || event.error || 'Unknown error'}\n`; 
+                                textDiv.innerHTML = renderMarkdown(fullText); 
+                                container.scrollTop = container.scrollHeight; 
+                                showToast(event.message || 'Có lỗi xảy ra', 'error');
+                            }
+                            else if (event.type === 'done') {
+                                // Stream completed successfully
+                                if (event.session_id && !currentSessionId) {
+                                    currentSessionId = event.session_id;
+                                    loadChatHistory();
+                                }
+                            }
                         } catch (pe) {}
                     }
                 }
@@ -5271,7 +5284,7 @@ console.log(await resp.json());</code></pre>
                                 rendered = processInlineActions(rendered);
                                 textDiv.innerHTML = rendered;
                                 container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-                            } else if (event.type === 'citations') { citations = event.content; }
+                            } else if (event.type === 'citations') { citations = event.citations || event.content; }
                             else if (event.type === 'done') {
                                 if (event.session_id && !currentSessionId) { currentSessionId = event.session_id; loadChatHistory(); }
                             }
@@ -5280,6 +5293,14 @@ console.log(await resp.json());</code></pre>
                                 msg.dataset.suggestions = JSON.stringify(event.items || []);
                             }
                             else if (event.type === 'session_id' && event.content) { if (!currentSessionId) { currentSessionId = event.content; loadChatHistory(); } }
+                            else if (event.type === 'error') {
+                                fullText += `\n\n⚠️ **Lỗi:** ${event.message || event.error || 'Unknown error'}\n`;
+                                var rendered = renderMarkdown(fullText);
+                                rendered = processInlineActions(rendered);
+                                textDiv.innerHTML = rendered;
+                                container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+                                showToast(event.message || 'Có lỗi xảy ra', 'error');
+                            }
                         } catch (pe) {}
                     }
                 }
