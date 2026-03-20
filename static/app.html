@@ -2124,9 +2124,9 @@
                             <div class="form-group" id="llmModelGroup">
                                 <label class="form-label">Model</label>
                                 <select class="form-input" id="llmModel">
-                                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                                    <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                                    <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                                    <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                                    <option value="claude-opus-4-20250514">Claude Opus 4</option>
+                                    <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
                                 </select>
                             </div>
                             <div class="form-group" id="oauthButtons" style="display: none;">
@@ -3256,7 +3256,10 @@ console.log(await resp.json());</code></pre>
                     currentUser = data.user;
                     showDashboard(); updateUserUI(); loadChatHistory(); loadContracts(); loadDocuments();
                     showToast('Đăng ký thành công!', 'success');
-                } else { showToast('Email đã được sử dụng', 'error'); }
+                } else {
+                    const err = await response.json().catch(() => ({}));
+                    showToast(err.detail || 'Đăng ký thất bại', 'error');
+                }
             } catch (e) { showToast('Có lỗi xảy ra', 'error'); }
         }
 
@@ -4568,9 +4571,9 @@ console.log(await resp.json());</code></pre>
             // Update available models based on provider
             if (provider === 'anthropic') {
                 modelSelect.innerHTML = `
-                    <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet</option>
-                    <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                    <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
+                    <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+                    <option value="claude-opus-4-20250514">Claude Opus 4</option>
+                    <option value="claude-3-5-haiku-20241022">Claude 3.5 Haiku</option>
                 `;
                 oauthButtons.style.display = 'none';
             } else if (provider === 'openai') {
