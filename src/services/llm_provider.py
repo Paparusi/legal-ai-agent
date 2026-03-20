@@ -111,7 +111,14 @@ class AnthropicProvider(LLMProvider):
             "max_tokens": max_tokens,
             "messages": messages,
         }
-        if system:
+        if self.is_oauth:
+            # OAuth requires Claude Code identity
+            oauth_system = "You are Claude Code, Anthropic's official CLI for Claude."
+            if system:
+                kwargs["system"] = f"{oauth_system}\n\n{system}"
+            else:
+                kwargs["system"] = oauth_system
+        elif system:
             kwargs["system"] = system
         if tools:
             kwargs["tools"] = tools

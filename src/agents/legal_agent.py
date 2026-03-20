@@ -660,7 +660,9 @@ async def _stream_final_text(messages: list, system: str = AGENT_SYSTEM_PROMPT, 
                             yield f"data: {json.dumps({'type': 'delta', 'text': text}, ensure_ascii=False)}\n\n"
             return
         except Exception as e:
-            print(f"Provider stream error, falling back: {e}")
+            print(f"Provider stream error: {e}")
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
+            return
 
     # Fallback: raw httpx with env headers
     headers = _get_claude_headers()
