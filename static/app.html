@@ -3641,10 +3641,18 @@ console.log(await resp.json());</code></pre>
         }
 
         function renderMarkdown(text) {
-            marked.setOptions({ breaks: true, gfm: true });
-            let html = marked.parse(text);
-            html = html.replace(/\[(\d+)\]/g, '<span class="citation-pill" onclick="scrollToCitation($1)">$1</span>');
-            return html;
+            try {
+                if (typeof marked !== 'undefined' && marked.parse) {
+                    marked.setOptions({ breaks: true, gfm: true });
+                    let html = marked.parse(text);
+                    html = html.replace(/\[(\d+)\]/g, '<span class="citation-pill" onclick="scrollToCitation($1)">$1</span>');
+                    return html;
+                }
+            } catch(e) {
+                console.error('renderMarkdown error:', e);
+            }
+            // Fallback: basic text with line breaks
+            return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
         }
 
         function scrollToCitation(num) {

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head><title>Stream Test</title></head>
+<body>
+<h2>Stream Test</h2>
+<button onclick="testStream()">Test Stream</button>
+<div id="output" style="white-space: pre-wrap; border: 1px solid #ccc; padding: 10px; min-height: 100px; margin-top: 10px;"></div>
+<div id="debug" style="color: gray; margin-top: 10px;"></div>
+<script>
+async function testStream() {
+    var token = localStorage.getItem('token');
+    if (!token) { document.getElementById('output').textContent = 'No token! Please login first at /static/app.html'; return; }
+    
+    var output = document.getElementById('output');
+    var debug = document.getElementById('debug');
+    output.textContent = 'Connecting...';
+    debug.textContent = '';
+    
+    try {
+        var response = await fetch('/v1/legal/ask-stream', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question: 'Xin chào' })
+        });
+        
+        debug.textContent += 'Response status: ' + response.status + '\n';
+        
+        if (!response.ok) {
+            output.textContent = 'Error: ' + response.status;
+            return;
+        }
+        
+        var reader = response.body.getReader();
+        var decoder = new TextDecoder();
+        var buffer = '';
+        var fullText = '';
+        var eventCount = 0;
+        output.textContent = '';
+        
+        while (true) {
+            var result = await reader.read();
+            if (result.done) break;
+            buffer += decoder.decode(result.value, { stream: true });
+            var lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                if (!line.startsWith('data: ')) continue;
+                var jsonStr = line.slice(6).trim();
+                if (!jsonStr || jsonStr === '[DONE]') continue;
+                
+                try {
+                    var event = JSON.parse(jsonStr);
+                    eventCount++;
+                    debug.textContent += 'Event ' + eventCount + ': type=' + event.type + '\n';
+                    
+                    if (event.type === 'delta' || event.type === 'token') {
+                        var chunk = event.content || event.text || '';
+                        fullText += chunk;
+                        output.textContent = fullText;
+                    } else if (event.type === 'error') {
+                        output.textContent += '\n\nERROR: ' + (event.message || JSON.stringify(event));
+                    } else if (event.type === 'done') {
+                        debug.textContent += 'DONE! Total text: ' + fullText.length + ' chars\n';
+                    }
+                } catch(pe) {
+                    debug.textContent += 'Parse error: ' + pe + ' raw: ' + jsonStr.substring(0,50) + '\n';
+                }
+            }
+        }
+        debug.textContent += 'Stream finished. Total events: ' + eventCount + ', text: ' + fullText.length + ' chars\n';
+    } catch(e) {
+        output.textContent = 'FETCH ERROR: ' + e;
+        debug.textContent += 'Error: ' + e + '\n';
+    }
+}
+</script>
+</body>
+</html>
