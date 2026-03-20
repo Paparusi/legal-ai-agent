@@ -3512,7 +3512,7 @@ console.log(await resp.json());</code></pre>
                                     loadChatHistory();
                                 }
                             }
-                        } catch (pe) {}
+                        } catch (pe) { console.error("[STREAM1 PARSE ERROR]", pe, jsonStr); }
                     }
                 }
             } finally { currentStreamController = null; }
@@ -5237,6 +5237,8 @@ console.log(await resp.json());</code></pre>
 
         // Enhanced stream with inline actions, quick replies, agent status
         async function sendMessageStreamEnhanced(token, body, startTime) {
+            console.log('[ENHANCED STREAM] Starting...');
+            document.title = 'STREAM ACTIVE';
             var controller = new AbortController();
             currentStreamController = controller;
             var response = await fetch('/v1/legal/ask-stream', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal });
@@ -5279,10 +5281,17 @@ console.log(await resp.json());</code></pre>
                                 }
                                 container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
                             } else if (event.type === 'token' || event.type === 'delta') {
-                                fullText += (event.content || event.text || '');
-                                var rendered = renderMarkdown(fullText);
-                                rendered = processInlineActions(rendered);
-                                textDiv.innerHTML = rendered;
+                                var chunk = event.content || event.text || '';
+                                fullText += chunk;
+                                console.log('[DELTA]', chunk.length, 'chars, total:', fullText.length);
+                                try {
+                                    var rendered = renderMarkdown(fullText);
+                                    rendered = processInlineActions(rendered);
+                                    textDiv.innerHTML = rendered;
+                                } catch(renderErr) {
+                                    console.error('[RENDER ERROR]', renderErr);
+                                    textDiv.textContent = fullText;
+                                }
                                 container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
                             } else if (event.type === 'citations') { citations = event.citations || event.content; }
                             else if (event.type === 'done') {
@@ -5301,7 +5310,7 @@ console.log(await resp.json());</code></pre>
                                 container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
                                 showToast(event.message || 'Có lỗi xảy ra', 'error');
                             }
-                        } catch (pe) {}
+                        } catch (pe) { console.error("[STREAM PARSE ERROR]", pe, jsonStr); }
                     }
                 }
             } finally { currentStreamController = null; }
@@ -5319,6 +5328,10 @@ console.log(await resp.json());</code></pre>
                 msg.querySelector('.message-content').insertAdjacentHTML('beforeend', '<div class="citations"><div class="citations-header" onclick="toggleCitations(this)"><span>📚 ' + citations.length + ' nguồn</span><span class="citations-toggle">▼</span></div><div class="citations-list hidden">' + citations.map(function(c) { return renderCitation(c); }).join('') + '</div></div>');
             }
             msg.querySelector('.message-content').insertAdjacentHTML('beforeend', '<div class="response-time">' + responseTime + 's · ' + timeStr + '</div>');
+            console.log('[STREAM DEBUG] fullText length:', fullText.length, 'first100:', fullText.substring(0, 100));
+            if (!fullText && textDiv) {
+                textDiv.innerHTML = '<em style="color:#888">⚠️ Server responded but no text received. Check console (F12).</em>';
+            }
             addMessageActions(msg); addFeedbackButtons(msg);
             msg.querySelectorAll('pre code').forEach(function(block) { hljs.highlightElement(block); addCodeCopyButton(block); });
             // Add quick replies
