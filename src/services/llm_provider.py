@@ -23,7 +23,10 @@ def encrypt_key(api_key: str) -> str:
 
 def decrypt_key(encrypted: str) -> str:
     """Decrypt stored API key."""
-    return cipher.decrypt(encrypted.encode()).decode()
+    try:
+        return cipher.decrypt(encrypted.encode()).decode()
+    except Exception:
+        raise ValueError("Không thể giải mã API key. Vui lòng vào Cài đặt → AI Provider và nhập lại key.")
 
 
 class LLMProvider(ABC):

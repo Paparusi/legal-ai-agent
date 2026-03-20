@@ -649,18 +649,23 @@ async def _stream_final_text(messages: list, system: str = AGENT_SYSTEM_PROMPT, 
     if _llm_provider_manager and company_id:
         try:
             provider = _llm_provider_manager.get_company_provider(company_id)
+            print(f"[DEBUG] _stream_final_text using provider: {type(provider).__name__}, oauth: {getattr(provider, 'is_oauth', False)}")
+            event_count = 0
             async for event in provider.chat_stream(messages=messages, system=system, max_tokens=4096):
                 # Anthropic SDK stream events
                 event_type = getattr(event, 'type', '')
+                event_count += 1
                 if event_type == 'content_block_delta':
                     delta = getattr(event, 'delta', None)
                     if delta and getattr(delta, 'type', '') == 'text_delta':
                         text = getattr(delta, 'text', '')
                         if text:
                             yield f"data: {json.dumps({'type': 'delta', 'text': text}, ensure_ascii=False)}\n\n"
+            print(f"[DEBUG] _stream_final_text completed: {event_count} events")
             return
         except Exception as e:
-            print(f"Provider stream error: {e}")
+            print(f"[DEBUG] Provider stream error: {e}")
+            import traceback; traceback.print_exc()
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
             return
 
@@ -2189,6 +2194,7 @@ async def run_agent_stream_final_text(
             # Use the text from the non-streaming response directly (avoid double API call)
             text_parts = [b.get("text", "") for b in content_blocks if b.get("type") == "text"]
             final_text = "".join(text_parts)
+            print(f"[DEBUG] content_blocks count: {len(content_blocks)}, types: {[b.get('type') for b in content_blocks]}, text_len: {len(final_text)}, first100: {final_text[:100]}")
             
             # Stream it in small chunks for smooth UX
             chunk_size = 15
