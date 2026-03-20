@@ -39,6 +39,9 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      # Supabase Storage for permanent file persistence
+      SUPABASE_URL: ${SUPABASE_URL:-https://chiokotzjtjwfodryfdt.supabase.co}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
     volumes:
       - uploads:/app/uploads
       - logs:/app/logs

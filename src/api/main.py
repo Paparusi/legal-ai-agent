@@ -21,6 +21,7 @@ import time
 import re as re_module
 import os
 import uuid
+import tempfile
 from io import BytesIO
 from datetime import datetime
 from contextlib import contextmanager
@@ -977,9 +978,10 @@ async def health():
 
 @app.post("/v1/chat/upload")
 async def chat_upload_file(file: UploadFile = File(...), company: dict = Depends(verify_api_key)):
-    """Upload file in chat - extracts text and keeps original file"""
+    """Upload file in chat - extracts text and uploads to Supabase Storage"""
     from .routes.contracts import extract_file_text
     from pathlib import Path
+    from ..services.file_storage import upload_file
 
     # Validate file type
     filename = file.filename or "unknown"
@@ -994,41 +996,42 @@ async def chat_upload_file(file: UploadFile = File(...), company: dict = Depends
 
     company_id = str(company["company_id"])
     
-    # Create directory for company files
-    upload_dir = Path("uploads/documents") / company_id
-    upload_dir.mkdir(parents=True, exist_ok=True)
+    # Upload to Supabase Storage (or local fallback)
+    storage_result = await upload_file(content, company_id, filename)
+    storage_path = storage_result["storage_path"]
+    storage_provider = storage_result["provider"]
     
-    # Generate unique filename
-    unique_id = str(uuid.uuid4())[:8]
-    safe_filename = f"{unique_id}_{filename}"
-    file_path = upload_dir / safe_filename
-    
-    # Save file to disk
-    with open(file_path, "wb") as f:
-        f.write(content)
+    # For text extraction, we need a local temp file
+    with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp_file:
+        tmp_file.write(content)
+        tmp_path = tmp_file.name
     
     # Extract text
     extracted_text = None
-    if file_ext == ".txt":
-        extracted_text = content.decode('utf-8', errors='ignore')
-    else:
+    try:
+        if file_ext == ".txt":
+            extracted_text = content.decode('utf-8', errors='ignore')
+        else:
+            try:
+                extracted_text = extract_file_text(tmp_path, file_ext, content)
+            except Exception as e:
+                print(f"Extraction error: {e}")
+                extracted_text = f"[Không thể trích xuất text tự động. File đã được lưu: {filename}]"
+
+        if not extracted_text or len(extracted_text.strip()) < 10:
+            extracted_text = f"[File uploaded: {filename}]"
+    finally:
+        # Cleanup temp file
         try:
-            extracted_text = extract_file_text(str(file_path), file_ext, content)
-        except Exception as e:
-            print(f"Extraction error: {e}")
-            # Keep file even if extraction fails
-            extracted_text = f"[Không thể trích xuất text tự động. File đã được lưu: {safe_filename}]"
-
-    if not extracted_text or len(extracted_text.strip()) < 10:
-        extracted_text = f"[File uploaded: {safe_filename}]"
-
-    # Save to database with file path
+            os.unlink(tmp_path)
+        except:
+            pass
+    
+    # Save to database with storage path
     doc_id = None
     try:
         import unicodedata
         normalized_text = unicodedata.normalize('NFC', extracted_text)
-        # Store relative path from repo root
-        relative_path = str(file_path.relative_to(Path.cwd()))
         
         with get_db() as conn:
             cur = conn.cursor()
@@ -1036,7 +1039,7 @@ async def chat_upload_file(file: UploadFile = File(...), company: dict = Depends
                 INSERT INTO documents (company_id, name, extracted_text, doc_type, status, file_path, file_size, mime_type, uploaded_by)
                 VALUES (%s, %s, %s, 'other', 'uploaded', %s, %s, %s, %s)
                 RETURNING id
-            """, (company_id, filename, normalized_text, relative_path, len(content), file_ext.replace('.', 'application/'), company.get("user_id")))
+            """, (company_id, filename, normalized_text, storage_path, len(content), file_ext.replace('.', 'application/'), company.get("user_id")))
             doc_id = str(cur.fetchone()[0])
             conn.commit()
     except Exception as e:
@@ -1047,14 +1050,16 @@ async def chat_upload_file(file: UploadFile = File(...), company: dict = Depends
         "content": extracted_text,
         "file_type": file_ext,
         "document_id": doc_id,
-        "file_path": relative_path if doc_id else None
+        "storage_path": storage_path,
+        "storage_provider": storage_provider
     }
 
 
 @app.get("/v1/documents/{doc_id}/download")
 async def download_document(doc_id: str, company: dict = Depends(verify_api_key)):
-    """Download original or edited document file"""
+    """Download original or edited document file from Supabase Storage"""
     from pathlib import Path
+    from ..services.file_storage import download_file
     
     with get_db() as conn:
         cur = conn.cursor()
@@ -1074,31 +1079,113 @@ async def download_document(doc_id: str, company: dict = Depends(verify_api_key)
             raise HTTPException(status_code=403, detail="Access denied")
         
         file_name = row[0]
-        file_path = row[1]
+        storage_path = row[1]
         mime_type = row[2] or "application/octet-stream"
         
         # Handle old 'chat-upload' entries (no actual file)
-        if file_path == 'chat-upload' or not file_path:
+        if storage_path == 'chat-upload' or not storage_path:
             raise HTTPException(status_code=404, detail="File not available for download")
         
-        # Convert to full path
-        full_path = Path(file_path) if Path(file_path).is_absolute() else Path.cwd() / file_path
+        # Try to download from Supabase Storage first, fallback to local
+        try:
+            file_bytes = await download_file(storage_path)
+            
+            return StreamingResponse(
+                BytesIO(file_bytes),
+                media_type=mime_type,
+                headers={"Content-Disposition": f'attachment; filename="{file_name}"'}
+            )
+        except Exception as e:
+            print(f"Download error: {e}")
+            # Fallback: try local path (for backwards compatibility)
+            full_path = Path(storage_path) if Path(storage_path).is_absolute() else Path.cwd() / storage_path
+            
+            if full_path.exists():
+                return FileResponse(
+                    path=str(full_path),
+                    filename=file_name,
+                    media_type=mime_type
+                )
+            
+            raise HTTPException(status_code=404, detail="File not found")
+
+
+@app.get("/v1/documents/{doc_id}/preview")
+async def preview_document(doc_id: str, company: dict = Depends(verify_api_key)):
+    """Convert DOCX to PDF for web preview using LibreOffice"""
+    from pathlib import Path
+    from ..services.file_storage import download_file
+    from ..services.libreoffice_editor import convert_to_pdf
+    
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT name, file_path, mime_type, company_id
+            FROM documents
+            WHERE id = %s
+        """, (doc_id,))
         
-        if not full_path.exists():
-            raise HTTPException(status_code=404, detail="File not found on disk")
+        row = cur.fetchone()
         
-        return FileResponse(
-            path=str(full_path),
-            filename=file_name,
-            media_type=mime_type
-        )
+        if not row:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Check ownership
+        if str(row[3]) != str(company["company_id"]):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        file_name = row[0]
+        storage_path = row[1]
+        mime_type = row[2] or ""
+        
+        # Only convert DOCX files
+        if not mime_type.startswith("application/") or "word" not in mime_type.lower():
+            if not file_name.endswith('.docx'):
+                raise HTTPException(status_code=400, detail="Only DOCX files can be previewed as PDF")
+        
+        # Download file from storage
+        try:
+            file_bytes = await download_file(storage_path)
+        except Exception as e:
+            print(f"Download for preview error: {e}")
+            raise HTTPException(status_code=404, detail="File not found")
+        
+        # Save to temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_docx:
+            tmp_docx.write(file_bytes)
+            tmp_docx_path = tmp_docx.name
+        
+        try:
+            # Convert to PDF
+            pdf_path = convert_to_pdf(tmp_docx_path)
+            
+            # Return PDF
+            return FileResponse(
+                path=pdf_path,
+                filename=os.path.splitext(file_name)[0] + ".pdf",
+                media_type="application/pdf"
+            )
+        
+        except Exception as e:
+            print(f"PDF conversion error: {e}")
+            raise HTTPException(status_code=500, detail=f"Cannot convert to PDF: {str(e)}")
+        
+        finally:
+            # Cleanup temp files
+            try:
+                os.unlink(tmp_docx_path)
+                if 'pdf_path' in locals() and os.path.exists(pdf_path):
+                    os.unlink(pdf_path)
+            except:
+                pass
 
 
 @app.post("/v1/documents/{doc_id}/edit-docx")
-async def edit_docx(doc_id: str, edits: dict = Body(...), company: dict = Depends(verify_api_key)):
-    """Apply text edits to a DOCX file preserving formatting"""
+async def edit_docx_endpoint(doc_id: str, edits: dict = Body(...), company: dict = Depends(verify_api_key)):
+    """Apply text edits to a DOCX file using LibreOffice for 99% format preservation"""
     from pathlib import Path
-    from src.services.docx_editor import edit_docx_file
+    from ..services.libreoffice_editor import edit_docx
+    from ..services.file_storage import download_file, upload_file
     
     with get_db() as conn:
         cur = conn.cursor()
@@ -1120,32 +1207,31 @@ async def edit_docx(doc_id: str, edits: dict = Body(...), company: dict = Depend
             raise HTTPException(status_code=403, detail="Access denied")
         
         file_name = row[0]
-        file_path = row[1]
+        storage_path = row[1]
         mime_type = row[2]
+        company_id = str(company["company_id"])
         
         # Validate it's a DOCX file
         if not file_name.endswith('.docx') and 'wordprocessingml' not in (mime_type or ''):
             raise HTTPException(status_code=400, detail="Only .docx files can be edited")
         
-        if file_path == 'chat-upload' or not file_path:
+        if storage_path == 'chat-upload' or not storage_path:
             raise HTTPException(status_code=404, detail="Original file not available")
         
-        # Get full path
-        input_path = Path(file_path) if Path(file_path).is_absolute() else Path.cwd() / file_path
+        # Download from Supabase Storage
+        try:
+            file_bytes = await download_file(storage_path)
+        except Exception as e:
+            print(f"Download error: {e}")
+            raise HTTPException(status_code=404, detail="Original file not found")
         
-        if not input_path.exists():
-            raise HTTPException(status_code=404, detail="Original file not found on disk")
+        # Create temp files for editing
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_input:
+            tmp_input.write(file_bytes)
+            input_path = tmp_input.name
         
-        # Create output path
-        company_id = str(company["company_id"])
-        output_dir = Path("uploads/documents") / company_id
-        output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Generate edited filename
-        base_name = input_path.stem
-        unique_id = str(uuid.uuid4())[:8]
-        output_filename = f"{unique_id}_edited_{base_name}.docx"
-        output_path = output_dir / output_filename
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp_output:
+            output_path = tmp_output.name
         
         # Apply edits
         try:
@@ -1153,35 +1239,53 @@ async def edit_docx(doc_id: str, edits: dict = Body(...), company: dict = Depend
             if not edits_list:
                 raise HTTPException(status_code=400, detail="No edits provided")
             
-            result = edit_docx_file(
-                input_path=str(input_path),
-                output_path=str(output_path),
+            result = edit_docx(
+                input_path=input_path,
+                output_path=output_path,
                 edits=edits_list
             )
             
-            # Update database with new file path
-            relative_output = str(output_path.relative_to(Path.cwd()))
+            # Read edited file
+            with open(output_path, 'rb') as f:
+                edited_bytes = f.read()
             
+            # Upload edited file to Supabase Storage
+            base_name = os.path.splitext(file_name)[0]
+            edited_filename = f"{base_name}_edited.docx"
+            storage_result = await upload_file(edited_bytes, company_id, edited_filename)
+            new_storage_path = storage_result["storage_path"]
+            
+            # Update database with new storage path
             cur.execute("""
                 UPDATE documents
                 SET file_path = %s,
                     status = 'edited',
                     file_size = %s
                 WHERE id = %s
-            """, (relative_output, output_path.stat().st_size, doc_id))
+            """, (new_storage_path, len(edited_bytes), doc_id))
             conn.commit()
             
             return {
-                "message": "Document edited successfully",
+                "message": "Document edited successfully with LibreOffice",
                 "document_id": doc_id,
                 "changes_made": result["changes_made"],
-                "edits_applied": result["edits_applied"],
+                "method": result.get("method", "unknown"),
                 "download_url": f"/v1/documents/{doc_id}/download",
-                "output_filename": output_filename
+                "preview_url": f"/v1/documents/{doc_id}/preview",
+                "output_filename": edited_filename
             }
             
         except Exception as e:
+            print(f"Edit error: {e}")
             raise HTTPException(status_code=500, detail=f"Edit failed: {str(e)}")
+        
+        finally:
+            # Cleanup temp files
+            try:
+                os.unlink(input_path)
+                os.unlink(output_path)
+            except:
+                pass
 
 
 @app.post("/v1/legal/ask", response_model=LegalResponse)
