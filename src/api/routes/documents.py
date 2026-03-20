@@ -5,6 +5,7 @@ Document management endpoints
 - AI document analysis and comparison
 """
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Query, Request
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, List
 from psycopg2.extras import RealDictCursor
@@ -439,7 +440,7 @@ async def download_document(
     document_id: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get download URL for a document"""
+    """Download document file"""
     with get_db() as conn:
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
@@ -459,14 +460,93 @@ async def download_document(
         if not file_path.exists():
             raise HTTPException(status_code=404, detail="File not found on disk")
     
-    # In production, you'd return a signed URL or use FileResponse
-    return {
-        "document_id": str(document["id"]),
-        "name": document["name"],
-        "download_url": f"/uploads/{document['file_path']}",  # Configure nginx/static serving
-        "mime_type": document["mime_type"],
-        "note": "In production, use signed URLs or direct file serving"
-    }
+    return FileResponse(
+        path=str(file_path),
+        filename=document["name"],
+        media_type=document["mime_type"] or "application/octet-stream"
+    )
+
+@router.post("/{document_id}/edit-docx")
+async def edit_docx(
+    document_id: str,
+    edits: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Apply text edits to a DOCX file preserving formatting"""
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+    from src.services.docx_editor import edit_docx_file
+    
+    with get_db() as conn:
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Get document
+        cur.execute("""
+            SELECT id, name, file_path, mime_type, company_id
+            FROM documents
+            WHERE id = %s AND company_id = %s
+        """, (document_id, current_user["company_id"]))
+        
+        document = cur.fetchone()
+        
+        if not document:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Validate it's a DOCX file
+        if not document["name"].endswith('.docx') and 'wordprocessingml' not in (document["mime_type"] or ''):
+            raise HTTPException(status_code=400, detail="Only .docx files can be edited")
+        
+        # Get original file path
+        input_path = UPLOAD_DIR / document["file_path"]
+        
+        if not input_path.exists():
+            raise HTTPException(status_code=404, detail="Original file not found on disk")
+        
+        # Create output path
+        company_dir = UPLOAD_DIR / str(current_user["company_id"])
+        company_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate edited filename
+        base_name = input_path.stem
+        unique_id = str(uuid.uuid4())[:8]
+        output_filename = f"{unique_id}_edited_{base_name}.docx"
+        output_path = company_dir / output_filename
+        
+        # Apply edits
+        try:
+            edits_list = edits.get("edits", [])
+            if not edits_list:
+                raise HTTPException(status_code=400, detail="No edits provided")
+            
+            result = edit_docx_file(
+                input_path=str(input_path),
+                output_path=str(output_path),
+                edits=edits_list
+            )
+            
+            # Update database with new file path
+            relative_output = str(output_path.relative_to(UPLOAD_DIR))
+            
+            cur.execute("""
+                UPDATE documents
+                SET file_path = %s,
+                    status = 'edited'::doc_status,
+                    file_size = %s
+                WHERE id = %s
+            """, (relative_output, output_path.stat().st_size, document_id))
+            conn.commit()
+            
+            return {
+                "message": "Document edited successfully",
+                "document_id": str(document["id"]),
+                "changes_made": result["changes_made"],
+                "edits_applied": result["edits_applied"],
+                "download_url": f"/v1/documents/{document_id}/download",
+                "output_filename": output_filename
+            }
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Edit failed: {str(e)}")
 
 @router.post("/{document_id}/analyze")
 async def analyze_document(

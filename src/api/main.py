@@ -977,9 +977,9 @@ async def health():
 
 @app.post("/v1/chat/upload")
 async def chat_upload_file(file: UploadFile = File(...), company: dict = Depends(verify_api_key)):
-    """Upload file in chat - extracts text and returns it"""
+    """Upload file in chat - extracts text and keeps original file"""
     from .routes.contracts import extract_file_text
-    import tempfile
+    from pathlib import Path
 
     # Validate file type
     filename = file.filename or "unknown"
@@ -992,36 +992,51 @@ async def chat_upload_file(file: UploadFile = File(...), company: dict = Depends
     if len(content) > 10 * 1024 * 1024:  # 10MB
         raise HTTPException(status_code=400, detail="File quá lớn. Tối đa 10MB.")
 
+    company_id = str(company["company_id"])
+    
+    # Create directory for company files
+    upload_dir = Path("uploads/documents") / company_id
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Generate unique filename
+    unique_id = str(uuid.uuid4())[:8]
+    safe_filename = f"{unique_id}_{filename}"
+    file_path = upload_dir / safe_filename
+    
+    # Save file to disk
+    with open(file_path, "wb") as f:
+        f.write(content)
+    
     # Extract text
     extracted_text = None
     if file_ext == ".txt":
         extracted_text = content.decode('utf-8', errors='ignore')
     else:
-        # Write to temp file for extraction
-        with tempfile.NamedTemporaryFile(suffix=file_ext, delete=False) as tmp:
-            tmp.write(content)
-            tmp_path = tmp.name
         try:
-            extracted_text = extract_file_text(tmp_path, file_ext, content)
-        finally:
-            os.unlink(tmp_path)
+            extracted_text = extract_file_text(str(file_path), file_ext, content)
+        except Exception as e:
+            print(f"Extraction error: {e}")
+            # Keep file even if extraction fails
+            extracted_text = f"[Không thể trích xuất text tự động. File đã được lưu: {safe_filename}]"
 
     if not extracted_text or len(extracted_text.strip()) < 10:
-        raise HTTPException(status_code=422, detail="Không thể trích xuất nội dung từ file. Vui lòng thử file khác.")
+        extracted_text = f"[File uploaded: {safe_filename}]"
 
-    # Auto-save uploaded file to documents table
+    # Save to database with file path
     doc_id = None
     try:
-        company_id = str(company["company_id"])
         import unicodedata
         normalized_text = unicodedata.normalize('NFC', extracted_text)
+        # Store relative path from repo root
+        relative_path = str(file_path.relative_to(Path.cwd()))
+        
         with get_db() as conn:
             cur = conn.cursor()
             cur.execute("""
                 INSERT INTO documents (company_id, name, extracted_text, doc_type, status, file_path, file_size, mime_type, uploaded_by)
-                VALUES (%s, %s, %s, 'other', 'uploaded', 'chat-upload', %s, %s, %s)
+                VALUES (%s, %s, %s, 'other', 'uploaded', %s, %s, %s, %s)
                 RETURNING id
-            """, (company_id, filename, normalized_text, len(content), file_ext.replace('.', 'application/'), company.get("user_id")))
+            """, (company_id, filename, normalized_text, relative_path, len(content), file_ext.replace('.', 'application/'), company.get("user_id")))
             doc_id = str(cur.fetchone()[0])
             conn.commit()
     except Exception as e:
@@ -1031,8 +1046,142 @@ async def chat_upload_file(file: UploadFile = File(...), company: dict = Depends
         "filename": filename,
         "content": extracted_text,
         "file_type": file_ext,
-        "document_id": doc_id
+        "document_id": doc_id,
+        "file_path": relative_path if doc_id else None
     }
+
+
+@app.get("/v1/documents/{doc_id}/download")
+async def download_document(doc_id: str, company: dict = Depends(verify_api_key)):
+    """Download original or edited document file"""
+    from pathlib import Path
+    
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT name, file_path, mime_type, company_id
+            FROM documents
+            WHERE id = %s
+        """, (doc_id,))
+        
+        row = cur.fetchone()
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Check ownership
+        if str(row[3]) != str(company["company_id"]):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        file_name = row[0]
+        file_path = row[1]
+        mime_type = row[2] or "application/octet-stream"
+        
+        # Handle old 'chat-upload' entries (no actual file)
+        if file_path == 'chat-upload' or not file_path:
+            raise HTTPException(status_code=404, detail="File not available for download")
+        
+        # Convert to full path
+        full_path = Path(file_path) if Path(file_path).is_absolute() else Path.cwd() / file_path
+        
+        if not full_path.exists():
+            raise HTTPException(status_code=404, detail="File not found on disk")
+        
+        return FileResponse(
+            path=str(full_path),
+            filename=file_name,
+            media_type=mime_type
+        )
+
+
+@app.post("/v1/documents/{doc_id}/edit-docx")
+async def edit_docx(doc_id: str, edits: dict = Body(...), company: dict = Depends(verify_api_key)):
+    """Apply text edits to a DOCX file preserving formatting"""
+    from pathlib import Path
+    from src.services.docx_editor import edit_docx_file
+    
+    with get_db() as conn:
+        cur = conn.cursor()
+        
+        # Get document
+        cur.execute("""
+            SELECT name, file_path, mime_type, company_id
+            FROM documents
+            WHERE id = %s
+        """, (doc_id,))
+        
+        row = cur.fetchone()
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="Document not found")
+        
+        # Check ownership
+        if str(row[3]) != str(company["company_id"]):
+            raise HTTPException(status_code=403, detail="Access denied")
+        
+        file_name = row[0]
+        file_path = row[1]
+        mime_type = row[2]
+        
+        # Validate it's a DOCX file
+        if not file_name.endswith('.docx') and 'wordprocessingml' not in (mime_type or ''):
+            raise HTTPException(status_code=400, detail="Only .docx files can be edited")
+        
+        if file_path == 'chat-upload' or not file_path:
+            raise HTTPException(status_code=404, detail="Original file not available")
+        
+        # Get full path
+        input_path = Path(file_path) if Path(file_path).is_absolute() else Path.cwd() / file_path
+        
+        if not input_path.exists():
+            raise HTTPException(status_code=404, detail="Original file not found on disk")
+        
+        # Create output path
+        company_id = str(company["company_id"])
+        output_dir = Path("uploads/documents") / company_id
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate edited filename
+        base_name = input_path.stem
+        unique_id = str(uuid.uuid4())[:8]
+        output_filename = f"{unique_id}_edited_{base_name}.docx"
+        output_path = output_dir / output_filename
+        
+        # Apply edits
+        try:
+            edits_list = edits.get("edits", [])
+            if not edits_list:
+                raise HTTPException(status_code=400, detail="No edits provided")
+            
+            result = edit_docx_file(
+                input_path=str(input_path),
+                output_path=str(output_path),
+                edits=edits_list
+            )
+            
+            # Update database with new file path
+            relative_output = str(output_path.relative_to(Path.cwd()))
+            
+            cur.execute("""
+                UPDATE documents
+                SET file_path = %s,
+                    status = 'edited',
+                    file_size = %s
+                WHERE id = %s
+            """, (relative_output, output_path.stat().st_size, doc_id))
+            conn.commit()
+            
+            return {
+                "message": "Document edited successfully",
+                "document_id": doc_id,
+                "changes_made": result["changes_made"],
+                "edits_applied": result["edits_applied"],
+                "download_url": f"/v1/documents/{doc_id}/download",
+                "output_filename": output_filename
+            }
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Edit failed: {str(e)}")
 
 
 @app.post("/v1/legal/ask", response_model=LegalResponse)

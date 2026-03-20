@@ -3847,7 +3847,7 @@ console.log(await resp.json());</code></pre>
 
         function toggleCitations(header) { const list = header.parentElement.querySelector('.citations-list'); list.classList.toggle('hidden'); header.parentElement.classList.toggle('expanded'); }
 
-        function renderDiffView(original, edited, filename, changesSummary, additions, deletions, changesCount) {
+        function renderDiffView(original, edited, filename, changesSummary, additions, deletions, changesCount, downloadUrl, documentId) {
             // Generate diff HTML from original and edited text
             const originalLines = (original || '').split('\n');
             const editedLines = (edited || '').split('\n');
@@ -3908,9 +3908,15 @@ console.log(await resp.json());</code></pre>
         ${diffHtml}
     </div>
     <div class="diff-actions">
+        ${downloadUrl ? `
+        <a href="${downloadUrl}" class="diff-btn diff-btn-download" download style="text-decoration: none; display: inline-block;">
+            📥 Tải xuống file Word (.docx)
+        </a>
+        ` : `
         <button class="diff-btn diff-btn-download" onclick="downloadEditedDocument(\`${edited.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`, '${escapeHtml(filename || 'edited_document.txt')}')">
-            📥 Tải xuống bản đã sửa
+            📥 Tải xuống bản đã sửa (TXT)
         </button>
+        `}
         <button class="diff-btn diff-btn-cancel" onclick="this.closest('.diff-container').remove()">
             ❌ Đóng
         </button>
@@ -5590,7 +5596,7 @@ console.log(await resp.json());</code></pre>
                             } else if (event.type === 'citations') { citations = event.citations || event.content; }
                             else if (event.type === 'document_edit' || event.type === 'diff') {
                                 // Render diff view
-                                var diffHtml = renderDiffView(event.original, event.edited, event.filename, event.changes, event.additions, event.deletions, event.changes_count);
+                                var diffHtml = renderDiffView(event.original, event.edited, event.filename, event.changes, event.additions, event.deletions, event.changes_count, event.download_url, event.document_id);
                                 textDiv.innerHTML += diffHtml;
                                 container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
                             }
