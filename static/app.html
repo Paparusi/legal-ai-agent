@@ -2925,22 +2925,22 @@ console.log(await resp.json());</code></pre>
                     // Note: This assumes contractId exists or API creates one
                     // Adjust endpoint as needed based on actual backend API
                     const contractId = 'temp-' + Date.now(); // Temporary ID
-                    const response = await apiCall(`/contracts/${contractId}/review-ai`, {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch(`/v1/contracts/${contractId}/review-ai`, {
                         method: 'POST',
                         body: formData,
-                        headers: {} // FormData sets its own headers
+                        headers: { 'Authorization': `Bearer ${token}` }
                     });
-                    
-                    reviewResult = response;
+                    reviewResult = await res.json();
                 } else {
                     // Review text content
-                    const response = await apiCall('/contracts/review-text', {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch('/v1/contracts/review-text', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({ text: textInput })
                     });
-                    
-                    reviewResult = response;
+                    reviewResult = await res.json();
                 }
                 
                 // Display results
@@ -4640,13 +4640,15 @@ console.log(await resp.json());</code></pre>
             
             try {
                 // Send test request to backend
-                const response = await apiCall('/llm/test-connection', {
+                const token = localStorage.getItem('token');
+                const res = await fetch('/v1/llm/test', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ provider, apiKey, model })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ provider, api_key: apiKey, model })
                 });
+                const response = await res.json();
                 
-                if (response.success) {
+                if (response.success || res.ok) {
                     statusEl.innerHTML = '<span style="color: var(--success);">✅ Kết nối thành công</span>';
                     showToast('LLM Provider hoạt động tốt!', 'success');
                 } else {
