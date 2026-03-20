@@ -504,9 +504,10 @@ async def _call_claude_with_tools(messages: list, tools: list, system: str = AGE
 # Fast path detection — skip agent loop for simple questions
 SIMPLE_PATTERNS = [
     "xin chào", "hello", "hi", "chào", "cảm ơn", "thank", 
-    "bạn là ai", "giới thiệu", "bạn có thể làm gì",
-    "ok", "được", "tốt", "vâng", "ừ"
+    "bạn là ai", "giới thiệu", "bạn có thể làm gì"
 ]
+# Note: "ok", "được", "có", "vâng", "ừ" are NOT simple — they are confirmations
+# that NEED chat history context to understand what user is agreeing to
 
 def is_simple_question(question: str) -> bool:
     """Check if question is simple enough to skip agent loop.

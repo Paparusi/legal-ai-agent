@@ -1167,22 +1167,41 @@ async def legal_ask_stream(query: LegalQuery, company: dict = Depends(verify_api
     session_id = None
     user_id = company.get("user_id")
 
-    if query.session_id and user_id:
-        try:
-            with get_db() as conn:
-                cur = conn.cursor(cursor_factory=RealDictCursor)
-                cur.execute("""
-                    SELECT role, content FROM messages
-                    WHERE session_id = %s AND company_id = %s
-                    ORDER BY created_at ASC
-                    LIMIT 50
-                """, (query.session_id, company["company_id"]))
-                rows = cur.fetchall()
-                for row in rows:
-                    chat_history.append({"role": row["role"], "content": row["content"]})
-                session_id = query.session_id
-        except Exception as e:
-            print(f"Error loading chat history: {e}")
+    if user_id:
+        target_session = query.session_id
+        # If no session_id, auto-find latest active session (within 30 min) for continuity
+        if not target_session:
+            try:
+                with get_db() as conn:
+                    cur = conn.cursor(cursor_factory=RealDictCursor)
+                    cur.execute("""
+                        SELECT id FROM chat_sessions
+                        WHERE user_id = %s AND company_id = %s AND status = 'active'
+                          AND last_message_at > now() - interval '30 minutes'
+                        ORDER BY last_message_at DESC LIMIT 1
+                    """, (user_id, company["company_id"]))
+                    recent = cur.fetchone()
+                    if recent:
+                        target_session = str(recent["id"])
+            except Exception:
+                pass
+
+        if target_session:
+            try:
+                with get_db() as conn:
+                    cur = conn.cursor(cursor_factory=RealDictCursor)
+                    cur.execute("""
+                        SELECT role, content FROM messages
+                        WHERE session_id = %s AND company_id = %s
+                        ORDER BY created_at ASC
+                        LIMIT 50
+                    """, (target_session, company["company_id"]))
+                    rows = cur.fetchall()
+                    for row in rows:
+                        chat_history.append({"role": row["role"], "content": row["content"]})
+                    session_id = target_session
+            except Exception as e:
+                print(f"Error loading chat history: {e}")
 
     # Augment question with file context if provided
     actual_question = query.question
@@ -1272,6 +1291,9 @@ CÂU HỎI: {query.question}"""
                         WHERE id = %s
                     """, (saved_session_id,))
                     conn.commit()
+                    # Emit session_id so frontend can track conversation
+                    if saved_session_id:
+                        yield f"data: {json.dumps({'type': 'session_id', 'content': str(saved_session_id)})}\n\n"
             except Exception as e:
                 print(f"Error saving stream chat history: {e}")
 
