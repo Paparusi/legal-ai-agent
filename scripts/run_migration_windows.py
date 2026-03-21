@@ -6,10 +6,10 @@ import psycopg2
 import os
 
 DB_HOST = os.getenv("SUPABASE_DB_HOST", "localhost")
-DB_PORT = 5432
-DB_NAME = "postgres"
-DB_USER = "postgres"
-DB_PASS = "LegalAI2026x"
+DB_PORT = int(os.getenv("SUPABASE_DB_PORT", "5432"))
+DB_NAME = os.getenv("DB_NAME", "postgres")
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASS = os.getenv("SUPABASE_DB_PASSWORD", "")
 
 # Read migration SQL
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,7 +21,7 @@ with open(sql_file, "r") as f:
 print("Connecting to Supabase...")
 conn = psycopg2.connect(
     host=DB_HOST, port=DB_PORT, dbname=DB_NAME,
-    user=DB_USER, password=DB_PASS, sslmode="require"
+    user=DB_USER, password=DB_PASS, sslmode=os.getenv("DB_SSL_MODE", "require")
 )
 conn.autocommit = True
 cur = conn.cursor()

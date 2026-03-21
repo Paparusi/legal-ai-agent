@@ -18,10 +18,10 @@ import jwt
 DB_CONFIG = {
     "host": os.getenv("SUPABASE_DB_HOST", "localhost"),
     "port": int(os.getenv("SUPABASE_DB_PORT", "5432")),
-    "dbname": "postgres",
-    "user": "postgres",
+    "dbname": os.getenv("DB_NAME", "postgres"),
+    "user": os.getenv("DB_USER", "postgres"),
     "password": os.getenv("SUPABASE_DB_PASSWORD", ""),
-    "sslmode": "require"
+    "sslmode": os.getenv("DB_SSL_MODE", "require")
 }
 
 JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "your-super-secret-jwt-key-change-in-production")

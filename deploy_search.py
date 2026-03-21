@@ -4,11 +4,11 @@ import time
 
 DB_CONFIG = {
     "host": os.getenv("SUPABASE_DB_HOST", "localhost"),
-    "port": 5432,
-    "dbname": "postgres",
-    "user": "postgres",
+    "port": int(os.getenv("SUPABASE_DB_PORT", "5432")),
+    "dbname": os.getenv("DB_NAME", "postgres"),
+    "user": os.getenv("DB_USER", "postgres"),
     "password": os.getenv("SUPABASE_DB_PASSWORD", ""),
-    "sslmode": "require"
+    "sslmode": os.getenv("DB_SSL_MODE", "require")
 }
 
 print("Connecting to Supabase...")
