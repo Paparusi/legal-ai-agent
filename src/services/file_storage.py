@@ -13,6 +13,16 @@ BUCKET = "documents"
 LOCAL_UPLOAD_DIR = Path("/tmp/legal-ai-agent-uploads/documents")
 
 
+def _auth_headers() -> dict:
+    """Build auth headers — supports both JWT (eyJ...) and new sb_ key formats"""
+    headers = {"apikey": SUPABASE_SERVICE_KEY}
+    if SUPABASE_SERVICE_KEY.startswith("eyJ"):
+        headers["Authorization"] = f"Bearer {SUPABASE_SERVICE_KEY}"
+    else:
+        headers["Authorization"] = f"Bearer {SUPABASE_SERVICE_KEY}"
+    return headers
+
+
 async def upload_file(file_bytes: bytes, company_id: str, filename: str) -> dict:
     """Upload file to Supabase Storage. Returns {storage_path, provider}"""
     unique_name = f"{company_id}/{uuid.uuid4()}_{filename}"
@@ -26,7 +36,7 @@ async def upload_file(file_bytes: bytes, company_id: str, filename: str) -> dict
                     url, 
                     content=file_bytes,
                     headers={
-                        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                        **_auth_headers(),
                         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     }
                 )
@@ -52,7 +62,7 @@ async def download_file(storage_path: str) -> bytes:
             async with httpx.AsyncClient(timeout=30) as client:
                 resp = await client.get(
                     url, 
-                    headers={"Authorization": f"Bearer {SUPABASE_SERVICE_KEY}"}
+                    headers=_auth_headers()
                 )
                 if resp.status_code == 200:
                     return resp.content
@@ -74,7 +84,7 @@ async def get_download_url(storage_path: str, expires_in: int = 3600) -> str:
                 resp = await client.post(
                     url, 
                     json={"expiresIn": expires_in},
-                    headers={"Authorization": f"Bearer {SUPABASE_SERVICE_KEY}"}
+                    headers=_auth_headers()
                 )
                 if resp.status_code == 200:
                     data = resp.json()
@@ -96,7 +106,7 @@ async def delete_file(storage_path: str) -> bool:
             async with httpx.AsyncClient(timeout=10) as client:
                 resp = await client.delete(
                     url,
-                    headers={"Authorization": f"Bearer {SUPABASE_SERVICE_KEY}"}
+                    headers=_auth_headers()
                 )
                 return resp.status_code == 200
         except Exception as e:
