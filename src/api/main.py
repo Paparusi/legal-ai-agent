@@ -1039,7 +1039,7 @@ async def chat_upload_file(file: UploadFile = File(...), company: dict = Depends
                 INSERT INTO documents (company_id, name, extracted_text, doc_type, status, file_path, file_size, mime_type, uploaded_by)
                 VALUES (%s, %s, %s, 'other', 'uploaded', %s, %s, %s, %s)
                 RETURNING id
-            """, (company_id, filename, normalized_text, storage_path, len(content), file_ext.replace('.', 'application/'), company.get("user_id")))
+            """, (company_id, filename, normalized_text, storage_path, len(content), storage_result.get("content_type", "application/octet-stream"), company.get("user_id")))
             doc_id = str(cur.fetchone()[0])
             conn.commit()
     except Exception as e:
@@ -1158,18 +1158,15 @@ async def preview_document(doc_id: str, company: dict = Depends(verify_api_key))
         try:
             # Convert to PDF
             pdf_path = convert_to_pdf(tmp_docx_path)
-            
-            # Return PDF
-            return FileResponse(
-                path=pdf_path,
-                filename=os.path.splitext(file_name)[0] + ".pdf",
-                media_type="application/pdf"
-            )
-        
+
+            # Read PDF bytes into memory before cleanup so FileResponse doesn't race the finally block
+            with open(pdf_path, 'rb') as f:
+                pdf_bytes = f.read()
+
         except Exception as e:
             print(f"PDF conversion error: {e}")
             raise HTTPException(status_code=500, detail=f"Cannot convert to PDF: {str(e)}")
-        
+
         finally:
             # Cleanup temp files
             try:
@@ -1178,6 +1175,12 @@ async def preview_document(doc_id: str, company: dict = Depends(verify_api_key))
                     os.unlink(pdf_path)
             except:
                 pass
+
+        return StreamingResponse(
+            BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'inline; filename="{os.path.splitext(file_name)[0]}.pdf"'}
+        )
 
 
 @app.post("/v1/documents/{doc_id}/edit-docx")
