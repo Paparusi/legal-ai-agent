@@ -1,5 +1,12 @@
 # ⚖️ AI Legal Agent
 
+<p align="center">
+  <a href="https://github.com/Paparusi/legal-ai-agent/stargazers"><img src="https://img.shields.io/github/stars/Paparusi/legal-ai-agent?style=social" alt="Stars"></a>
+  <a href="https://github.com/Paparusi/legal-ai-agent/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License"></a>
+  <a href="https://github.com/Paparusi/legal-ai-agent/actions/workflows/ci.yml"><img src="https://github.com/Paparusi/legal-ai-agent/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python"></a>
+</p>
+
 🇻🇳 [Tiếng Việt](README_VI.md) | 🇺🇸 English
 
 > **Created by [Lê Minh Hiếu](https://github.com/Paparusi)** — Trader turned Builder 🇻🇳
