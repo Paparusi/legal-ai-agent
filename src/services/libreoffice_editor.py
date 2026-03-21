@@ -7,7 +7,6 @@ import subprocess
 import tempfile
 import shutil
 import os
-import json
 from pathlib import Path
 
 

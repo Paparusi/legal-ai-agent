@@ -84,7 +84,7 @@ Successfully implemented LibreOffice-based DOCX editing and Supabase Storage int
 ### Environment Variables (Add to .env)
 ```bash
 SUPABASE_URL=https://chiokotzjtjwfodryfdt.supabase.co
-SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNoaW9rb3R6anRqd2ZvZHJ5ZmR0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzU1ODYxMSwiZXhwIjoyMDg5MTM0NjExfQ.5qQlSqf68QLHekY41Ko7ECczmlmMA4TNCTyg-RELOPY
+SUPABASE_SERVICE_KEY=<your-supabase-service-role-key>
 ```
 
 ### Docker Build & Run

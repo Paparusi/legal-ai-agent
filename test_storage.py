@@ -3,8 +3,9 @@ import asyncio
 import os
 from src.services.file_storage import upload_file, download_file, get_download_url
 
-# Set the service key for testing
-os.environ["SUPABASE_SERVICE_KEY"] = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNoaW9rb3R6anRqd2ZvZHJ5ZmR0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzU1ODYxMSwiZXhwIjoyMDg5MTM0NjExfQ.5qQlSqf68QLHekY41Ko7ECczmlmMA4TNCTyg-RELOPY"
+# Set the service key for testing — read from environment, never hardcode
+if not os.environ.get("SUPABASE_SERVICE_KEY"):
+    raise SystemExit("Set SUPABASE_SERVICE_KEY env var before running this test")
 
 async def test_storage():
     # Create a test file
